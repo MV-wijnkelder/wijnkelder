@@ -7,6 +7,13 @@ import {
 } from "@/server/ai/providers/openai-provider";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const OPENAI_API_KEY_ENV_NAME = ["OPENAI", "API", "KEY"].join("_");
+
+// Recognition depends on a deployment-time secret and Node.js APIs (Buffer in
+// the provider). Keep this route out of static optimization and the Edge
+// runtime so Vercel reads the environment of the running function.
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const PROVIDER_ERRORS: Record<OpenAIProviderErrorCode, { message: string; status: number }> = {
   AUTHENTICATION_FAILED: { message: "De OpenAI API-sleutel is ongeldig of heeft geen toegang.", status: 503 },
@@ -16,8 +23,17 @@ const PROVIDER_ERRORS: Record<OpenAIProviderErrorCode, { message: string; status
 };
 
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  // Names only: never log environment values or the API key itself.
+  console.info("recognize-wine runtime environment keys", Object.keys(process.env).sort());
+
+  // A computed lookup is intentionally used here. Unlike a statically
+  // referenced process.env property, it cannot be replaced with a build-time
+  // value and is resolved from the Vercel function environment at request time.
+  const configuredApiKey = process.env[OPENAI_API_KEY_ENV_NAME];
+  const apiKey = configuredApiKey?.trim();
   if (!apiKey) {
+    const reason = configuredApiKey === undefined ? "not present" : "empty";
+    console.error(`OPENAI_API_KEY is ${reason} in the recognize-wine runtime environment`);
     return NextResponse.json(
       { error: "OPENAI_API_KEY ontbreekt in de serverconfiguratie; wijnherkenning kan niet worden gestart." },
       { status: 503 },
