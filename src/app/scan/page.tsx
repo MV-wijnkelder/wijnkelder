@@ -6,6 +6,7 @@ import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
 import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon, TrashIcon, WineglassIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
+import { compressImage } from "@/lib/image-compression";
 import { AIService } from "@/services/ai-service";
 
 const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
@@ -18,6 +19,8 @@ export default function ScanPage() {
   const [result, setResult] = useState<Wine | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [optimizingSides, setOptimizingSides] = useState<Set<LabelSide>>(() => new Set());
+  const selectionSequence = useRef<Record<LabelSide, number>>({ front: 0, back: 0 });
   const frontCameraInput = useRef<HTMLInputElement>(null);
   const frontLibraryInput = useRef<HTMLInputElement>(null);
   const backCameraInput = useRef<HTMLInputElement>(null);
@@ -28,16 +31,40 @@ export default function ScanPage() {
   useEffect(() => () => { if (frontUrl) URL.revokeObjectURL(frontUrl); }, [frontUrl]);
   useEffect(() => () => { if (backUrl) URL.revokeObjectURL(backUrl); }, [backUrl]);
 
-  function selectPhoto(side: LabelSide, event: ChangeEvent<HTMLInputElement>) {
+  async function selectPhoto(side: LabelSide, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const photo = { file, url: URL.createObjectURL(file) };
-    if (side === "front") setFront(photo); else setBack(photo);
+    const sequence = ++selectionSequence.current[side];
+    setOptimizingSides((current) => new Set(current).add(side));
     setResult(null);
     setError(null);
+    try {
+      const optimizedFile = await compressImage(file);
+      if (selectionSequence.current[side] !== sequence) return;
+      const photo = { file: optimizedFile, url: URL.createObjectURL(optimizedFile) };
+      if (side === "front") setFront(photo); else setBack(photo);
+    } catch (optimizationError) {
+      if (selectionSequence.current[side] === sequence) {
+        setError(optimizationError instanceof Error ? optimizationError.message : "The photo could not be optimized.");
+      }
+    } finally {
+      if (selectionSequence.current[side] === sequence) {
+        setOptimizingSides((current) => {
+          const next = new Set(current);
+          next.delete(side);
+          return next;
+        });
+      }
+    }
   }
 
   function removeBack() {
+    selectionSequence.current.back += 1;
+    setOptimizingSides((current) => {
+      const next = new Set(current);
+      next.delete("back");
+      return next;
+    });
     setBack(null);
     setError(null);
     if (backCameraInput.current) backCameraInput.current.value = "";
@@ -45,6 +72,9 @@ export default function ScanPage() {
   }
 
   function resetPhotos() {
+    selectionSequence.current.front += 1;
+    selectionSequence.current.back += 1;
+    setOptimizingSides(new Set());
     setFront(null);
     setBack(null);
     setResult(null);
@@ -55,12 +85,15 @@ export default function ScanPage() {
   }
 
   function releaseLabelImages() {
+    selectionSequence.current.front += 1;
+    selectionSequence.current.back += 1;
+    setOptimizingSides(new Set());
     setFront(null);
     setBack(null);
   }
 
   async function recognizeWine() {
-    if (!front || isRecognizing) return;
+    if (!front || isRecognizing || optimizingSides.size > 0) return;
     setIsRecognizing(true);
     setError(null);
     setResult(null);
@@ -82,7 +115,7 @@ export default function ScanPage() {
       type="file"
       accept="image/*"
       capture={source === "camera" ? "environment" : undefined}
-      onChange={(event) => selectPhoto(side, event)}
+      onChange={(event) => void selectPhoto(side, event)}
       aria-label={`${side === "front" ? "Front" : "Back"} label ${source}`}
     />
   );
@@ -117,13 +150,14 @@ export default function ScanPage() {
             {input("front", "camera")}{input("front", "library")}{input("back", "camera")}{input("back", "library")}
 
             {front && <>
-              <button className="action action-primary w-full" type="button" onClick={recognizeWine} disabled={!front || isRecognizing}>
+              <button className="action action-primary w-full" type="button" onClick={recognizeWine} disabled={!front || isRecognizing || optimizingSides.size > 0}>
                 {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <WineglassIcon className="size-5" />}
                 {isRecognizing ? "Recognizing Wine…" : "Recognize Wine"}
               </button>
               {!back && <button className="action action-secondary w-full" type="button" onClick={() => backCameraInput.current?.click()} disabled={isRecognizing}><CameraIcon className="size-5" /> Add Back Label <span className="optional-text">Optional</span></button>}
             </>}
             {isRecognizing && <p className="sr-only" role="status">The wine is being recognized.</p>}
+            {optimizingSides.size > 0 && <p className="optimization-status" role="status"><span className="optimization-spinner" aria-hidden="true" /> Optimizing photos...</p>}
             {error && <p className="error-message" role="alert">{error}</p>}
           </div>
         )}
