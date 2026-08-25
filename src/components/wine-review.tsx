@@ -167,19 +167,24 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
       </div>
 
       {saveMessage && (
-        <p className={saveFailed ? "error-message" : "success-message"} role={saveFailed ? "alert" : "status"}>
+        <p className={saveFailed ? "error-message" : "success-toast"} role={saveFailed ? "alert" : "status"}>
           {!saveFailed && <span><CheckIcon className="size-4" /></span>}
           {saveMessage}
         </p>
       )}
 
       {duplicateQuantity !== null && (
-        <div className="duplicate-message" role="status">
-          <strong>This wine already exists in your cellar.</strong>
-          <p>Current bottles: {duplicateQuantity}</p>
-          <div className="duplicate-actions">
-            <button className="action action-primary" type="button" disabled={isSaving} onClick={increaseBottleCount}>Increase bottle count</button>
-            <button className="action action-secondary" type="button" disabled={isSaving} onClick={() => setDuplicateQuantity(null)}>Cancel</button>
+        <div className="dialog-backdrop" role="presentation">
+          <div className="duplicate-dialog" role="dialog" aria-modal="true" aria-labelledby="duplicate-title" aria-describedby="duplicate-description">
+            <strong id="duplicate-title">This wine already exists in your wine cellar.</strong>
+            <p id="duplicate-description">Increase bottle quantity?</p>
+            <small>Current bottle quantity: {duplicateQuantity}</small>
+            <div className="duplicate-actions">
+              <button className="action action-primary" type="button" disabled={isSaving} onClick={increaseBottleCount}>
+                {isSaving && <span className="spinner" aria-hidden="true" />} Increase quantity
+              </button>
+              <button className="action action-secondary" type="button" disabled={isSaving} onClick={() => setDuplicateQuantity(null)}>Cancel</button>
+            </div>
           </div>
         </div>
       )}

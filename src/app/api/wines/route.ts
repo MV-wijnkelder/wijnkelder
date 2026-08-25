@@ -9,6 +9,7 @@ const FRIENDLY_ERRORS: Record<ExcelStorageErrorCode, { message: string; status: 
   WORKSHEET_MISSING: { message: "Het werkblad van de geconfigureerde Excel-tabel bestaat niet.", status: 503 },
   TABLE_MISSING: { message: "De geconfigureerde Excel-tabel bestaat niet in het werkboek.", status: 503 },
   NETWORK_TIMEOUT: { message: "De verbinding met Microsoft Graph duurde te lang. Probeer het opnieuw.", status: 504 },
+  WORKBOOK_LOCKED: { message: "Het Excel-werkboek is momenteel vergrendeld. Sluit het werkboek en probeer het opnieuw.", status: 423 },
   WINE_NOT_FOUND: { message: "De bestaande wijn kon niet opnieuw worden gevonden.", status: 409 },
   STORAGE_FAILED: { message: "De Excel-opslagbewerking is mislukt. Controleer de tabelkolommen en probeer opnieuw.", status: 502 },
 };

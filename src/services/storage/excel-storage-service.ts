@@ -1,25 +1,31 @@
-import "server-only";
-
 import type { Wine } from "@/domain/wine";
 import type { AddWineResult, IncreaseWineResult, StorageService, WineLabelImages } from "@/services/storage/storage-service";
 
 const GRAPH_ROOT = "https://graph.microsoft.com/v1.0";
 const LOGIN_ROOT = "https://login.microsoftonline.com";
 const REQUEST_TIMEOUT_MS = 15_000;
+const RETRYABLE_STATUSES = new Set([409, 423, 429, 503, 504]);
+const MAX_WRITE_ATTEMPTS = 4;
 
 export type ConfigurationItem = "MICROSOFT_TENANT_ID" | "MICROSOFT_CLIENT_ID" | "MICROSOFT_CLIENT_SECRET" | "ONEDRIVE_FILE_ID" | "EXCEL_TABLE_NAME";
-export type ExcelStorageErrorCode = "AUTHENTICATION_FAILED" | "WORKBOOK_MISSING" | "WORKBOOK_ACCESS_DENIED" | "WORKSHEET_MISSING" | "TABLE_MISSING" | "NETWORK_TIMEOUT" | "STORAGE_FAILED" | "WINE_NOT_FOUND";
+export type ExcelStorageErrorCode = "AUTHENTICATION_FAILED" | "WORKBOOK_MISSING" | "WORKBOOK_ACCESS_DENIED" | "WORKSHEET_MISSING" | "TABLE_MISSING" | "NETWORK_TIMEOUT" | "WORKBOOK_LOCKED" | "STORAGE_FAILED" | "WINE_NOT_FOUND";
 
 export class ExcelStorageError extends Error {
-  constructor(readonly code: ExcelStorageErrorCode, readonly configurationItem?: ConfigurationItem) {
+  readonly code: ExcelStorageErrorCode;
+  readonly configurationItem?: ConfigurationItem;
+
+  constructor(code: ExcelStorageErrorCode, configurationItem?: ConfigurationItem) {
     super(code);
     this.name = "ExcelStorageError";
+    this.code = code;
+    this.configurationItem = configurationItem;
   }
 }
 
 type ExcelConfiguration = { tenantId: string; clientId: string; clientSecret: string; fileId: string; tableName: string };
 type Cell = string | number | boolean | null;
 type TableData = { headers: string[]; rows: Cell[][] };
+type WorkbookContext = { accessToken: string; tableUrl: string; sessionId: string };
 
 const COLUMN_ALIASES = {
   producer: ["producer", "producent"], wineName: ["wine name", "winename", "wijnnaam", "wine"], vintage: ["vintage", "jaargang"],
@@ -30,73 +36,89 @@ const COLUMN_ALIASES = {
 } as const;
 
 /**
- * Microsoft Graph-backed cellar storage. Label images deliberately stop at this
- * boundary; a future image provider can persist them without changing Wine.
+ * A short-lived queue prevents two requests handled by this process from
+ * performing a read/modify/write cycle simultaneously. It stores no cellar
+ * data; Excel is re-read inside every queued operation and remains the source
+ * of truth. Graph conflict handling below also covers other app instances.
  */
-export class ExcelStorageService implements StorageService {
-  async addWine(wine: Wine, labelImages?: WineLabelImages): Promise<AddWineResult> {
-    void labelImages;
-    const context = await connect();
-    const data = await readTable(context.tableUrl, context.accessToken);
-    const columns = resolveColumns(data.headers);
-    const duplicate = findDuplicate(data.rows, columns, wine);
-    console.info("Excel duplicate detection completed", { found: duplicate !== -1 });
-    if (duplicate !== -1) return { status: "WineAlreadyExists", bottleQuantity: quantity(data.rows[duplicate][columns.bottleQuantity]) };
+let workbookOperation = Promise.resolve();
+function serialise<T>(operation: () => Promise<T>): Promise<T> {
+  const result = workbookOperation.then(operation, operation);
+  workbookOperation = result.then(() => undefined, () => undefined);
+  return result;
+}
 
-    const row = makeRow(data.headers.length, columns, wine, 1);
-    const response = await graphRequest(`${context.tableUrl}/rows/add`, context.accessToken, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ values: [row] }),
-    });
-    if (!response.ok) throw response.status === 404 ? new ExcelStorageError("TABLE_MISSING") : new ExcelStorageError("STORAGE_FAILED");
-    console.info("Excel wine row inserted");
-    return { status: "WineAdded", bottleQuantity: 1 };
+export class ExcelStorageService implements StorageService {
+  addWine(wine: Wine, labelImages?: WineLabelImages): Promise<AddWineResult> {
+    void labelImages;
+    return serialise(() => withWorkbookSession(async (context) => {
+      const data = await readTable(context);
+      const columns = resolveColumns(data.headers);
+      const duplicate = findDuplicate(data.rows, columns, wine);
+      if (duplicate !== -1) return { status: "WineAlreadyExists", bottleQuantity: quantity(data.rows[duplicate][columns.bottleQuantity]) };
+
+      const row = makeRow(data.headers.length, columns, wine, 1);
+      const response = await writeRequest(`${context.tableUrl}/rows/add`, context, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ values: [row] }),
+      });
+      if (!response.ok) throw response.status === 404 ? new ExcelStorageError("TABLE_MISSING") : storageWriteError(response.status);
+      return { status: "WineAdded", bottleQuantity: 1 };
+    }));
   }
 
-  async increaseBottleCount(wine: Wine): Promise<IncreaseWineResult> {
-    const context = await connect();
-    const data = await readTable(context.tableUrl, context.accessToken);
-    const columns = resolveColumns(data.headers);
-    const rowIndex = findDuplicate(data.rows, columns, wine);
-    console.info("Excel duplicate detection completed for quantity update", { found: rowIndex !== -1 });
-    if (rowIndex === -1) throw new ExcelStorageError("WINE_NOT_FOUND");
-    const nextQuantity = quantity(data.rows[rowIndex][columns.bottleQuantity]) + 1;
-    const response = await graphRequest(`${context.tableUrl}/rows/itemAt(index=${rowIndex})/range`, context.accessToken, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ values: [data.rows[rowIndex].map((cell, index) => index === columns.bottleQuantity ? nextQuantity : cell)] }),
-    });
-    if (!response.ok) throw new ExcelStorageError("STORAGE_FAILED");
-    console.info("Excel bottle quantity updated", { bottleQuantity: nextQuantity });
-    return { status: "BottleQuantityIncreased", bottleQuantity: nextQuantity };
+  increaseBottleCount(wine: Wine): Promise<IncreaseWineResult> {
+    return serialise(() => withWorkbookSession(async (context) => {
+      // Re-read here rather than trusting the quantity returned by addWine.
+      const data = await readTable(context);
+      const columns = resolveColumns(data.headers);
+      const rowIndex = findDuplicate(data.rows, columns, wine);
+      if (rowIndex === -1) throw new ExcelStorageError("WINE_NOT_FOUND");
+      const nextQuantity = quantity(data.rows[rowIndex][columns.bottleQuantity]) + 1;
+      const values: null[][] = [Array(data.headers.length).fill(null)];
+      (values[0] as Array<Cell>)[columns.bottleQuantity] = nextQuantity;
+      const response = await writeRequest(`${context.tableUrl}/rows/itemAt(index=${rowIndex})/range`, context, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ values }),
+      });
+      if (!response.ok) throw storageWriteError(response.status);
+      return { status: "BottleQuantityIncreased", bottleQuantity: nextQuantity };
+    }));
   }
 }
 
-async function connect() {
+async function withWorkbookSession<T>(operation: (context: WorkbookContext) => Promise<T>): Promise<T> {
   const configuration = getConfiguration();
-  console.info("Microsoft Graph authentication started");
   const accessToken = await authenticate(configuration);
-  console.info("Microsoft Graph authentication succeeded");
   const workbookUrl = `${GRAPH_ROOT}/drive/items/${encodeURIComponent(configuration.fileId)}`;
-  console.info("Microsoft Graph workbook access check started", { fileIdConfigured: true });
   const workbook = await graphRequest(workbookUrl, accessToken);
   if (workbook.status === 404) throw new ExcelStorageError("WORKBOOK_MISSING");
   if (!workbook.ok) throw new ExcelStorageError("WORKBOOK_ACCESS_DENIED");
   const tableUrl = `${workbookUrl}/workbook/tables/${encodeURIComponent(configuration.tableName)}`;
-  console.info("Microsoft Graph table lookup started", { tableName: configuration.tableName });
   const table = await graphRequest(tableUrl, accessToken);
   if (table.status === 404) throw new ExcelStorageError("TABLE_MISSING");
   if (!table.ok) throw new ExcelStorageError("WORKBOOK_ACCESS_DENIED");
   const worksheet = await graphRequest(`${tableUrl}/worksheet`, accessToken);
   if (worksheet.status === 404) throw new ExcelStorageError("WORKSHEET_MISSING");
   if (!worksheet.ok) throw new ExcelStorageError("WORKBOOK_ACCESS_DENIED");
-  console.info("Microsoft Graph workbook, worksheet and table access verified");
-  return { accessToken, tableUrl };
+
+  const sessionResponse = await writeRequest(`${workbookUrl}/workbook/createSession`, { accessToken, sessionId: "" }, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ persistChanges: true }),
+  }, false);
+  if (!sessionResponse.ok) throw storageWriteError(sessionResponse.status);
+  const session = await sessionResponse.json() as { id?: unknown };
+  if (typeof session.id !== "string" || !session.id) throw new ExcelStorageError("STORAGE_FAILED");
+  const context = { accessToken, tableUrl, sessionId: session.id };
+  try { return await operation(context); }
+  finally {
+    // Closing commits a persistent session. A failed close is logged because the
+    // mutation may already have succeeded and must not be repeated blindly.
+    const close = await graphRequest(`${workbookUrl}/workbook/closeSession`, accessToken, { method: "POST" }, session.id).catch(() => null);
+    if (close && !close.ok) console.error("Microsoft Graph workbook session could not be closed", { status: close.status });
+  }
 }
 
-async function readTable(tableUrl: string, token: string): Promise<TableData> {
-  // The workbook is the inventory source of truth. These requests deliberately
-  // bypass caches on every operation so manual Excel edits are immediately used.
+async function readTable(context: WorkbookContext): Promise<TableData> {
   const [headerResponse, rows] = await Promise.all([
-    graphRequest(`${tableUrl}/headerRowRange`, token), readAllRows(`${tableUrl}/rows`, token),
+    graphRequest(`${context.tableUrl}/headerRowRange`, context.accessToken, {}, context.sessionId), readAllRows(`${context.tableUrl}/rows`, context),
   ]);
   if (!headerResponse.ok) throw new ExcelStorageError("STORAGE_FAILED");
   const header = await headerResponse.json() as { values?: unknown };
@@ -104,16 +126,13 @@ async function readTable(tableUrl: string, token: string): Promise<TableData> {
   return { headers: header.values[0].map(String), rows };
 }
 
-async function readAllRows(firstPageUrl: string, token: string): Promise<Cell[][]> {
+async function readAllRows(firstPageUrl: string, context: WorkbookContext): Promise<Cell[][]> {
   const rows: Cell[][] = [];
   let pageUrl: string | undefined = firstPageUrl;
   while (pageUrl) {
-    const response = await graphRequest(pageUrl, token);
+    const response = await graphRequest(pageUrl, context.accessToken, {}, context.sessionId);
     if (!response.ok) throw new ExcelStorageError("STORAGE_FAILED");
-    const page = await response.json() as {
-      value?: Array<{ values?: unknown }>;
-      "@odata.nextLink"?: string;
-    };
+    const page = await response.json() as { value?: Array<{ values?: unknown }>; "@odata.nextLink"?: string };
     if (!Array.isArray(page.value)) throw new ExcelStorageError("STORAGE_FAILED");
     for (const row of page.value) {
       if (!Array.isArray(row.values) || !Array.isArray(row.values[0])) throw new ExcelStorageError("STORAGE_FAILED");
@@ -130,18 +149,15 @@ function resolveColumns(headers: string[]) {
   if (entries.some(([, index]) => index === -1)) throw new ExcelStorageError("STORAGE_FAILED");
   return Object.fromEntries(entries) as Record<keyof typeof COLUMN_ALIASES, number>;
 }
-
 function findDuplicate(rows: Cell[][], columns: ReturnType<typeof resolveColumns>, wine: Wine) {
   return rows.findIndex((row) => normalize(row[columns.producer]) === normalize(wine.producer) && normalize(row[columns.wineName]) === normalize(wine.wineName) && normalize(row[columns.vintage]) === normalize(wine.vintage));
 }
-
 function makeRow(length: number, columns: ReturnType<typeof resolveColumns>, wine: Wine, bottles: number): Cell[] {
   const row: Cell[] = Array(length).fill("");
   const values = { ...wine, grapeVarieties: wine.grapeVarieties.join(", "), bottleQuantity: bottles };
   for (const key of Object.keys(COLUMN_ALIASES) as Array<keyof typeof COLUMN_ALIASES>) row[columns[key]] = values[key] ?? "";
   return row;
 }
-
 function normalize(value: unknown) { return String(value ?? "").trim().toLocaleLowerCase("nl-NL"); }
 function quantity(value: unknown) { const parsed = Number(value); return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0; }
 
@@ -158,7 +174,6 @@ function getConfiguration(): ExcelConfiguration {
   }
   return configuration as ExcelConfiguration;
 }
-
 async function authenticate(configuration: ExcelConfiguration): Promise<string> {
   const response = await timedFetch(`${LOGIN_ROOT}/${encodeURIComponent(configuration.tenantId)}/oauth2/v2.0/token`, {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -166,17 +181,25 @@ async function authenticate(configuration: ExcelConfiguration): Promise<string> 
   });
   if (!response.ok) throw new ExcelStorageError("AUTHENTICATION_FAILED");
   const payload: unknown = await response.json();
-  if (!isTokenResponse(payload)) throw new ExcelStorageError("AUTHENTICATION_FAILED");
+  if (typeof payload !== "object" || payload === null || !("access_token" in payload) || typeof payload.access_token !== "string") throw new ExcelStorageError("AUTHENTICATION_FAILED");
   return payload.access_token;
 }
-
-function graphRequest(url: string, token: string, init: RequestInit = {}) {
-  return timedFetch(url, {
-    ...init,
-    cache: "no-store",
-    headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache", ...init.headers },
-  });
+function graphRequest(url: string, token: string, init: RequestInit = {}, sessionId?: string) {
+  return timedFetch(url, { ...init, cache: "no-store", headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache", ...(sessionId ? { "workbook-session-id": sessionId } : {}), ...init.headers } });
 }
+async function writeRequest(url: string, context: Pick<WorkbookContext, "accessToken" | "sessionId">, init: RequestInit, includeSession = true) {
+  let response: Response | undefined;
+  for (let attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt += 1) {
+    response = await graphRequest(url, context.accessToken, init, includeSession ? context.sessionId : undefined);
+    if (!RETRYABLE_STATUSES.has(response.status) || attempt === MAX_WRITE_ATTEMPTS - 1) return response;
+    const retryAfterHeader = response.headers.get("Retry-After");
+    const retryAfter = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
+    await delay(Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1_000 : 100 * 2 ** attempt);
+  }
+  return response!;
+}
+function storageWriteError(status: number) { return new ExcelStorageError(status === 409 || status === 423 ? "WORKBOOK_LOCKED" : "STORAGE_FAILED"); }
+function delay(milliseconds: number) { return new Promise((resolve) => setTimeout(resolve, milliseconds)); }
 async function timedFetch(url: string, init: RequestInit) {
   try { return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }); }
   catch (error) {
@@ -184,4 +207,3 @@ async function timedFetch(url: string, init: RequestInit) {
     throw new ExcelStorageError("STORAGE_FAILED");
   }
 }
-function isTokenResponse(value: unknown): value is { access_token: string } { return typeof value === "object" && value !== null && "access_token" in value && typeof value.access_token === "string"; }
