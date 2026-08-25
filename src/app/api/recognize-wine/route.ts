@@ -53,8 +53,11 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Het verzoek bevat geen geldige formuliergegevens." }, { status: 400 });
   }
-  const frontImage = formData.get("frontImage");
-  const backCandidate = formData.get("backImage");
+  // Front-only requests retain the original `image` field. The dual-label
+  // extension uses named fields so the two real uploads cannot be confused
+  // with their blob: preview URLs.
+  const frontImage = formData.get("frontLabel") ?? formData.get("image");
+  const backCandidate = formData.get("backLabel");
 
   if (!(frontImage instanceof File) || !frontImage.type.startsWith("image/")) {
     return NextResponse.json({ error: "Selecteer een geldige foto van het voorlabel." }, { status: 400 });
