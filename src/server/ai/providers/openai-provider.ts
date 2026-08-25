@@ -6,6 +6,19 @@ const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const UNKNOWN = "Unknown";
 const MINIMUM_CONFIDENCE = 60;
 
+export type OpenAIProviderErrorCode =
+  | "AUTHENTICATION_FAILED"
+  | "RATE_LIMITED"
+  | "UPSTREAM_UNAVAILABLE"
+  | "INVALID_RESPONSE";
+
+export class OpenAIProviderError extends Error {
+  constructor(readonly code: OpenAIProviderErrorCode) {
+    super(code);
+    this.name = "OpenAIProviderError";
+  }
+}
+
 const wineSchema = {
   type: "object",
   additionalProperties: false,
@@ -69,7 +82,11 @@ export class OpenAIProvider implements AIProvider {
 
     if (!response.ok) {
       console.error("OpenAI recognition failed", response.status, await response.text());
-      throw new Error("AI_PROVIDER_ERROR");
+      if (response.status === 401 || response.status === 403) {
+        throw new OpenAIProviderError("AUTHENTICATION_FAILED");
+      }
+      if (response.status === 429) throw new OpenAIProviderError("RATE_LIMITED");
+      throw new OpenAIProviderError("UPSTREAM_UNAVAILABLE");
     }
 
     return parseOutput(await response.json());
@@ -85,9 +102,14 @@ function parseOutput(payload: unknown): WineRecognitionResult {
     ?.flatMap((item) => item.content ?? [])
     .find((content) => content.type === "output_text")?.text;
 
-  if (!text) throw new Error("AI_PROVIDER_INVALID_RESPONSE");
+  if (!text) throw new OpenAIProviderError("INVALID_RESPONSE");
 
-  const result = JSON.parse(text) as WineRecognition & { recognized: boolean };
+  let result: WineRecognition & { recognized: boolean };
+  try {
+    result = JSON.parse(text) as WineRecognition & { recognized: boolean };
+  } catch {
+    throw new OpenAIProviderError("INVALID_RESPONSE");
+  }
   if (!result.recognized || result.confidence < MINIMUM_CONFIDENCE) {
     return { recognized: false };
   }

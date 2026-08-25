@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Add the OpenAI and Microsoft Graph values from `.env.example` to `.env.local` before using wine recognition and Excel storage. All credentials are only read behind server-side API routes and are never sent to the browser.
+`OPENAI_API_KEY` is the only setting required for wine recognition and is sufficient for a Vercel production deployment. Microsoft Graph settings are optional: add them only to enable **Toevoegen aan wijnkelder**. Excel storage is loaded lazily when that action is used and is not part of the recognition request. All credentials are only read behind server-side API routes and are never sent to the browser.
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
