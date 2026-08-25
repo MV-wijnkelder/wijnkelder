@@ -183,6 +183,8 @@ a { color: inherit; text-decoration: none; }
 .duplicate-actions { display: grid; gap: .65rem; }
 .duplicate-actions .action { min-height: 3rem; padding: .65rem 1rem; }
 .review-actions { display: grid; gap: .75rem; margin-top: 1.4rem; }
+.microsoft-connection { margin-top: 1.4rem; }
+.microsoft-connection p { color: #286940; font-size: .9rem; font-weight: 700; text-align: center; }
 
 @media (min-width: 640px) { .label-grid:has(.label-preview-card + .label-preview-card) { grid-template-columns: repeat(2,minmax(0,1fr)); } .review-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } .review-actions { grid-template-columns: .8fr 1.2fr; } .review-card { padding: 1.8rem; } }
 @media (max-width: 420px) { .review-card { padding: 1.25rem; border-radius: 1.6rem; } .result-heading { align-items: flex-start; } }

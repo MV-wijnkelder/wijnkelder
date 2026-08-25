@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
 import { StorageService } from "@/services/storage";
@@ -33,6 +33,16 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [duplicateQuantity, setDuplicateQuantity] = useState<number | null>(null);
+  const [microsoftConnected, setMicrosoftConnected] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/microsoft/status", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : { connected: false })
+      .then((status: { connected?: boolean }) => { if (active) setMicrosoftConnected(status.connected === true); })
+      .catch(() => { if (active) setMicrosoftConnected(false); });
+    return () => { active = false; };
+  }, []);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
@@ -189,12 +199,18 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
         </div>
       )}
 
+      <div className="microsoft-connection">
+        {microsoftConnected
+          ? <p role="status">✓ Microsoft connected</p>
+          : <a className="action action-secondary w-full" href="/api/auth/microsoft/login">Connect Microsoft</a>}
+      </div>
+
       <div className="review-actions">
         <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>
           <ArrowClockwiseIcon className="size-5" />
           Scan opnieuw
         </button>
-        <button className="action action-primary w-full" type="submit" disabled={isSaving}>
+        <button className="action action-primary w-full" type="submit" disabled={isSaving || !microsoftConnected}>
           {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
           {isSaving ? "Toevoegen…" : "Toevoegen aan wijnkelder"}
         </button>

@@ -39,6 +39,18 @@ whitespace only and must likewise be replaced.
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Microsoft login
+
+Register a Microsoft identity application that supports personal Microsoft
+accounts and add `/api/auth/microsoft/callback` as its web redirect URI. Set
+`MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, and the exact
+`MICROSOFT_REDIRECT_URI` in the environment. Generate a private value of at
+least 32 characters for `AUTH_SESSION_SECRET`; it encrypts the delegated refresh
+credential in an HTTP-only cookie. Login uses the Microsoft `consumers`
+authority, Authorization Code Flow with PKCE, and requests `offline_access` so
+later sprints can refresh delegated access. This login does not access OneDrive
+or Excel.
+
 ## Scripts
 
 - `npm run dev` starts the development server.
