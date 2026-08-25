@@ -11,7 +11,7 @@ export const AIService = {
       method: "POST",
       body: formData,
     });
-    const data = await parseRecognitionResponse(response);
+    const data = await parseRecognitionResponse(response, backLabel === undefined ? "front only" : "front + back");
 
     if (!response.ok) {
       const message = isErrorResponse(data) ? data.error : "The wine could not be recognized.";
@@ -27,9 +27,38 @@ export const AIService = {
  * implementation. Keeping status, headers and body available here also makes
  * malformed proxy responses fail with an actionable application error.
  */
-export async function parseRecognitionResponse(response: Response): Promise<unknown> {
+type RecognitionRequestKind = "front only" | "front + back";
+
+type ResponseDiagnostics = {
+  "HTTP status": number;
+  "response.url": string;
+  "response.redirected": boolean;
+  "response.type": ResponseType;
+  'response.headers.get("content-type")': string | null;
+  "first 300 characters of response.text()": string;
+};
+
+const responseDiagnostics: Partial<Record<RecognitionRequestKind, ResponseDiagnostics>> = {};
+
+export async function parseRecognitionResponse(
+  response: Response,
+  requestKind?: RecognitionRequestKind,
+): Promise<unknown> {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   const rawBody = await response.text();
+
+  if (requestKind) {
+    responseDiagnostics[requestKind] = {
+      "HTTP status": response.status,
+      "response.url": response.url,
+      "response.redirected": response.redirected,
+      "response.type": response.type,
+      'response.headers.get("content-type")': response.headers.get("content-type"),
+      "first 300 characters of response.text()": rawBody.slice(0, 300),
+    };
+
+    console.table(responseDiagnostics);
+  }
 
   if (!contentType.includes("application/json")) {
     throw new Error("The recognition service returned an invalid response.");
