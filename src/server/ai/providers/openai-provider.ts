@@ -1,3 +1,4 @@
+import { mapRecognitionToWine } from "@/lib/wine-recognition";
 import type { WineRecognition, WineRecognitionResult } from "@/lib/wine-recognition";
 import type { AIProvider, RecognitionImage } from "../ai-provider";
 
@@ -15,12 +16,17 @@ const wineSchema = {
     vintage: { type: "string" },
     country: { type: "string" },
     region: { type: "string" },
-    grapes: { type: "array", items: { type: "string" } },
+    appellation: { type: "string" },
+    grapeVarieties: { type: "array", items: { type: "string" } },
+    wineColor: { type: "string" },
+    bottleSize: { type: "string" },
+    alcoholPercentage: { type: ["number", "null"], minimum: 0, maximum: 100 },
     confidence: { type: "integer", minimum: 0, maximum: 100 },
   },
   required: [
     "recognized", "producer", "wineName", "vintage", "country", "region",
-    "grapes", "confidence",
+    "appellation", "grapeVarieties", "wineColor", "bottleSize",
+    "alcoholPercentage", "confidence",
   ],
 } as const;
 
@@ -42,7 +48,7 @@ export class OpenAIProvider implements AIProvider {
           content: [
             {
               type: "input_text",
-              text: `Read this wine label and identify the wine. Set recognized to false when the image is not a wine label or the wine cannot be identified reliably. Use ${UNKNOWN} for every unknown text field and an empty array when grapes are unknown. Base confidence on label legibility and identification certainty. Do not guess details that are not reliably visible or inferable from the label.`,
+              text: `Read this wine label and identify the wine. Set recognized to false when the image is not a wine label or the wine cannot be identified reliably. Use ${UNKNOWN} for every unknown text field, an empty array when grape varieties are unknown, and null when the alcohol percentage is unknown. Express bottle size as printed on the bottle and alcoholPercentage as a number without the percent sign. Base confidence on label legibility and identification certainty. Do not guess details that are not reliably visible or inferable from the label.`,
             },
             {
               type: "input_image",
@@ -88,14 +94,6 @@ function parseOutput(payload: unknown): WineRecognitionResult {
 
   return {
     recognized: true,
-    wine: {
-      producer: result.producer,
-      wineName: result.wineName,
-      vintage: result.vintage,
-      country: result.country,
-      region: result.region,
-      grapes: result.grapes,
-      confidence: result.confidence,
-    },
+    wine: mapRecognitionToWine(result),
   };
 }
