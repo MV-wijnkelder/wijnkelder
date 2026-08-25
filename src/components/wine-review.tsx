@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
 import { StorageService } from "@/services/storage";
+import { ArrowClockwiseIcon, CheckIcon, PlusIcon } from "@/components/icons";
 
 type WineReviewProps = {
   wine: Wine;
@@ -76,8 +77,12 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
         </div>
       </div>
 
-      <p className="review-intro">Pas de gegevens aan als iets niet helemaal klopt.</p>
+      <div className="ai-summary">
+        <span className="ai-summary-icon"><CheckIcon className="size-4" /></span>
+        <div><strong>Herkenning voltooid</strong><p>Onderstaande informatie is door AI ingevuld. Controleer en pas aan waar nodig.</p></div>
+      </div>
 
+      <p className="section-label">Bewerkbare informatie</p>
       <div className="review-fields">
         {textFields.slice(0, 6).map(({ key, label, placeholder }) => (
           <label className="review-field" key={key}>
@@ -132,15 +137,15 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
         </label>
       </div>
 
-      {saveMessage && <p className="success-message" role="status">{saveMessage}</p>}
+      {saveMessage && <p className="success-message" role="status"><span><CheckIcon className="size-4" /></span>{saveMessage}</p>}
 
       <div className="review-actions">
         <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>
-          <span aria-hidden="true">↻</span>
+          <ArrowClockwiseIcon className="size-5" />
           Scan opnieuw
         </button>
         <button className="action action-primary w-full" type="submit" disabled={isSaving}>
-          <span aria-hidden="true">＋</span>
+          {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
           {isSaving ? "Toevoegen…" : "Toevoegen aan wijnkelder"}
         </button>
       </div>

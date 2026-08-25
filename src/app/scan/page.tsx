@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
+import { CameraIcon, ChevronLeftIcon, PhotoIcon, WineglassIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
 import { AIService } from "@/services/ai-service";
 
@@ -66,18 +67,18 @@ export default function ScanPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
+    <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
       <div aria-hidden="true" className="ambient ambient-top" />
       <div aria-hidden="true" className="ambient ambient-bottom" />
 
-      <section className="relative z-10 flex w-full max-w-xl flex-col">
+      <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
         <Link className="back-link" href="/" aria-label="Terug naar home">
-          <span aria-hidden="true">‹</span> Terug
+          <ChevronLeftIcon className="size-5" /> Terug
         </Link>
 
         <div className="mt-10 text-center sm:mt-14">
-          <div className="mx-auto mb-7 flex size-14 items-center justify-center rounded-[1.2rem] bg-wine text-2xl shadow-[0_14px_34px_rgba(99,31,50,0.18)]">
-            <span aria-hidden="true">📷</span>
+          <div className="app-icon app-icon-small mx-auto mb-7">
+            <CameraIcon className="size-7" />
           </div>
           <h1 className="text-balance text-4xl font-semibold tracking-[-0.045em] text-ink sm:text-5xl">
             Scan wijnetiket
@@ -91,10 +92,11 @@ export default function ScanPage() {
           <WineReview wine={result} onChange={setResult} onScanAgain={resetPhoto} />
         ) : photoUrl ? (
           <div className="mt-9 flex flex-col gap-4">
-            <div className="preview-frame">
+            <div className={`preview-frame ${isRecognizing ? "is-loading" : ""}`}>
               {/* A blob URL from the local device does not need Next.js image optimisation. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="h-full w-full object-contain" src={photoUrl} alt="Voorbeeld van het gekozen wijnetiket" />
+              {isRecognizing && <div className="recognition-overlay" aria-hidden="true"><span /><span /><span /></div>}
             </div>
             <button
               className="action action-primary w-full"
@@ -102,7 +104,7 @@ export default function ScanPage() {
               onClick={recognizeWine}
               disabled={isRecognizing}
             >
-              {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <span aria-hidden="true">🍷</span>}
+              {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <WineglassIcon className="size-5" />}
               {isRecognizing ? "Wijn herkennen…" : "Gebruik deze foto"}
             </button>
             {isRecognizing && <p className="sr-only" role="status">De wijn wordt herkend.</p>}
@@ -123,7 +125,7 @@ export default function ScanPage() {
               aria-label="Maak foto"
             />
             <button className="action action-primary w-full" onClick={() => cameraInput.current?.click()} type="button">
-              <span aria-hidden="true" className="text-xl">📷</span>
+              <CameraIcon className="size-5" />
               Maak foto
             </button>
 
@@ -136,7 +138,7 @@ export default function ScanPage() {
               aria-label="Kies uit fotobibliotheek"
             />
             <button className="action action-secondary w-full" onClick={() => libraryInput.current?.click()} type="button">
-              <span aria-hidden="true" className="text-xl">▧</span>
+              <PhotoIcon className="size-5" />
               Kies uit fotobibliotheek
             </button>
           </div>
