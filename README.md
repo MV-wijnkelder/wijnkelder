@@ -12,6 +12,20 @@ npm run dev
 
 `OPENAI_API_KEY` is the only setting required for wine recognition and is sufficient for a Vercel production deployment. Microsoft Graph settings are optional: add them only to enable **Toevoegen aan wijnkelder**. Excel storage is loaded lazily when that action is used and is not part of the recognition request. All credentials are only read behind server-side API routes and are never sent to the browser.
 
+The configured Excel table must contain columns for `Producer`, `Wine Name`,
+`Vintage`, `Country`, `Region`, `Appellation`, `Grape Varieties`, `Wine Color`,
+`Bottle Size`, `Alcohol Percentage`, `Confidence`, and `Bottle Quantity`
+(equivalent Dutch headings are supported). Existing table formatting is retained.
+Duplicate matching uses producer, wine name, and vintage; increasing a duplicate
+updates `Bottle Quantity` in place. Label images are already passed through the
+storage contract, but Excel storage intentionally ignores them until a dedicated
+OneDrive image-storage provider is added.
+
+The workbook is always the single source of truth. The application never caches
+the inventory and reads every table row from Microsoft Graph immediately before
+each duplicate check or bottle-count update, so manual Excel edits are reflected
+in the next operation.
+
 The recognition route reads `OPENAI_API_KEY` from the running Node.js function,
 trims accidental surrounding whitespace, and passes that value directly to the
 OpenAI provider. Its runtime diagnostic reports only whether the setting exists

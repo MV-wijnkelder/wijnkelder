@@ -32,6 +32,7 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [duplicateQuantity, setDuplicateQuantity] = useState<number | null>(null);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
@@ -62,7 +63,11 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
 
     try {
       const saved = await StorageService.addWine(wine, labelImages);
-      if (!saved) throw new Error("De wijn kon niet worden opgeslagen.");
+      if (saved.status === "WineAlreadyExists") {
+        setDuplicateQuantity(saved.bottleQuantity);
+        setIsSaving(false);
+        return;
+      }
       setSaveMessage("Wijn succesvol toegevoegd aan de wijnkelder.");
       onSaved();
     } catch (error) {
@@ -71,6 +76,21 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
     }
 
     setIsSaving(false);
+  }
+
+  async function increaseBottleCount() {
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      const result = await StorageService.increaseBottleCount(wine);
+      setDuplicateQuantity(null);
+      setSaveMessage(`Aantal flessen bijgewerkt naar ${result.bottleQuantity}.`);
+      setSaveFailed(false);
+      onSaved();
+    } catch (error) {
+      setSaveFailed(true);
+      setSaveMessage(error instanceof Error ? error.message : "Het aantal flessen kon niet worden bijgewerkt.");
+    } finally { setIsSaving(false); }
   }
 
   return (
@@ -151,6 +171,17 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
           {!saveFailed && <span><CheckIcon className="size-4" /></span>}
           {saveMessage}
         </p>
+      )}
+
+      {duplicateQuantity !== null && (
+        <div className="duplicate-message" role="status">
+          <strong>This wine already exists in your cellar.</strong>
+          <p>Current bottles: {duplicateQuantity}</p>
+          <div className="duplicate-actions">
+            <button className="action action-primary" type="button" disabled={isSaving} onClick={increaseBottleCount}>Increase bottle count</button>
+            <button className="action action-secondary" type="button" disabled={isSaving} onClick={() => setDuplicateQuantity(null)}>Cancel</button>
+          </div>
+        </div>
       )}
 
       <div className="review-actions">

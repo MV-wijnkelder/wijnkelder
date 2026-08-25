@@ -171,6 +171,10 @@ a { color: inherit; text-decoration: none; }
 .input-suffix > span { position: absolute; top: 50%; right: 1rem; color: var(--muted); transform: translateY(-50%); }
 .success-message { display: flex; align-items: center; justify-content: center; gap: .55rem; margin: 1.25rem 0 0; border: 1px solid rgb(47 126 76 / 16%); border-radius: 1.15rem; background: rgb(235 248 239 / 82%); padding: 1rem; color: #286940; font-size: .88rem; font-weight: 650; animation: success-in 450ms cubic-bezier(.2,1.4,.4,1) both; }
 .success-message span { display: flex; width: 1.45rem; height: 1.45rem; align-items: center; justify-content: center; border-radius: 999px; background: #31834f; color: white; }
+.duplicate-message { margin-top: 1.25rem; border: 1px solid rgb(167 124 66 / 25%); border-radius: 1.15rem; background: rgb(255 249 235 / 82%); padding: 1rem; text-align: center; }
+.duplicate-message p { margin: .35rem 0 1rem; color: var(--muted); }
+.duplicate-actions { display: grid; gap: .65rem; }
+.duplicate-actions .action { min-height: 3rem; padding: .65rem 1rem; }
 .review-actions { display: grid; gap: .75rem; margin-top: 1.4rem; }
 
 @media (min-width: 640px) { .label-grid:has(.label-preview-card + .label-preview-card) { grid-template-columns: repeat(2,minmax(0,1fr)); } .review-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } .review-actions { grid-template-columns: .8fr 1.2fr; } .review-card { padding: 1.8rem; } }
