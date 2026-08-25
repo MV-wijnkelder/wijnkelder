@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineResultCard } from "@/components/wine-result-card";
 import type { WineRecognition } from "@/lib/wine-recognition";
+import { AIService } from "@/services/ai-service";
 
 export default function ScanPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -48,18 +49,8 @@ export default function ScanPage() {
     setError(null);
     setResult(null);
 
-    const formData = new FormData();
-    formData.append("image", photo);
-
     try {
-      const response = await fetch("/api/recognize-wine", { method: "POST", body: formData });
-      const data = await response.json() as WineRecognition | { error?: string };
-
-      if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "The wine could not be recognized.");
-      }
-
-      setResult(data as WineRecognition);
+      setResult(await AIService.recognizeWine(photo));
     } catch (recognitionError) {
       setError(recognitionError instanceof Error ? recognitionError.message : "The wine could not be recognized.");
     } finally {
