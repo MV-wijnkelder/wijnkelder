@@ -5,7 +5,7 @@ import type { AIProvider, RecognitionImage } from "./ai-provider";
 export class AIService {
   constructor(private readonly provider: AIProvider) {}
 
-  recognizeWine(image: RecognitionImage): Promise<WineRecognitionResult> {
-    return this.provider.recognizeWine(image);
+  recognizeWine(frontImage: RecognitionImage, backImage?: RecognitionImage): Promise<WineRecognitionResult> {
+    return this.provider.recognizeWine(frontImage, backImage);
   }
 }

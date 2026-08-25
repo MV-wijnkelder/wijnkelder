@@ -4,7 +4,10 @@ const REQUEST_TIMEOUT_MS = 20_000;
 
 /** Browser-safe facade; Microsoft credentials remain behind the API boundary. */
 export const StorageService: StorageServiceContract = {
-  async addWine(wine) {
+  async addWine(wine, labelImages) {
+    // Keep attachment references in the storage boundary for the future
+    // OneDrive implementation. They are deliberately not uploaded yet.
+    void labelImages;
     try {
       const response = await fetch("/api/wines", {
         method: "POST",
@@ -31,4 +34,7 @@ function isErrorResponse(value: unknown): value is { error: string } {
   return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string";
 }
 
-export type { StorageService as StorageServiceContract } from "@/services/storage/storage-service";
+export type {
+  StorageService as StorageServiceContract,
+  WineLabelImages,
+} from "@/services/storage/storage-service";
