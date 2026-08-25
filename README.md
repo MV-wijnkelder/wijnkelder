@@ -6,8 +6,11 @@ A clean, mobile-first wine cellar experience built with Next.js, TypeScript, and
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
+
+Add your OpenAI API key to `.env.local` before using wine recognition. The key is only read by the server-side API route and is never sent to the browser.
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
