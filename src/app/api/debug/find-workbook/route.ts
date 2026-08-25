@@ -12,6 +12,25 @@ type DriveItem = {
   size?: unknown;
 };
 
+class MicrosoftGraphError extends Error {
+  readonly graphUrl: string;
+  readonly graphStatus: number;
+  readonly graphCode: string;
+
+  constructor(
+    graphUrl: string,
+    graphStatus: number,
+    graphCode: string,
+    graphMessage: string,
+  ) {
+    super(graphMessage);
+    this.name = "MicrosoftGraphError";
+    this.graphUrl = graphUrl;
+    this.graphStatus = graphStatus;
+    this.graphCode = graphCode;
+  }
+}
+
 export async function GET() {
   console.info("OneDrive workbook diagnostic started", { workbookName: WORKBOOK_NAME });
 
@@ -33,6 +52,22 @@ export async function GET() {
       size: typeof workbook.size === "number" ? workbook.size : 0,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof MicrosoftGraphError) {
+      console.error("OneDrive workbook diagnostic Graph request failed", {
+        graphUrl: error.graphUrl,
+        graphStatus: error.graphStatus,
+        graphCode: error.graphCode,
+        graphMessage: error.message,
+      });
+      return NextResponse.json({
+        tokenObtained: true,
+        graphUrl: error.graphUrl,
+        graphStatus: error.graphStatus,
+        graphCode: error.graphCode,
+        graphMessage: error.message,
+      }, { status: error.graphStatus, headers: { "Cache-Control": "no-store" } });
+    }
+
     console.error("OneDrive workbook diagnostic failed", {
       message: error instanceof Error ? error.message : "Unknown error",
     });
@@ -77,7 +112,10 @@ async function findWorkbook(accessToken: string): Promise<Required<Pick<DriveIte
       cache: "no-store",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw new Error(`Microsoft Graph search returned ${response.status}`);
+    if (!response.ok) {
+      const graphError = await readGraphError(response);
+      throw new MicrosoftGraphError(pageUrl, response.status, graphError.code, graphError.message);
+    }
 
     const page = await response.json() as { value?: DriveItem[]; "@odata.nextLink"?: unknown };
     if (!Array.isArray(page.value)) throw new Error("Microsoft Graph search returned an invalid response");
@@ -85,6 +123,20 @@ async function findWorkbook(accessToken: string): Promise<Required<Pick<DriveIte
       item.name === WORKBOOK_NAME && typeof item.id === "string" && Boolean(item.id));
     if (workbook) return workbook;
     pageUrl = typeof page["@odata.nextLink"] === "string" ? page["@odata.nextLink"] : undefined;
+  }
+}
+
+async function readGraphError(response: Response): Promise<{ code: string; message: string }> {
+  const fallbackMessage = `Microsoft Graph search returned ${response.status}`;
+
+  try {
+    const payload = await response.json() as { error?: { code?: unknown; message?: unknown } };
+    return {
+      code: typeof payload.error?.code === "string" ? payload.error.code : "",
+      message: typeof payload.error?.message === "string" ? payload.error.message : fallbackMessage,
+    };
+  } catch {
+    return { code: "", message: fallbackMessage };
   }
 }
 

@@ -53,3 +53,30 @@ test("returns found false when Graph has no exact filename match", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { found: false });
 });
+
+test("returns the original Microsoft Graph error diagnostics", async () => {
+  let graphUrl;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes("login.microsoftonline.com")) return Response.json({ access_token: "token" });
+    graphUrl = url;
+    return Response.json({
+      error: {
+        code: "accessDenied",
+        message: "Access is denied.",
+      },
+    }, { status: 403 });
+  };
+
+  const response = await GET();
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    tokenObtained: true,
+    graphUrl,
+    graphStatus: 403,
+    graphCode: "accessDenied",
+    graphMessage: "Access is denied.",
+  });
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+});
