@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineResultCard } from "@/components/wine-result-card";
-import type { WineRecognition } from "@/lib/wine-recognition";
+import type { Wine } from "@/domain/wine";
 import { AIService } from "@/services/ai-service";
 
 const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
@@ -12,7 +12,7 @@ const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worde
 export default function ScanPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
-  const [result, setResult] = useState<WineRecognition | null>(null);
+  const [result, setResult] = useState<Wine | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const cameraInput = useRef<HTMLInputElement>(null);

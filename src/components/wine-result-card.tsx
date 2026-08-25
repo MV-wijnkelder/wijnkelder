@@ -1,13 +1,15 @@
-import { wineRecognitionFields } from "@/lib/wine-recognition";
-import type { WineRecognition } from "@/lib/wine-recognition";
+import type { Wine } from "@/domain/wine";
+import { wineFields } from "@/lib/wine-recognition";
 
 type WineResultCardProps = {
-  result: WineRecognition;
+  result: Wine;
 };
 
-function displayValue(value: string | string[]) {
-  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "Unknown";
-  return value.trim() || "Unknown";
+function displayValue(key: Exclude<keyof Wine, "confidence">, value: Wine[typeof key]) {
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "Onbekend";
+  if (value === null || value === "") return "Onbekend";
+  if (key === "alcoholPercentage") return `${value}%`;
+  return value;
 }
 
 export function WineResultCard({ result }: WineResultCardProps) {
@@ -25,10 +27,10 @@ export function WineResultCard({ result }: WineResultCardProps) {
       </div>
 
       <dl className="result-grid">
-        {wineRecognitionFields.map(({ key, label }) => (
+        {wineFields.map(({ key, label }) => (
           <div className="result-field" key={key}>
             <dt>{label}</dt>
-            <dd>{displayValue(result[key])}</dd>
+            <dd>{displayValue(key, result[key])}</dd>
           </div>
         ))}
       </dl>
