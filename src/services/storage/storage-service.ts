@@ -11,6 +11,12 @@ export type WineLabelImages = {
   back?: Blob;
 };
 
+export type AddWineResult =
+  | { status: "WineAdded"; bottleQuantity: 1 }
+  | { status: "WineAlreadyExists"; bottleQuantity: number };
+
+export type IncreaseWineResult = { status: "BottleQuantityIncreased"; bottleQuantity: number };
+
 /**
  * Provider-independent persistence contract for the wine cellar.
  *
@@ -18,5 +24,6 @@ export type WineLabelImages = {
  * technology, so providers can be replaced without changing the interface.
  */
 export interface StorageService {
-  addWine(wine: Wine, labelImages?: WineLabelImages): Promise<boolean>;
+  addWine(wine: Wine, labelImages?: WineLabelImages): Promise<AddWineResult>;
+  increaseBottleCount(wine: Wine): Promise<IncreaseWineResult>;
 }
