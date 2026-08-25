@@ -28,6 +28,7 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
 export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
@@ -54,11 +55,14 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
 
     setIsSaving(true);
     setSaveMessage(null);
+    setSaveFailed(false);
 
-    const saved = await StorageService.addWine(wine);
-
-    if (saved) {
+    try {
+      await StorageService.addWine(wine);
       setSaveMessage("Wijn succesvol toegevoegd aan de wijnkelder.");
+    } catch (error) {
+      setSaveFailed(true);
+      setSaveMessage(error instanceof Error ? error.message : "De wijn kon niet worden opgeslagen.");
     }
 
     setIsSaving(false);
@@ -137,7 +141,12 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
         </label>
       </div>
 
-      {saveMessage && <p className="success-message" role="status"><span><CheckIcon className="size-4" /></span>{saveMessage}</p>}
+      {saveMessage && (
+        <p className={saveFailed ? "error-message" : "success-message"} role={saveFailed ? "alert" : "status"}>
+          {!saveFailed && <span><CheckIcon className="size-4" /></span>}
+          {saveMessage}
+        </p>
+      )}
 
       <div className="review-actions">
         <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>

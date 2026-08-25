@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
-import {
-  ExcelStorageError,
-  ExcelStorageService,
-  type ExcelStorageErrorCode,
-} from "@/services/storage/excel-storage-service";
+
+type ExcelStorageErrorCode =
+  | "AUTHENTICATION_FAILED"
+  | "WORKBOOK_UNAVAILABLE"
+  | "TABLE_MISSING"
+  | "NETWORK_TIMEOUT"
+  | "NOT_CONFIGURED"
+  | "STORAGE_FAILED";
 
 const FRIENDLY_ERRORS: Record<ExcelStorageErrorCode, { message: string; status: number }> = {
   AUTHENTICATION_FAILED: { message: "De verbinding met de wijnkelder kon niet worden geverifieerd.", status: 502 },
@@ -24,12 +27,22 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Keep Microsoft Graph out of recognition's module graph and initialize it
+    // only when this storage endpoint is explicitly called by the user.
+    const { ExcelStorageService } = await import("@/services/storage/excel-storage-service");
     await new ExcelStorageService().addWine(wine);
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    const code = error instanceof ExcelStorageError ? error.code : "STORAGE_FAILED";
+    const code = getStorageErrorCode(error);
     const friendlyError = FRIENDLY_ERRORS[code];
     console.error("Excel storage operation failed", code);
     return NextResponse.json({ error: friendlyError.message }, { status: friendlyError.status });
   }
+}
+
+function getStorageErrorCode(error: unknown): ExcelStorageErrorCode {
+  if (error instanceof Error && error.name === "ExcelStorageError" && error.message in FRIENDLY_ERRORS) {
+    return error.message as ExcelStorageErrorCode;
+  }
+  return "STORAGE_FAILED";
 }

@@ -12,11 +12,23 @@ export const StorageService: StorageServiceContract = {
         body: JSON.stringify(wine),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      return response.ok;
-    } catch {
-      return false;
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(isErrorResponse(data) ? data.error : "De wijn kon niet worden opgeslagen.");
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new Error("Het opslaan duurde te lang. Probeer het opnieuw.");
+      }
+      if (error instanceof Error) throw error;
+      throw new Error("De wijn kon niet worden opgeslagen.");
     }
   },
 };
+
+function isErrorResponse(value: unknown): value is { error: string } {
+  return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string";
+}
 
 export type { StorageService as StorageServiceContract } from "@/services/storage/storage-service";
