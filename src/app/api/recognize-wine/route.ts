@@ -23,16 +23,23 @@ const PROVIDER_ERRORS: Record<OpenAIProviderErrorCode, { message: string; status
 };
 
 export async function POST(request: Request) {
-  // Names only: never log environment values or the API key itself.
-  console.info("recognize-wine runtime environment keys", Object.keys(process.env).sort());
-
   // A computed lookup is intentionally used here. Unlike a statically
   // referenced process.env property, it cannot be replaced with a build-time
   // value and is resolved from the Vercel function environment at request time.
   const configuredApiKey = process.env[OPENAI_API_KEY_ENV_NAME];
   const apiKey = configuredApiKey?.trim();
+  // Log metadata only. In particular, never include the secret itself.
+  console.info("recognize-wine OPENAI_API_KEY configuration", {
+    exists: configuredApiKey !== undefined,
+    length: configuredApiKey?.length ?? 0,
+    trimmedLength: apiKey?.length ?? 0,
+  });
   if (!apiKey) {
-    const reason = configuredApiKey === undefined ? "not present" : "empty";
+    const reason = configuredApiKey === undefined
+      ? "not present"
+      : configuredApiKey.length === 0
+        ? "empty"
+        : "whitespace only";
     console.error(`OPENAI_API_KEY is ${reason} in the recognize-wine runtime environment`);
     return NextResponse.json(
       { error: "OPENAI_API_KEY ontbreekt in de serverconfiguratie; wijnherkenning kan niet worden gestart." },
