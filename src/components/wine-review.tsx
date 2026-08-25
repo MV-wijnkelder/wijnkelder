@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
+import { StorageService } from "@/services/storage";
 
 type WineReviewProps = {
   wine: Wine;
@@ -24,11 +25,12 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
 ];
 
 export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
-  const [isReady, setIsReady] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
-    setIsReady(false);
+    setSaveMessage(null);
   }
 
   function updateGrapes(value: string) {
@@ -36,18 +38,29 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
       ...wine,
       grapeVarieties: value.split(",").map((grape) => grape.trim()).filter(Boolean),
     });
-    setIsReady(false);
+    setSaveMessage(null);
   }
 
   function updateAlcohol(event: ChangeEvent<HTMLInputElement>) {
     const value = event.target.value;
     onChange({ ...wine, alcoholPercentage: value === "" ? null : Number(value) });
-    setIsReady(false);
+    setSaveMessage(null);
   }
 
-  function confirmReview(event: FormEvent<HTMLFormElement>) {
+  async function confirmReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsReady(true);
+    if (isSaving) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    const saved = await StorageService.addWine(wine);
+
+    if (saved) {
+      setSaveMessage("Wijn succesvol toegevoegd aan de wijnkelder.");
+    }
+
+    setIsSaving(false);
   }
 
   return (
@@ -119,16 +132,16 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
         </label>
       </div>
 
-      {isReady && <p className="success-message" role="status">Wijn klaar om toe te voegen.</p>}
+      {saveMessage && <p className="success-message" role="status">{saveMessage}</p>}
 
       <div className="review-actions">
         <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>
           <span aria-hidden="true">↻</span>
           Scan opnieuw
         </button>
-        <button className="action action-primary w-full" type="submit">
+        <button className="action action-primary w-full" type="submit" disabled={isSaving}>
           <span aria-hidden="true">＋</span>
-          Toevoegen aan wijnkelder
+          {isSaving ? "Toevoegen…" : "Toevoegen aan wijnkelder"}
         </button>
       </div>
     </form>
