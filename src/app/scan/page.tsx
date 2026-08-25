@@ -7,6 +7,8 @@ import { WineResultCard } from "@/components/wine-result-card";
 import type { WineRecognition } from "@/lib/wine-recognition";
 import { AIService } from "@/services/ai-service";
 
+const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
+
 export default function ScanPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -50,7 +52,12 @@ export default function ScanPage() {
     setResult(null);
 
     try {
-      setResult(await AIService.recognizeWine(photo));
+      const recognition = await AIService.recognizeWine(photo);
+      if (recognition.recognized) {
+        setResult(recognition.wine);
+      } else {
+        setError(NOT_RECOGNIZED_MESSAGE);
+      }
     } catch (recognitionError) {
       setError(recognitionError instanceof Error ? recognitionError.message : "The wine could not be recognized.");
     } finally {
@@ -94,8 +101,9 @@ export default function ScanPage() {
               disabled={isRecognizing}
             >
               {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <span aria-hidden="true">🍷</span>}
-              {isRecognizing ? "Wijn herkennen…" : "Herken wijn"}
+              {isRecognizing ? "Wijn herkennen…" : "Gebruik deze foto"}
             </button>
+            {isRecognizing && <p className="sr-only" role="status">De wijn wordt herkend.</p>}
             {error && <p className="error-message" role="alert">{error}</p>}
             <button className="action action-secondary w-full" onClick={resetPhoto} type="button">
               Nieuwe foto
