@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { WineResultCard } from "@/components/wine-result-card";
+import { WineReview } from "@/components/wine-review";
 import type { Wine } from "@/domain/wine";
 import { AIService } from "@/services/ai-service";
 
@@ -87,7 +87,9 @@ export default function ScanPage() {
           </p>
         </div>
 
-        {photoUrl ? (
+        {result ? (
+          <WineReview wine={result} onChange={setResult} onScanAgain={resetPhoto} />
+        ) : photoUrl ? (
           <div className="mt-9 flex flex-col gap-4">
             <div className="preview-frame">
               {/* A blob URL from the local device does not need Next.js image optimisation. */}
@@ -108,7 +110,6 @@ export default function ScanPage() {
             <button className="action action-secondary w-full" onClick={resetPhoto} type="button">
               Nieuwe foto
             </button>
-            {result && <WineResultCard result={result} />}
           </div>
         ) : (
           <div className="mt-10 grid gap-3">

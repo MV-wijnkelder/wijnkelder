@@ -183,7 +183,8 @@ a {
   text-align: center;
 }
 
-.result-card {
+.result-card,
+.review-card {
   margin-top: 1rem;
   overflow: hidden;
   border: 1px solid rgb(33 29 30 / 8%);
@@ -192,6 +193,104 @@ a {
   padding: 1.5rem;
   box-shadow: 0 18px 50px rgb(33 29 30 / 9%);
   backdrop-filter: blur(20px);
+}
+
+.review-intro {
+  margin: 1.25rem 0 0;
+  color: #70696b;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.review-fields {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.3rem;
+}
+
+.review-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.review-field > span {
+  color: #514a4c;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.review-field input {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 1px solid rgb(33 29 30 / 11%);
+  border-radius: 0.95rem;
+  background: rgb(247 245 242 / 78%);
+  padding: 0.8rem 0.95rem;
+  color: #211d1e;
+  font: inherit;
+  outline: none;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.review-field input::placeholder {
+  color: #989092;
+}
+
+.review-field input:focus {
+  border-color: rgb(99 31 50 / 48%);
+  background: white;
+  box-shadow: 0 0 0 3px rgb(99 31 50 / 9%);
+}
+
+.review-field small {
+  color: #827a7c;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.input-suffix {
+  position: relative;
+}
+
+.input-suffix input {
+  padding-right: 2.8rem;
+}
+
+.input-suffix > span {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  color: #70696b;
+  transform: translateY(-50%);
+}
+
+.success-message {
+  margin: 1.25rem 0 0;
+  border: 1px solid rgb(47 111 73 / 18%);
+  border-radius: 1rem;
+  background: rgb(239 248 242 / 90%);
+  padding: 0.95rem 1rem;
+  color: #28633f;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.review-actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .review-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-actions {
+    grid-template-columns: 0.8fr 1.2fr;
+  }
 }
 
 .result-heading {
