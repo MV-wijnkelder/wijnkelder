@@ -15,12 +15,12 @@ export function WineResultCard({ result }: WineResultCardProps) {
     <section className="result-card" aria-labelledby="recognition-result-title">
       <div className="result-heading">
         <div>
-          <p className="result-eyebrow">Recognition result</p>
-          <h2 id="recognition-result-title">Wine details</h2>
+          <p className="result-eyebrow">Herkenningsresultaat</p>
+          <h2 id="recognition-result-title">Wijndetails</h2>
         </div>
-        <div className="confidence" aria-label={`${result.confidence}% confidence`}>
+        <div className="confidence" aria-label={`${result.confidence}% zekerheid`}>
           <strong>{result.confidence}%</strong>
-          <span>Confidence</span>
+          <span>Zekerheid</span>
         </div>
       </div>
 

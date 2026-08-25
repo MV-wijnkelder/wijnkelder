@@ -1,10 +1,10 @@
-import type { WineRecognition } from "@/lib/wine-recognition";
+import type { WineRecognitionResult } from "@/lib/wine-recognition";
 
 const RECOGNITION_ENDPOINT = "/api/recognize-wine";
 
 /** Browser-facing AI facade. UI components never depend on a provider. */
 export const AIService = {
-  async recognizeWine(image: File): Promise<WineRecognition> {
+  async recognizeWine(image: File): Promise<WineRecognitionResult> {
     const formData = new FormData();
     formData.append("image", image);
 
@@ -19,7 +19,7 @@ export const AIService = {
       throw new Error(message);
     }
 
-    return data as WineRecognition;
+    return data as WineRecognitionResult;
   },
 };
 
