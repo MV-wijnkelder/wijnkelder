@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
-import type { ConfigurationItem, ExcelStorageErrorCode } from "@/services/storage/excel-storage-service";
+import type { ExcelStorageErrorCode } from "@/services/storage/excel-storage-service";
 
 const FRIENDLY_ERRORS: Record<ExcelStorageErrorCode, { message: string; status: number }> = {
   AUTHENTICATION_FAILED: { message: "Microsoft Graph-authenticatie is mislukt. Controleer de tenant, client en app-machtigingen.", status: 502 },
@@ -31,11 +31,11 @@ async function store(request: Request, operation: "add" | "increase") {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    const configurationItem = getConfigurationItem(error);
-    if (configurationItem) {
-      console.error("Excel storage configuration is missing", { configurationItem });
+    const missingConfiguration = getMissingConfiguration(error);
+    if (missingConfiguration) {
+      console.error("Excel storage configuration is missing", { missingConfiguration });
       return NextResponse.json(
-        { error: `Ontbrekende configuratie: ${configurationItem}.` },
+        { error: `Missing configuration: ${missingConfiguration}` },
         { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     }
@@ -48,8 +48,8 @@ async function store(request: Request, operation: "add" | "increase") {
   }
 }
 
-function getConfigurationItem(error: unknown): ConfigurationItem | undefined {
-  if (error instanceof Error && error.name === "ExcelStorageError" && "configurationItem" in error) return error.configurationItem as ConfigurationItem | undefined;
+function getMissingConfiguration(error: unknown): string | undefined {
+  if (error instanceof Error && error.name === "ExcelStorageError" && "missingConfiguration" in error && typeof error.missingConfiguration === "string") return error.missingConfiguration;
 }
 function getStorageErrorCode(error: unknown): ExcelStorageErrorCode {
   if (error instanceof Error && error.name === "ExcelStorageError" && "code" in error && String(error.code) in FRIENDLY_ERRORS) return error.code as ExcelStorageErrorCode;

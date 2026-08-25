@@ -7,18 +7,17 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const RETRYABLE_STATUSES = new Set([409, 423, 429, 503, 504]);
 const MAX_WRITE_ATTEMPTS = 4;
 
-export type ConfigurationItem = "MICROSOFT_TENANT_ID" | "MICROSOFT_CLIENT_ID" | "MICROSOFT_CLIENT_SECRET" | "ONEDRIVE_FILE_ID" | "EXCEL_TABLE_NAME";
 export type ExcelStorageErrorCode = "AUTHENTICATION_FAILED" | "WORKBOOK_MISSING" | "WORKBOOK_ACCESS_DENIED" | "WORKSHEET_MISSING" | "TABLE_MISSING" | "NETWORK_TIMEOUT" | "WORKBOOK_LOCKED" | "STORAGE_FAILED" | "WINE_NOT_FOUND";
 
 export class ExcelStorageError extends Error {
   readonly code: ExcelStorageErrorCode;
-  readonly configurationItem?: ConfigurationItem;
+  readonly missingConfiguration?: string;
 
-  constructor(code: ExcelStorageErrorCode, configurationItem?: ConfigurationItem) {
-    super(code);
+  constructor(code: ExcelStorageErrorCode, missingConfiguration?: string) {
+    super(missingConfiguration ? `Missing configuration: ${missingConfiguration}` : code);
     this.name = "ExcelStorageError";
     this.code = code;
-    this.configurationItem = configurationItem;
+    this.missingConfiguration = missingConfiguration;
   }
 }
 
@@ -26,6 +25,14 @@ type ExcelConfiguration = { tenantId: string; clientId: string; clientSecret: st
 type Cell = string | number | boolean | null;
 type TableData = { headers: string[]; rows: Cell[][] };
 type WorkbookContext = { accessToken: string; tableUrl: string; sessionId: string };
+
+console.info("Microsoft configuration", {
+  "MICROSOFT_TENANT_ID exists": Boolean(process.env.MICROSOFT_TENANT_ID?.trim()),
+  "MICROSOFT_CLIENT_ID exists": Boolean(process.env.MICROSOFT_CLIENT_ID?.trim()),
+  "MICROSOFT_CLIENT_SECRET exists": Boolean(process.env.MICROSOFT_CLIENT_SECRET?.trim()),
+  "ONEDRIVE_FILE_ID exists": Boolean(process.env.ONEDRIVE_FILE_ID?.trim()),
+  "EXCEL_TABLE_NAME exists": Boolean(process.env.EXCEL_TABLE_NAME?.trim()),
+});
 
 const COLUMN_ALIASES = {
   producer: ["producer", "producent"], wineName: ["wine name", "winename", "wijnnaam", "wine"], vintage: ["vintage", "jaargang"],
@@ -162,17 +169,18 @@ function normalize(value: unknown) { return String(value ?? "").trim().toLocaleL
 function quantity(value: unknown) { const parsed = Number(value); return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0; }
 
 function getConfiguration(): ExcelConfiguration {
-  const definitions: Array<[ConfigurationItem, keyof ExcelConfiguration]> = [
-    ["MICROSOFT_TENANT_ID", "tenantId"], ["MICROSOFT_CLIENT_ID", "clientId"], ["MICROSOFT_CLIENT_SECRET", "clientSecret"],
-    ["ONEDRIVE_FILE_ID", "fileId"], ["EXCEL_TABLE_NAME", "tableName"],
-  ];
-  const configuration: Partial<ExcelConfiguration> = {};
-  for (const [environmentName, key] of definitions) {
-    const value = process.env[environmentName]?.trim();
-    if (!value) throw new ExcelStorageError("STORAGE_FAILED", environmentName);
-    configuration[key] = value;
-  }
-  return configuration as ExcelConfiguration;
+  return {
+    tenantId: requiredConfiguration("MICROSOFT_TENANT_ID", process.env.MICROSOFT_TENANT_ID),
+    clientId: requiredConfiguration("MICROSOFT_CLIENT_ID", process.env.MICROSOFT_CLIENT_ID),
+    clientSecret: requiredConfiguration("MICROSOFT_CLIENT_SECRET", process.env.MICROSOFT_CLIENT_SECRET),
+    fileId: requiredConfiguration("ONEDRIVE_FILE_ID", process.env.ONEDRIVE_FILE_ID),
+    tableName: requiredConfiguration("EXCEL_TABLE_NAME", process.env.EXCEL_TABLE_NAME),
+  };
+}
+function requiredConfiguration(name: string, value: string | undefined): string {
+  const configuredValue = value?.trim();
+  if (!configuredValue) throw new ExcelStorageError("STORAGE_FAILED", name);
+  return configuredValue;
 }
 async function authenticate(configuration: ExcelConfiguration): Promise<string> {
   const response = await timedFetch(`${LOGIN_ROOT}/${encodeURIComponent(configuration.tenantId)}/oauth2/v2.0/token`, {

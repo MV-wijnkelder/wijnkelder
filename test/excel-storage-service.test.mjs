@@ -80,6 +80,27 @@ test("maps Microsoft Graph failures without retaining workbook data", async () =
   await assert.rejects(new ExcelStorageService().addWine(wine), (error) => error instanceof ExcelStorageError && error.code === "STORAGE_FAILED");
 });
 
+test("reports the exact missing environment variable before authentication", async () => {
+  delete process.env.MICROSOFT_TENANT_ID;
+  const graph = graphMock();
+
+  await assert.rejects(
+    new ExcelStorageService().addWine(wine),
+    (error) => error instanceof ExcelStorageError && error.message === "Missing configuration: MICROSOFT_TENANT_ID",
+  );
+  assert.equal(graph.calls.length, 0);
+});
+
+test("reads Microsoft configuration from process.env and proceeds to authentication", async () => {
+  const graph = graphMock();
+  await new ExcelStorageService().addWine(wine);
+
+  const authentication = graph.calls.find(({ url }) => url.includes("login.microsoftonline.com"));
+  assert.ok(authentication);
+  assert.match(authentication.url, /\/tenant\/oauth2\/v2\.0\/token$/);
+  assert.equal(new URLSearchParams(String(authentication.init.body)).get("client_id"), "client");
+});
+
 test("retries a locked workbook and returns a clear error when it stays locked", async () => {
   const recovered = graphMock({ lockedWrites: 2 });
   assert.equal((await new ExcelStorageService().addWine(wine)).status, "WineAdded");
