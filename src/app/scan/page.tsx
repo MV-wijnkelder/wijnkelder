@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { WineResultCard } from "@/components/wine-result-card";
+import type { WineRecognition } from "@/lib/wine-recognition";
 
 export default function ScanPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [result, setResult] = useState<WineRecognition | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isRecognizing, setIsRecognizing] = useState(false);
   const cameraInput = useRef<HTMLInputElement>(null);
   const libraryInput = useRef<HTMLInputElement>(null);
 
@@ -18,13 +24,47 @@ export default function ScanPage() {
   function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
     const photo = event.target.files?.[0];
 
-    if (photo) setPhotoUrl(URL.createObjectURL(photo));
+    if (photo) {
+      setPhoto(photo);
+      setPhotoUrl(URL.createObjectURL(photo));
+      setResult(null);
+      setError(null);
+    }
   }
 
   function resetPhoto() {
+    setPhoto(null);
     setPhotoUrl(null);
+    setResult(null);
+    setError(null);
     if (cameraInput.current) cameraInput.current.value = "";
     if (libraryInput.current) libraryInput.current.value = "";
+  }
+
+  async function recognizeWine() {
+    if (!photo || isRecognizing) return;
+
+    setIsRecognizing(true);
+    setError(null);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("image", photo);
+
+    try {
+      const response = await fetch("/api/recognize-wine", { method: "POST", body: formData });
+      const data = await response.json() as WineRecognition | { error?: string };
+
+      if (!response.ok) {
+        throw new Error("error" in data && data.error ? data.error : "The wine could not be recognized.");
+      }
+
+      setResult(data as WineRecognition);
+    } catch (recognitionError) {
+      setError(recognitionError instanceof Error ? recognitionError.message : "The wine could not be recognized.");
+    } finally {
+      setIsRecognizing(false);
+    }
   }
 
   return (
@@ -56,12 +96,20 @@ export default function ScanPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="h-full w-full object-contain" src={photoUrl} alt="Voorbeeld van het gekozen wijnetiket" />
             </div>
-            <button className="action action-primary w-full" type="button">
-              Gebruik deze foto
+            <button
+              className="action action-primary w-full"
+              type="button"
+              onClick={recognizeWine}
+              disabled={isRecognizing}
+            >
+              {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <span aria-hidden="true">🍷</span>}
+              {isRecognizing ? "Wijn herkennen…" : "Herken wijn"}
             </button>
+            {error && <p className="error-message" role="alert">{error}</p>}
             <button className="action action-secondary w-full" onClick={resetPhoto} type="button">
               Nieuwe foto
             </button>
+            {result && <WineResultCard result={result} />}
           </div>
         ) : (
           <div className="mt-10 grid gap-3">
