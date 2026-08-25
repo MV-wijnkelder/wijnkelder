@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 const actions = [
-  { label: "Scan etiket", icon: "📷", primary: true },
-  { label: "Mijn kelder", icon: "🍷", primary: false },
+  { label: "Scan etiket", icon: "📷", primary: true, href: "/scan" },
+  { label: "Mijn kelder", icon: "🍷", primary: false, href: null },
 ] as const;
 
 export default function Home() {
@@ -25,16 +27,26 @@ export default function Home() {
         </p>
 
         <div className="mt-12 grid w-full gap-3 sm:grid-cols-2">
-          {actions.map(({ label, icon, primary }) => (
-            <button
-              className={primary ? "action action-primary" : "action action-secondary"}
-              key={label}
-              type="button"
-            >
+          {actions.map(({ label, icon, primary, href }) => {
+            const content = <>
               <span aria-hidden="true" className="text-xl">{icon}</span>
               <span>{label}</span>
-            </button>
-          ))}
+            </>;
+
+            return href ? (
+              <Link className="action action-primary" href={href} key={label}>
+                {content}
+              </Link>
+            ) : (
+              <button
+                className={primary ? "action action-primary" : "action action-secondary"}
+                key={label}
+                type="button"
+              >
+                {content}
+              </button>
+            );
+          })}
         </div>
 
         <p className="mt-12 text-xs tracking-wide text-muted/70">
