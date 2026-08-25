@@ -46,8 +46,11 @@ const wineSchema = {
 export class OpenAIProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
 
-  async recognizeWine(image: RecognitionImage): Promise<WineRecognitionResult> {
-    const imageData = Buffer.from(image.bytes).toString("base64");
+  async recognizeWine(frontImage: RecognitionImage, backImage?: RecognitionImage): Promise<WineRecognitionResult> {
+    const imageContent = (image: RecognitionImage) => ({
+      type: "input_image",
+      image_url: `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}`,
+    });
     const response = await fetch(OPENAI_RESPONSES_URL, {
       method: "POST",
       headers: {
@@ -61,12 +64,10 @@ export class OpenAIProvider implements AIProvider {
           content: [
             {
               type: "input_text",
-              text: `Read this wine label and identify the wine. Set recognized to false when the image is not a wine label or the wine cannot be identified reliably. Use ${UNKNOWN} for every unknown text field, an empty array when grape varieties are unknown, and null when the alcohol percentage is unknown. Express bottle size as printed on the bottle and alcoholPercentage as a number without the percent sign. Base confidence on label legibility and identification certainty. Do not guess details that are not reliably visible or inferable from the label.`,
+              text: `Analyse ${backImage ? "both images together" : "the front-label image"} and identify one wine. The first image is the front label: use it for producer, branding, bottle identification, and vintage. ${backImage ? "The second image is the back label: use it for grape varieties, alcohol, appellation, importer, technical details, and tasting notes when available. Merge all reliable information into ONE canonical wine result, preferring the back label whenever it is more specific." : ""} Set recognized to false when the image is not a wine label or the wine cannot be identified reliably. Use ${UNKNOWN} for every unknown text field, an empty array when grape varieties are unknown, and null when the alcohol percentage is unknown. Express bottle size as printed on the bottle and alcoholPercentage as a number without the percent sign. Base confidence on label legibility and identification certainty. Do not guess details that are not reliably visible or inferable from the label.`,
             },
-            {
-              type: "input_image",
-              image_url: `data:${image.mediaType};base64,${imageData}`,
-            },
+            imageContent(frontImage),
+            ...(backImage ? [imageContent(backImage)] : []),
           ],
         }],
         text: {

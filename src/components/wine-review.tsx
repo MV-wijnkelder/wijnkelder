@@ -4,12 +4,15 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
 import { StorageService } from "@/services/storage";
+import type { WineLabelImages } from "@/services/storage";
 import { ArrowClockwiseIcon, CheckIcon, PlusIcon } from "@/components/icons";
 
 type WineReviewProps = {
   wine: Wine;
   onChange: (wine: Wine) => void;
   onScanAgain: () => void;
+  labelImages?: WineLabelImages;
+  onSaved: () => void;
 };
 
 type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence">;
@@ -25,7 +28,7 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
   { key: "bottleSize", label: "Flesformaat", placeholder: "Bijv. 750 ml" },
 ];
 
-export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
+export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }: WineReviewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -58,8 +61,10 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
     setSaveFailed(false);
 
     try {
-      await StorageService.addWine(wine);
+      const saved = await StorageService.addWine(wine, labelImages);
+      if (!saved) throw new Error("De wijn kon niet worden opgeslagen.");
       setSaveMessage("Wijn succesvol toegevoegd aan de wijnkelder.");
+      onSaved();
     } catch (error) {
       setSaveFailed(true);
       setSaveMessage(error instanceof Error ? error.message : "De wijn kon niet worden opgeslagen.");

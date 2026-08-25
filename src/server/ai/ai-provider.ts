@@ -7,5 +7,5 @@ export type RecognitionImage = {
 
 /** Contract implemented by every AI vendor adapter. */
 export interface AIProvider {
-  recognizeWine(image: RecognitionImage): Promise<WineRecognitionResult>;
+  recognizeWine(frontImage: RecognitionImage, backImage?: RecognitionImage): Promise<WineRecognitionResult>;
 }

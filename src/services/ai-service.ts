@@ -4,9 +4,10 @@ const RECOGNITION_ENDPOINT = "/api/recognize-wine";
 
 /** Browser-facing AI facade. UI components never depend on a provider. */
 export const AIService = {
-  async recognizeWine(image: File): Promise<WineRecognitionResult> {
+  async recognizeWine(frontImage: File, backImage?: File): Promise<WineRecognitionResult> {
     const formData = new FormData();
-    formData.append("image", image);
+    formData.append("frontImage", frontImage);
+    if (backImage) formData.append("backImage", backImage);
 
     const response = await fetch(RECOGNITION_ENDPOINT, {
       method: "POST",

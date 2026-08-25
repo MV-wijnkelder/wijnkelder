@@ -4,61 +4,70 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
-import { CameraIcon, ChevronLeftIcon, PhotoIcon, WineglassIcon } from "@/components/icons";
+import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon, TrashIcon, WineglassIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
 import { AIService } from "@/services/ai-service";
 
 const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
+type LabelSide = "front" | "back";
+type LabelPhoto = { file: File; url: string };
 
 export default function ScanPage() {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [front, setFront] = useState<LabelPhoto | null>(null);
+  const [back, setBack] = useState<LabelPhoto | null>(null);
   const [result, setResult] = useState<Wine | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
-  const cameraInput = useRef<HTMLInputElement>(null);
-  const libraryInput = useRef<HTMLInputElement>(null);
+  const frontCameraInput = useRef<HTMLInputElement>(null);
+  const frontLibraryInput = useRef<HTMLInputElement>(null);
+  const backCameraInput = useRef<HTMLInputElement>(null);
+  const backLibraryInput = useRef<HTMLInputElement>(null);
+  const frontUrl = front?.url;
+  const backUrl = back?.url;
 
-  useEffect(() => {
-    return () => {
-      if (photoUrl) URL.revokeObjectURL(photoUrl);
-    };
-  }, [photoUrl]);
+  useEffect(() => () => { if (frontUrl) URL.revokeObjectURL(frontUrl); }, [frontUrl]);
+  useEffect(() => () => { if (backUrl) URL.revokeObjectURL(backUrl); }, [backUrl]);
 
-  function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
-    const photo = event.target.files?.[0];
-
-    if (photo) {
-      setPhoto(photo);
-      setPhotoUrl(URL.createObjectURL(photo));
-      setResult(null);
-      setError(null);
-    }
-  }
-
-  function resetPhoto() {
-    setPhoto(null);
-    setPhotoUrl(null);
+  function selectPhoto(side: LabelSide, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const photo = { file, url: URL.createObjectURL(file) };
+    if (side === "front") setFront(photo); else setBack(photo);
     setResult(null);
     setError(null);
-    if (cameraInput.current) cameraInput.current.value = "";
-    if (libraryInput.current) libraryInput.current.value = "";
+  }
+
+  function removeBack() {
+    setBack(null);
+    setError(null);
+    if (backCameraInput.current) backCameraInput.current.value = "";
+    if (backLibraryInput.current) backLibraryInput.current.value = "";
+  }
+
+  function resetPhotos() {
+    setFront(null);
+    setBack(null);
+    setResult(null);
+    setError(null);
+    [frontCameraInput, frontLibraryInput, backCameraInput, backLibraryInput].forEach((input) => {
+      if (input.current) input.current.value = "";
+    });
+  }
+
+  function releaseLabelImages() {
+    setFront(null);
+    setBack(null);
   }
 
   async function recognizeWine() {
-    if (!photo || isRecognizing) return;
-
+    if (!front || isRecognizing) return;
     setIsRecognizing(true);
     setError(null);
     setResult(null);
-
     try {
-      const recognition = await AIService.recognizeWine(photo);
-      if (recognition.recognized) {
-        setResult(recognition.wine);
-      } else {
-        setError(NOT_RECOGNIZED_MESSAGE);
-      }
+      const recognition = await AIService.recognizeWine(front.file, back?.file);
+      if (recognition.recognized) setResult(recognition.wine);
+      else setError(NOT_RECOGNIZED_MESSAGE);
     } catch (recognitionError) {
       setError(recognitionError instanceof Error ? recognitionError.message : "The wine could not be recognized.");
     } finally {
@@ -66,84 +75,82 @@ export default function ScanPage() {
     }
   }
 
+  const input = (side: LabelSide, source: "camera" | "library") => (
+    <input
+      ref={side === "front" ? (source === "camera" ? frontCameraInput : frontLibraryInput) : (source === "camera" ? backCameraInput : backLibraryInput)}
+      className="sr-only"
+      type="file"
+      accept="image/*"
+      capture={source === "camera" ? "environment" : undefined}
+      onChange={(event) => selectPhoto(side, event)}
+      aria-label={`${side === "front" ? "Front" : "Back"} label ${source}`}
+    />
+  );
+
   return (
     <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
-      <div aria-hidden="true" className="ambient ambient-top" />
-      <div aria-hidden="true" className="ambient ambient-bottom" />
-
+      <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
       <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
-        <Link className="back-link" href="/" aria-label="Terug naar home">
-          <ChevronLeftIcon className="size-5" /> Terug
-        </Link>
-
-        <div className="mt-10 text-center sm:mt-14">
-          <div className="app-icon app-icon-small mx-auto mb-7">
-            <CameraIcon className="size-7" />
-          </div>
-          <h1 className="text-balance text-4xl font-semibold tracking-[-0.045em] text-ink sm:text-5xl">
-            Scan wijnetiket
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-pretty text-base leading-7 text-muted sm:text-lg">
-            Maak een duidelijke foto van het etiket of kies een bestaande foto uit je bibliotheek.
-          </p>
+        <Link className="back-link" href="/" aria-label="Terug naar home"><ChevronLeftIcon className="size-5" /> Terug</Link>
+        <div className="mt-8 text-center sm:mt-12">
+          <div className="app-icon app-icon-small mx-auto mb-6"><CameraIcon className="size-7" /></div>
+          <h1 className="text-balance text-4xl font-semibold tracking-[-0.045em] text-ink sm:text-5xl">Scan Wine</h1>
+          <p className="mx-auto mt-4 max-w-md text-pretty text-base leading-7 text-muted sm:text-lg">Capture the front label and optionally add the back label for a richer recognition.</p>
         </div>
 
         {result ? (
-          <WineReview wine={result} onChange={setResult} onScanAgain={resetPhoto} />
-        ) : photoUrl ? (
-          <div className="mt-9 flex flex-col gap-4">
-            <div className={`preview-frame ${isRecognizing ? "is-loading" : ""}`}>
-              {/* A blob URL from the local device does not need Next.js image optimisation. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="h-full w-full object-contain" src={photoUrl} alt="Voorbeeld van het gekozen wijnetiket" />
-              {isRecognizing && <div className="recognition-overlay" aria-hidden="true"><span /><span /><span /></div>}
-            </div>
-            <button
-              className="action action-primary w-full"
-              type="button"
-              onClick={recognizeWine}
-              disabled={isRecognizing}
-            >
-              {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <WineglassIcon className="size-5" />}
-              {isRecognizing ? "Wijn herkennen…" : "Gebruik deze foto"}
-            </button>
-            {isRecognizing && <p className="sr-only" role="status">De wijn wordt herkend.</p>}
-            {error && <p className="error-message" role="alert">{error}</p>}
-            <button className="action action-secondary w-full" onClick={resetPhoto} type="button">
-              Nieuwe foto
-            </button>
-          </div>
+          <WineReview
+            wine={result}
+            onChange={setResult}
+            onScanAgain={resetPhotos}
+            labelImages={front ? { front: front.file, ...(back ? { back: back.file } : {}) } : undefined}
+            onSaved={releaseLabelImages}
+          />
         ) : (
-          <div className="mt-10 grid gap-3">
-            <input
-              ref={cameraInput}
-              className="sr-only"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={selectPhoto}
-              aria-label="Maak foto"
-            />
-            <button className="action action-primary w-full" onClick={() => cameraInput.current?.click()} type="button">
-              <CameraIcon className="size-5" />
-              Maak foto
-            </button>
+          <div className="mt-9 flex flex-col gap-4">
+            <div className="label-grid">
+              <LabelCard title="Front Label" photo={front} required isLoading={isRecognizing} onCamera={() => frontCameraInput.current?.click()} onLibrary={() => frontLibraryInput.current?.click()} />
+              {front && (back
+                ? <LabelCard title="Back Label" photo={back} isLoading={isRecognizing} onCamera={() => backCameraInput.current?.click()} onLibrary={() => backLibraryInput.current?.click()} onDelete={removeBack} />
+                : <button className="label-add-card" type="button" onClick={() => backCameraInput.current?.click()} disabled={isRecognizing}><span className="label-add-icon"><CameraIcon className="size-6" /></span><strong>Back Label</strong><small>Optional · Add photo</small></button>)}
+            </div>
+            {input("front", "camera")}{input("front", "library")}{input("back", "camera")}{input("back", "library")}
 
-            <input
-              ref={libraryInput}
-              className="sr-only"
-              type="file"
-              accept="image/*"
-              onChange={selectPhoto}
-              aria-label="Kies uit fotobibliotheek"
-            />
-            <button className="action action-secondary w-full" onClick={() => libraryInput.current?.click()} type="button">
-              <PhotoIcon className="size-5" />
-              Kies uit fotobibliotheek
-            </button>
+            {front && <>
+              <button className="action action-primary w-full" type="button" onClick={recognizeWine} disabled={!front || isRecognizing}>
+                {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <WineglassIcon className="size-5" />}
+                {isRecognizing ? "Recognizing Wine…" : "Recognize Wine"}
+              </button>
+              {!back && <button className="action action-secondary w-full" type="button" onClick={() => backCameraInput.current?.click()} disabled={isRecognizing}><CameraIcon className="size-5" /> Add Back Label <span className="optional-text">Optional</span></button>}
+            </>}
+            {isRecognizing && <p className="sr-only" role="status">The wine is being recognized.</p>}
+            {error && <p className="error-message" role="alert">{error}</p>}
           </div>
         )}
       </section>
     </main>
+  );
+}
+
+function LabelCard({ title, photo, required = false, isLoading, onCamera, onLibrary, onDelete }: { title: string; photo: LabelPhoto | null; required?: boolean; isLoading: boolean; onCamera: () => void; onLibrary: () => void; onDelete?: () => void }) {
+  if (!photo) return (
+    <div className="label-empty-card">
+      <span className="label-add-icon"><CameraIcon className="size-6" /></span><div><strong>{title}</strong><small>{required ? "Required" : "Optional"}</small></div>
+      <button className="capture-button" type="button" onClick={onCamera}><CameraIcon className="size-5" /> Capture front label</button>
+      <button className="library-button" type="button" onClick={onLibrary}><PhotoIcon className="size-4" /> Choose from library</button>
+    </div>
+  );
+  return (
+    <article className={`label-preview-card ${isLoading ? "is-loading" : ""}`}>
+      <div className="label-photo-wrap">
+        {/* Blob URLs from the local device do not need Next.js image optimization. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo.url} alt={`${title} preview`} />
+        {isLoading && <div className="recognition-overlay" aria-hidden="true"><span /><span /><span /></div>}
+      </div>
+      <div className="label-card-body"><p><span className="captured-check"><CheckIcon className="size-3.5" /></span><strong>{title} captured</strong></p>
+        <div className="label-card-actions"><button type="button" onClick={onCamera} disabled={isLoading}><CameraIcon className="size-4" /> Retake</button><button type="button" onClick={onLibrary} disabled={isLoading}><PhotoIcon className="size-4" /> Library</button>{onDelete && <button className="delete-button" type="button" onClick={onDelete} disabled={isLoading} aria-label="Delete back label"><TrashIcon className="size-4" /></button>}</div>
+      </div>
+    </article>
   );
 }

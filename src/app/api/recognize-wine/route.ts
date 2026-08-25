@@ -53,21 +53,35 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Het verzoek bevat geen geldige formuliergegevens." }, { status: 400 });
   }
-  const image = formData.get("image");
+  const frontImage = formData.get("frontImage");
+  const backCandidate = formData.get("backImage");
 
-  if (!(image instanceof File) || !image.type.startsWith("image/")) {
-    return NextResponse.json({ error: "Please select a valid image." }, { status: 400 });
+  if (!(frontImage instanceof File) || !frontImage.type.startsWith("image/")) {
+    return NextResponse.json({ error: "Selecteer een geldige foto van het voorlabel." }, { status: 400 });
   }
-  if (image.size > MAX_IMAGE_SIZE) {
-    return NextResponse.json({ error: "The image must be smaller than 10 MB." }, { status: 413 });
+  if (frontImage.size > MAX_IMAGE_SIZE) {
+    return NextResponse.json({ error: "De foto van het voorlabel moet kleiner zijn dan 10 MB." }, { status: 413 });
   }
+
+  // A malformed or oversized optional back image must never block a front-only scan.
+  const backImage = backCandidate instanceof File
+    && backCandidate.type.startsWith("image/")
+    && backCandidate.size <= MAX_IMAGE_SIZE
+    ? backCandidate
+    : undefined;
 
   try {
     const aiService = new AIService(new OpenAIProvider(apiKey));
-    const result = await aiService.recognizeWine({
-      bytes: await image.arrayBuffer(),
-      mediaType: image.type,
-    });
+    const front = { bytes: await frontImage.arrayBuffer(), mediaType: frontImage.type };
+    let back;
+    try {
+      back = backImage
+        ? { bytes: await backImage.arrayBuffer(), mediaType: backImage.type }
+        : undefined;
+    } catch {
+      console.warn("Back-label upload could not be read; continuing with the front label");
+    }
+    const result = await aiService.recognizeWine(front, back);
     return NextResponse.json(result);
   } catch (error) {
     console.error("Wine recognition failed", error);
