@@ -138,6 +138,8 @@ a { color: inherit; text-decoration: none; }
 .label-card-actions button:hover { background: var(--glass-strong); }
 .label-card-actions .delete-button { max-width: 2.75rem; flex-basis: 2.75rem; color: #a12e36; }
 .optional-text { border-radius: 999px; background: rgb(255 255 255 / 15%); padding: .2rem .45rem; font-size: .65rem; font-weight: 600; opacity: .82; }
+.optimization-status { display: flex; align-items: center; justify-content: center; gap: .45rem; margin: .15rem 0 0; color: var(--muted); font-size: .78rem; }
+.optimization-spinner { width: .85rem; height: .85rem; border: 2px solid rgb(114 36 61 / 20%); border-top-color: var(--wine); border-radius: 999px; animation: spin 700ms linear infinite; }
 
 .error-message { margin: 0; border: 1px solid rgb(178 45 45 / 15%); border-radius: 1.15rem; background: rgb(255 241 241 / 82%); padding: 1rem; color: #8d2525; font-size: .9rem; line-height: 1.5; text-align: center; backdrop-filter: blur(12px); }
 .review-card { margin-top: 1.5rem; overflow: hidden; border-radius: 1.9rem; padding: 1.5rem; }
