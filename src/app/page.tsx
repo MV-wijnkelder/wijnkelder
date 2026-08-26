@@ -3,8 +3,7 @@ import { CameraIcon, WineglassIcon } from "@/components/icons";
 
 const actions = [
   { label: "Scan etiket", icon: CameraIcon, primary: true, href: "/scan" },
-  { label: "Connect Microsoft", icon: WineglassIcon, primary: false, href: "/api/auth/microsoft" },
-  { label: "Mijn kelder", icon: WineglassIcon, primary: false, href: null },
+  { label: "Mijn kelder", icon: WineglassIcon, primary: false, href: "/cellar" },
 ] as const;
 
 export default function Home() {
@@ -36,7 +35,7 @@ export default function Home() {
             </>;
 
             return href ? (
-              <Link className="action action-primary" href={href} key={label}>
+              <Link className={primary ? "action action-primary" : "action action-secondary"} href={href} key={label}>
                 {content}
               </Link>
             ) : (

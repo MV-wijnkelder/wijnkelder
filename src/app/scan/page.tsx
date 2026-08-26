@@ -8,6 +8,7 @@ import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon, TrashIcon, Wineglass
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
 import { AIService } from "@/services/ai-service";
+import { WineService } from "@/services/wine-service";
 
 const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
 type LabelSide = "front" | "back";
@@ -128,6 +129,10 @@ export default function ScanPage() {
             wine={result}
             onChange={setResult}
             onScanAgain={resetPhotos}
+            onSave={async (wine) => {
+              const saved = await WineService.add(wine);
+              return { duplicate: saved.duplicate };
+            }}
           />
         ) : (
           <div className="mt-9 flex flex-col gap-4">

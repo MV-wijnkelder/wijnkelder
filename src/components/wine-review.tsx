@@ -5,12 +5,11 @@ import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
 import { ArrowClockwiseIcon, CheckIcon, PlusIcon } from "@/components/icons";
 
-const RELEASE_2_MESSAGE = "This feature will be available in Release 2.";
-
 type WineReviewProps = {
   wine: Wine;
   onChange: (wine: Wine) => void;
   onScanAgain: () => void;
+  onSave: (wine: Wine) => Promise<{ duplicate: boolean }>;
 };
 
 type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence">;
@@ -26,8 +25,10 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
   { key: "bottleSize", label: "Flesformaat", placeholder: "Bijv. 750 ml" },
 ];
 
-export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
+export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
@@ -48,9 +49,20 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
     setSaveMessage(null);
   }
 
-  function confirmReview(event: FormEvent<HTMLFormElement>) {
+  async function confirmReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaveMessage(RELEASE_2_MESSAGE);
+    if (isSaving) return;
+    setIsSaving(true);
+    setSaveMessage(null);
+    setSaveError(null);
+    try {
+      const result = await onSave(wine);
+      setSaveMessage(result.duplicate ? "Fles toegevoegd aan de bestaande wijn." : "Wijn toegevoegd aan je wijnkelder.");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "De wijn kon niet worden opgeslagen.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -126,20 +138,17 @@ export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
         </label>
       </div>
 
-      {saveMessage && (
-        <p className="release-message" role="status">
-          {saveMessage}
-        </p>
-      )}
+      {saveMessage && <p className="success-message" role="status"><span><CheckIcon className="size-3.5" /></span>{saveMessage}</p>}
+      {saveError && <p className="error-message" role="alert">{saveError}</p>}
 
       <div className="review-actions">
         <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>
           <ArrowClockwiseIcon className="size-5" />
           Scan opnieuw
         </button>
-        <button className="action action-primary w-full" type="submit" aria-disabled="true">
-          <PlusIcon className="size-5" />
-          Toevoegen aan wijnkelder
+        <button className="action action-primary w-full" type="submit" disabled={isSaving}>
+          {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
+          {isSaving ? "Opslaan…" : "Toevoegen aan wijnkelder"}
         </button>
       </div>
     </form>
