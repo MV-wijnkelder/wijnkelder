@@ -3,6 +3,7 @@ import { CameraIcon, WineglassIcon } from "@/components/icons";
 
 const actions = [
   { label: "Scan etiket", icon: CameraIcon, primary: true, href: "/scan" },
+  { label: "Connect Microsoft", icon: WineglassIcon, primary: false, href: "/api/auth/microsoft" },
   { label: "Mijn kelder", icon: WineglassIcon, primary: false, href: null },
 ] as const;
 
