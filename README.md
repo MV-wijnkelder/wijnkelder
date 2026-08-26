@@ -13,9 +13,18 @@ npm run dev
 `OPENAI_API_KEY` is the only setting required for wine recognition. It is read
 only by the server-side recognition route and is never sent to the browser.
 
-Release 1 supports label scanning, AI recognition, and editing the recognized
-wine details. Cellar storage is planned for Release 2; the **Toevoegen aan
-wijnkelder** control is intentionally unavailable in this release.
+Release 2 adds a focused Microsoft sign-in for personal Hotmail and Outlook
+accounts. Register `/api/auth/microsoft/callback` as the web redirect URI in a
+Microsoft Entra app that supports personal Microsoft accounts, then set
+`MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, and a long random
+`AUTH_SECRET`. The sign-in uses the Microsoft `consumers` endpoint and only
+requests OpenID identity scopes so it can display the signed-in email address.
+It does not request Microsoft Graph scopes, read Microsoft data, or persist any
+account information.
+
+Label scanning, AI recognition, and editing the recognized wine details remain
+available. Cellar storage is not part of this release; the **Toevoegen aan
+wijnkelder** control remains intentionally unavailable.
 
 The recognition route reads `OPENAI_API_KEY` from the running Node.js function,
 trims accidental surrounding whitespace, and passes that value directly to the

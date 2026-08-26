@@ -1,12 +1,22 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { CameraIcon, WineglassIcon } from "@/components/icons";
+import { MICROSOFT_AUTH_COOKIE, readAuthCookie } from "@/lib/microsoft-auth";
 
 const actions = [
   { label: "Scan etiket", icon: CameraIcon, primary: true, href: "/scan" },
   { label: "Mijn kelder", icon: WineglassIcon, primary: false, href: null },
 ] as const;
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ authError?: string }>;
+}) {
+  const cookieStore = await cookies();
+  const email = readAuthCookie(cookieStore.get(MICROSOFT_AUTH_COOKIE)?.value);
+  const { authError } = await searchParams;
+
   return (
     <main className="app-shell relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
       <div aria-hidden="true" className="ambient ambient-top" />
@@ -27,7 +37,29 @@ export default function Home() {
           Scan a wine label. AI does the rest.
         </p>
 
-        <div className="mt-12 grid w-full gap-3 sm:grid-cols-2">
+        <div className="mt-8 w-full max-w-sm">
+          {email ? (
+            <div className="microsoft-account" aria-live="polite">
+              <span>Verbonden met Microsoft</span>
+              <strong>{email}</strong>
+              <Link href="/api/auth/microsoft/logout">Uitloggen</Link>
+            </div>
+          ) : (
+            <Link className="action action-microsoft w-full" href="/api/auth/microsoft">
+              <span className="microsoft-mark" aria-hidden="true">
+                <i /><i /><i /><i />
+              </span>
+              Connect Microsoft
+            </Link>
+          )}
+          {authError ? (
+            <p className="auth-error" role="alert">
+              Microsoft aanmelden is niet gelukt. Probeer het opnieuw.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
           {actions.map(({ label, icon: Icon, primary, href }) => {
             const content = <>
               <Icon className="size-5" />
