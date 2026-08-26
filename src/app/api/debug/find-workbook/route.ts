@@ -5,6 +5,8 @@ const LOGIN_ROOT = "https://login.microsoftonline.com";
 const WORKBOOK_NAME = "Wijnkelder_MCHRDV.xlsx";
 const REQUEST_TIMEOUT_MS = 15_000;
 
+export const runtime = "nodejs";
+
 type DriveItem = {
   id?: unknown;
   name?: unknown;
@@ -79,9 +81,9 @@ export async function GET() {
 }
 
 async function authenticate(): Promise<string> {
-  const tenantId = requiredConfiguration("MICROSOFT_TENANT_ID");
-  const clientId = requiredConfiguration("MICROSOFT_CLIENT_ID");
-  const clientSecret = requiredConfiguration("MICROSOFT_CLIENT_SECRET");
+  const tenantId = requiredConfiguration("MICROSOFT_TENANT_ID", process.env.MICROSOFT_TENANT_ID);
+  const clientId = requiredConfiguration("MICROSOFT_CLIENT_ID", process.env.MICROSOFT_CLIENT_ID);
+  const clientSecret = requiredConfiguration("MICROSOFT_CLIENT_SECRET", process.env.MICROSOFT_CLIENT_SECRET);
   const response = await fetch(`${LOGIN_ROOT}/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -140,8 +142,8 @@ async function readGraphError(response: Response): Promise<{ code: string; messa
   }
 }
 
-function requiredConfiguration(name: "MICROSOFT_TENANT_ID" | "MICROSOFT_CLIENT_ID" | "MICROSOFT_CLIENT_SECRET"): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Missing configuration: ${name}`);
-  return value;
+function requiredConfiguration(name: string, value: string | undefined): string {
+  const configuredValue = value?.trim();
+  if (!configuredValue) throw new Error(`Missing configuration: ${name}`);
+  return configuredValue;
 }

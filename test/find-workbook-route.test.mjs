@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 
-import { GET } from "../src/app/api/debug/find-workbook/route.ts";
+import { GET, runtime } from "../src/app/api/debug/find-workbook/route.ts";
 
 let originalFetch;
 
@@ -15,6 +15,10 @@ beforeEach(() => {
 });
 
 afterEach(() => { globalThis.fetch = originalFetch; });
+
+test("runs in the Node.js runtime where server environment variables are available", () => {
+  assert.equal(runtime, "nodejs");
+});
 
 test("authenticates and returns the exact workbook found by Graph search", async () => {
   const calls = [];
