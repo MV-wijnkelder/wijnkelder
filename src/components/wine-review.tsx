@@ -3,16 +3,14 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
-import { StorageService } from "@/services/storage";
-import type { WineLabelImages } from "@/services/storage";
 import { ArrowClockwiseIcon, CheckIcon, PlusIcon } from "@/components/icons";
+
+const RELEASE_2_MESSAGE = "This feature will be available in Release 2.";
 
 type WineReviewProps = {
   wine: Wine;
   onChange: (wine: Wine) => void;
   onScanAgain: () => void;
-  labelImages?: WineLabelImages;
-  onSaved: () => void;
 };
 
 type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence">;
@@ -28,11 +26,8 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
   { key: "bottleSize", label: "Flesformaat", placeholder: "Bijv. 750 ml" },
 ];
 
-export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }: WineReviewProps) {
-  const [isSaving, setIsSaving] = useState(false);
+export function WineReview({ wine, onChange, onScanAgain }: WineReviewProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [saveFailed, setSaveFailed] = useState(false);
-  const [duplicateQuantity, setDuplicateQuantity] = useState<number | null>(null);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
@@ -53,44 +48,9 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
     setSaveMessage(null);
   }
 
-  async function confirmReview(event: FormEvent<HTMLFormElement>) {
+  function confirmReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSaving) return;
-
-    setIsSaving(true);
-    setSaveMessage(null);
-    setSaveFailed(false);
-
-    try {
-      const saved = await StorageService.addWine(wine, labelImages);
-      if (saved.status === "WineAlreadyExists") {
-        setDuplicateQuantity(saved.bottleQuantity);
-        setIsSaving(false);
-        return;
-      }
-      setSaveMessage("Wijn succesvol toegevoegd aan de wijnkelder.");
-      onSaved();
-    } catch (error) {
-      setSaveFailed(true);
-      setSaveMessage(error instanceof Error ? error.message : "De wijn kon niet worden opgeslagen.");
-    }
-
-    setIsSaving(false);
-  }
-
-  async function increaseBottleCount() {
-    setIsSaving(true);
-    setSaveMessage(null);
-    try {
-      const result = await StorageService.increaseBottleCount(wine);
-      setDuplicateQuantity(null);
-      setSaveMessage(`Aantal flessen bijgewerkt naar ${result.bottleQuantity}.`);
-      setSaveFailed(false);
-      onSaved();
-    } catch (error) {
-      setSaveFailed(true);
-      setSaveMessage(error instanceof Error ? error.message : "Het aantal flessen kon niet worden bijgewerkt.");
-    } finally { setIsSaving(false); }
+    setSaveMessage(RELEASE_2_MESSAGE);
   }
 
   return (
@@ -167,26 +127,9 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
       </div>
 
       {saveMessage && (
-        <p className={saveFailed ? "error-message" : "success-toast"} role={saveFailed ? "alert" : "status"}>
-          {!saveFailed && <span><CheckIcon className="size-4" /></span>}
+        <p className="release-message" role="status">
           {saveMessage}
         </p>
-      )}
-
-      {duplicateQuantity !== null && (
-        <div className="dialog-backdrop" role="presentation">
-          <div className="duplicate-dialog" role="dialog" aria-modal="true" aria-labelledby="duplicate-title" aria-describedby="duplicate-description">
-            <strong id="duplicate-title">This wine already exists in your wine cellar.</strong>
-            <p id="duplicate-description">Increase bottle quantity?</p>
-            <small>Current bottle quantity: {duplicateQuantity}</small>
-            <div className="duplicate-actions">
-              <button className="action action-primary" type="button" disabled={isSaving} onClick={increaseBottleCount}>
-                {isSaving && <span className="spinner" aria-hidden="true" />} Increase quantity
-              </button>
-              <button className="action action-secondary" type="button" disabled={isSaving} onClick={() => setDuplicateQuantity(null)}>Cancel</button>
-            </div>
-          </div>
-        </div>
       )}
 
       <div className="review-actions">
@@ -194,9 +137,9 @@ export function WineReview({ wine, onChange, onScanAgain, labelImages, onSaved }
           <ArrowClockwiseIcon className="size-5" />
           Scan opnieuw
         </button>
-        <button className="action action-primary w-full" type="submit" disabled={isSaving}>
-          {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
-          {isSaving ? "Toevoegen…" : "Toevoegen aan wijnkelder"}
+        <button className="action action-primary w-full" type="submit" aria-disabled="true">
+          <PlusIcon className="size-5" />
+          Toevoegen aan wijnkelder
         </button>
       </div>
     </form>

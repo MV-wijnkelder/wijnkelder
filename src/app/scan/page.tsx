@@ -84,14 +84,6 @@ export default function ScanPage() {
     });
   }
 
-  function releaseLabelImages() {
-    selectionSequence.current.front += 1;
-    selectionSequence.current.back += 1;
-    setOptimizingSides(new Set());
-    setFront(null);
-    setBack(null);
-  }
-
   async function recognizeWine() {
     if (!front || isRecognizing || optimizingSides.size > 0) return;
     setIsRecognizing(true);
@@ -136,8 +128,6 @@ export default function ScanPage() {
             wine={result}
             onChange={setResult}
             onScanAgain={resetPhotos}
-            labelImages={front ? { front: front.file, ...(back ? { back: back.file } : {}) } : undefined}
-            onSaved={releaseLabelImages}
           />
         ) : (
           <div className="mt-9 flex flex-col gap-4">
