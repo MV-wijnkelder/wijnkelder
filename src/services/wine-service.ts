@@ -40,5 +40,5 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 async function errorMessage(response: Response): Promise<string> {
   const data = await response.json().catch(() => null) as { error?: unknown } | null;
-  return typeof data?.error === "string" ? data.error : "De bewerking is mislukt. Probeer opnieuw.";
+  return typeof data?.error === "string" ? data.error : "The operation failed. Please try again.";
 }

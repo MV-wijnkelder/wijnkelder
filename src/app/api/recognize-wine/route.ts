@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const PROVIDER_ERRORS: Record<OpenAIProviderErrorCode, { message: string; status: number }> = {
-  AUTHENTICATION_FAILED: { message: "De OpenAI API-sleutel is ongeldig of heeft geen toegang.", status: 503 },
-  RATE_LIMITED: { message: "De herkenningsdienst is tijdelijk overbelast. Probeer het later opnieuw.", status: 429 },
-  UPSTREAM_UNAVAILABLE: { message: "De herkenningsdienst is momenteel niet beschikbaar. Probeer het later opnieuw.", status: 502 },
-  INVALID_RESPONSE: { message: "De herkenningsdienst gaf een ongeldig antwoord. Probeer het opnieuw.", status: 502 },
+  AUTHENTICATION_FAILED: { message: "The OpenAI API key is invalid or does not have access.", status: 503 },
+  RATE_LIMITED: { message: "The recognition service is temporarily busy. Please try again later.", status: 429 },
+  UPSTREAM_UNAVAILABLE: { message: "The recognition service is currently unavailable. Please try again later.", status: 502 },
+  INVALID_RESPONSE: { message: "The recognition service returned an invalid response. Please try again.", status: 502 },
 };
 
 export async function POST(request: Request) {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         : "whitespace only";
     console.error(`OPENAI_API_KEY is ${reason} in the recognize-wine runtime environment`);
     return NextResponse.json(
-      { error: "OPENAI_API_KEY ontbreekt in de serverconfiguratie; wijnherkenning kan niet worden gestart." },
+      { error: "OPENAI_API_KEY is missing from the server configuration; recognition cannot start." },
       { status: 503 },
     );
   }
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json({ error: "Het verzoek bevat geen geldige formuliergegevens." }, { status: 400 });
+    return NextResponse.json({ error: "The request does not contain valid form data." }, { status: 400 });
   }
   // Front-only requests retain the original `image` field. The dual-label
   // extension uses named fields so the two real uploads cannot be confused
@@ -60,10 +60,10 @@ export async function POST(request: Request) {
   const backCandidate = formData.get("backLabel");
 
   if (!(frontImage instanceof File) || !frontImage.type.startsWith("image/")) {
-    return NextResponse.json({ error: "Selecteer een geldige foto van het voorlabel." }, { status: 400 });
+    return NextResponse.json({ error: "Select a valid front-label photo." }, { status: 400 });
   }
   if (frontImage.size > MAX_IMAGE_SIZE) {
-    return NextResponse.json({ error: "De foto van het voorlabel moet kleiner zijn dan 10 MB." }, { status: 413 });
+    return NextResponse.json({ error: "The front-label photo must be smaller than 10 MB." }, { status: 413 });
   }
 
   // A malformed or oversized optional back image must never block a front-only scan.
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: providerError.message }, { status: providerError.status });
     }
     return NextResponse.json(
-      { error: "Er ging iets mis tijdens de wijnherkenning. Probeer het opnieuw." },
+      { error: "Something went wrong during wine recognition. Please try again." },
       { status: 500 },
     );
   }

@@ -138,6 +138,9 @@ function normalizeRecognitionResult(value: unknown): WineRecognitionResult {
 
   return {
     recognized: true,
+    ...(Array.isArray(value.labelWarning) && value.labelWarning.every((item) => typeof item === "string")
+      ? { labelWarning: [...value.labelWarning] as string[] }
+      : {}),
     wine: {
       producer: wine.producer as string | null,
       wineName: wine.wineName as string | null,

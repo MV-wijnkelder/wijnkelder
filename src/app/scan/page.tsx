@@ -4,182 +4,98 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
-import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon, TrashIcon, WineglassIcon } from "@/components/icons";
+import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
 import { AIService } from "@/services/ai-service";
 import { WineService } from "@/services/wine-service";
 
-const NOT_RECOGNIZED_MESSAGE = "Deze wijn kon niet met voldoende zekerheid worden herkend.";
 type LabelSide = "front" | "back";
 type LabelPhoto = { file: File; url: string };
+type Stage = "start" | "front" | "back-choice" | "back" | "warning" | "review";
 
 export default function ScanPage() {
+  const [stage, setStage] = useState<Stage>("start");
   const [front, setFront] = useState<LabelPhoto | null>(null);
   const [back, setBack] = useState<LabelPhoto | null>(null);
   const [result, setResult] = useState<Wine | null>(null);
+  const [warning, setWarning] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isRecognizing, setIsRecognizing] = useState(false);
-  const [optimizingSides, setOptimizingSides] = useState<Set<LabelSide>>(() => new Set());
-  const selectionSequence = useRef<Record<LabelSide, number>>({ front: 0, back: 0 });
-  const frontCameraInput = useRef<HTMLInputElement>(null);
-  const frontLibraryInput = useRef<HTMLInputElement>(null);
-  const backCameraInput = useRef<HTMLInputElement>(null);
-  const backLibraryInput = useRef<HTMLInputElement>(null);
-  const frontUrl = front?.url;
-  const backUrl = back?.url;
-
+  const [busy, setBusy] = useState(false);
+  const inputs = {
+    frontCamera: useRef<HTMLInputElement>(null), frontLibrary: useRef<HTMLInputElement>(null),
+    backCamera: useRef<HTMLInputElement>(null), backLibrary: useRef<HTMLInputElement>(null),
+  };
+  const frontUrl = front?.url, backUrl = back?.url;
   useEffect(() => () => { if (frontUrl) URL.revokeObjectURL(frontUrl); }, [frontUrl]);
   useEffect(() => () => { if (backUrl) URL.revokeObjectURL(backUrl); }, [backUrl]);
 
+  function open(side: LabelSide, source: "Camera" | "Library") {
+    setStage(side); setError(null);
+    inputs[`${side}${source}`].current?.click();
+  }
+
   async function selectPhoto(side: LabelSide, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const sequence = ++selectionSequence.current[side];
-    setOptimizingSides((current) => new Set(current).add(side));
-    setResult(null);
-    setError(null);
+    const file = event.target.files?.[0]; if (!file) return;
+    setBusy(true); setError(null);
     try {
-      const optimizedFile = await compressImage(file);
-      if (selectionSequence.current[side] !== sequence) return;
-      const photo = { file: optimizedFile, url: URL.createObjectURL(optimizedFile) };
+      const optimized = await compressImage(file);
+      const photo = { file: optimized, url: URL.createObjectURL(optimized) };
       if (side === "front") setFront(photo); else setBack(photo);
-    } catch (optimizationError) {
-      if (selectionSequence.current[side] === sequence) {
-        setError(optimizationError instanceof Error ? optimizationError.message : "The photo could not be optimized.");
-      }
-    } finally {
-      if (selectionSequence.current[side] === sequence) {
-        setOptimizingSides((current) => {
-          const next = new Set(current);
-          next.delete(side);
-          return next;
-        });
-      }
-    }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The photo could not be optimized."); }
+    finally { setBusy(false); event.target.value = ""; }
   }
 
-  function removeBack() {
-    selectionSequence.current.back += 1;
-    setOptimizingSides((current) => {
-      const next = new Set(current);
-      next.delete("back");
-      return next;
-    });
-    setBack(null);
-    setError(null);
-    if (backCameraInput.current) backCameraInput.current.value = "";
-    if (backLibraryInput.current) backLibraryInput.current.value = "";
-  }
-
-  function resetPhotos() {
-    selectionSequence.current.front += 1;
-    selectionSequence.current.back += 1;
-    setOptimizingSides(new Set());
-    setFront(null);
-    setBack(null);
-    setResult(null);
-    setError(null);
-    [frontCameraInput, frontLibraryInput, backCameraInput, backLibraryInput].forEach((input) => {
-      if (input.current) input.current.value = "";
-    });
-  }
-
-  async function recognizeWine() {
-    if (!front || isRecognizing || optimizingSides.size > 0) return;
-    setIsRecognizing(true);
-    setError(null);
-    setResult(null);
+  async function recognize(backPhoto?: LabelPhoto) {
+    if (!front || busy) return;
+    setBusy(true); setError(null);
     try {
-      const recognition = await AIService.recognizeWine(front.file, back?.file);
-      if (recognition.recognized) setResult(recognition.wine);
-      else setError(NOT_RECOGNIZED_MESSAGE);
-    } catch (recognitionError) {
-      setError(recognitionError instanceof Error ? recognitionError.message : "The wine could not be recognized.");
-    } finally {
-      setIsRecognizing(false);
-    }
+      const recognition = await AIService.recognizeWine(front.file, backPhoto?.file);
+      if (!recognition.recognized) { setError("This wine could not be recognized with enough confidence."); return; }
+      setResult(recognition.wine);
+      setWarning(recognition.labelWarning ?? []);
+      setStage(recognition.labelWarning?.length ? "warning" : "review");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The wine could not be recognized."); }
+    finally { setBusy(false); }
   }
 
-  const input = (side: LabelSide, source: "camera" | "library") => (
-    <input
-      ref={side === "front" ? (source === "camera" ? frontCameraInput : frontLibraryInput) : (source === "camera" ? backCameraInput : backLibraryInput)}
-      className="sr-only"
-      type="file"
-      accept="image/*"
-      capture={source === "camera" ? "environment" : undefined}
-      onChange={(event) => void selectPhoto(side, event)}
-      aria-label={`${side === "front" ? "Front" : "Back"} label ${source}`}
-    />
-  );
+  function reset() {
+    setStage("start"); setFront(null); setBack(null); setResult(null); setWarning([]); setError(null); setBusy(false);
+  }
 
-  return (
-    <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
-      <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
-      <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
-        <Link className="back-link" href="/" aria-label="Terug naar home"><ChevronLeftIcon className="size-5" /> Terug</Link>
-        <div className="mt-8 text-center sm:mt-12">
-          <div className="app-icon app-icon-small mx-auto mb-6"><CameraIcon className="size-7" /></div>
-          <h1 className="text-balance text-4xl font-semibold tracking-[-0.045em] text-ink sm:text-5xl">Scan Wine</h1>
-          <p className="mx-auto mt-4 max-w-md text-pretty text-base leading-7 text-muted sm:text-lg">Capture the front label and optionally add the back label for a richer recognition.</p>
-        </div>
+  function retake(side: LabelSide) {
+    if (side === "front") { setFront(null); setBack(null); } else setBack(null);
+    setResult(null); setWarning([]); setStage(side); open(side, "Camera");
+  }
 
-        {result ? (
-          <WineReview
-            wine={result}
-            onChange={setResult}
-            onScanAgain={resetPhotos}
-            onSave={async (wine) => {
-              const saved = await WineService.add(wine);
-              return { duplicate: saved.duplicate };
-            }}
-          />
-        ) : (
-          <div className="mt-9 flex flex-col gap-4">
-            <div className="label-grid">
-              <LabelCard title="Front Label" photo={front} required isLoading={isRecognizing} onCamera={() => frontCameraInput.current?.click()} onLibrary={() => frontLibraryInput.current?.click()} />
-              {front && (back
-                ? <LabelCard title="Back Label" photo={back} isLoading={isRecognizing} onCamera={() => backCameraInput.current?.click()} onLibrary={() => backLibraryInput.current?.click()} onDelete={removeBack} />
-                : <button className="label-add-card" type="button" onClick={() => backCameraInput.current?.click()} disabled={isRecognizing}><span className="label-add-icon"><CameraIcon className="size-6" /></span><strong>Back Label</strong><small>Optional · Add photo</small></button>)}
-            </div>
-            {input("front", "camera")}{input("front", "library")}{input("back", "camera")}{input("back", "library")}
+  const fileInput = (side: LabelSide, source: "Camera" | "Library") => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
 
-            {front && <>
-              <button className="action action-primary w-full" type="button" onClick={recognizeWine} disabled={!front || isRecognizing || optimizingSides.size > 0}>
-                {isRecognizing ? <span className="spinner" aria-hidden="true" /> : <WineglassIcon className="size-5" />}
-                {isRecognizing ? "Recognizing Wine…" : "Recognize Wine"}
-              </button>
-              {!back && <button className="action action-secondary w-full" type="button" onClick={() => backCameraInput.current?.click()} disabled={isRecognizing}><CameraIcon className="size-5" /> Add Back Label <span className="optional-text">Optional</span></button>}
-            </>}
-            {isRecognizing && <p className="sr-only" role="status">The wine is being recognized.</p>}
-            {optimizingSides.size > 0 && <p className="optimization-status" role="status"><span className="optimization-spinner" aria-hidden="true" /> Optimizing photos...</p>}
-            {error && <p className="error-message" role="alert">{error}</p>}
-          </div>
-        )}
-      </section>
-    </main>
-  );
+  return <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
+    <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
+    <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
+      <Link className="back-link" href="/" aria-label="Back to home"><ChevronLeftIcon className="size-5" /> Back</Link>
+      <div className="mt-6 text-center sm:mt-8"><div className="app-icon app-icon-small mx-auto mb-5"><CameraIcon className="size-7" /></div><h1 className="text-4xl font-semibold tracking-[-0.045em] text-ink">Scan Wine</h1></div>
+      <div className="mt-8 flex flex-col gap-4">
+        {stage === "start" && <Choice title="How would you like to add your wine?" onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} />}
+        {stage === "front" && <PhotoStep title="Front label" photo={front} busy={busy} onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} onUse={() => setStage("back-choice")} onRetake={() => retake("front")} />}
+        {stage === "back-choice" && <div className="label-empty-card workflow-card"><h2>Would you like to add a back label?</h2><button className="action action-primary w-full" type="button" onClick={() => setStage("back")}>Yes</button><button className="action action-secondary w-full" type="button" onClick={() => void recognize()}>Skip</button></div>}
+        {stage === "back" && <PhotoStep title="Back label" photo={back} busy={busy} onCamera={() => open("back", "Camera")} onLibrary={() => open("back", "Library")} onUse={() => void recognize(back ?? undefined)} onRetake={() => retake("back")} />}
+        {stage === "warning" && <div className="label-warning" role="alert"><h2>These labels may belong to different wines</h2><p>The recognition confidence was lowered because the labels conflict:</p><ul>{warning.map((item) => <li key={item}>{item}</li>)}</ul><button className="action action-primary w-full" type="button" onClick={() => retake("front")}>Retake front label</button><button className="action action-secondary w-full" type="button" onClick={() => retake("back")}>Retake back label</button><button className="continue-link" type="button" onClick={() => setStage("review")}>Continue anyway</button></div>}
+        {stage === "review" && result && <WineReview wine={result} onChange={setResult} onScanAgain={reset} onSave={async (wine) => { const saved = await WineService.add(wine); return { duplicate: saved.duplicate }; }} />}
+        {busy && <p className="optimization-status" role="status"><span className="optimization-spinner" /> Processing photo…</p>}
+        {error && <p className="error-message" role="alert">{error}</p>}
+      </div>
+      {fileInput("front", "Camera")}{fileInput("front", "Library")}{fileInput("back", "Camera")}{fileInput("back", "Library")}
+    </section>
+  </main>;
 }
 
-function LabelCard({ title, photo, required = false, isLoading, onCamera, onLibrary, onDelete }: { title: string; photo: LabelPhoto | null; required?: boolean; isLoading: boolean; onCamera: () => void; onLibrary: () => void; onDelete?: () => void }) {
-  if (!photo) return (
-    <div className="label-empty-card">
-      <span className="label-add-icon"><CameraIcon className="size-6" /></span><div><strong>{title}</strong><small>{required ? "Required" : "Optional"}</small></div>
-      <button className="capture-button" type="button" onClick={onCamera}><CameraIcon className="size-5" /> Capture front label</button>
-      <button className="library-button" type="button" onClick={onLibrary}><PhotoIcon className="size-4" /> Choose from library</button>
-    </div>
-  );
-  return (
-    <article className={`label-preview-card ${isLoading ? "is-loading" : ""}`}>
-      <div className="label-photo-wrap">
-        {/* Blob URLs from the local device do not need Next.js image optimization. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo.url} alt={`${title} preview`} />
-        {isLoading && <div className="recognition-overlay" aria-hidden="true"><span /><span /><span /></div>}
-      </div>
-      <div className="label-card-body"><p><span className="captured-check"><CheckIcon className="size-3.5" /></span><strong>{title} captured</strong></p>
-        <div className="label-card-actions"><button type="button" onClick={onCamera} disabled={isLoading}><CameraIcon className="size-4" /> Retake</button><button type="button" onClick={onLibrary} disabled={isLoading}><PhotoIcon className="size-4" /> Library</button>{onDelete && <button className="delete-button" type="button" onClick={onDelete} disabled={isLoading} aria-label="Delete back label"><TrashIcon className="size-4" /></button>}</div>
-      </div>
-    </article>
-  );
+function Choice({ title, onCamera, onLibrary }: { title: string; onCamera: () => void; onLibrary: () => void }) {
+  return <div className="label-empty-card workflow-card"><h2>{title}</h2><button className="action action-primary w-full" type="button" onClick={onCamera}><CameraIcon className="size-5" /> Capture photo</button><button className="action action-secondary w-full" type="button" onClick={onLibrary}><PhotoIcon className="size-5" /> Choose from library</button></div>;
+}
+function PhotoStep({ title, photo, busy, onCamera, onLibrary, onUse, onRetake }: { title: string; photo: LabelPhoto | null; busy: boolean; onCamera: () => void; onLibrary: () => void; onUse: () => void; onRetake: () => void }) {
+  if (!photo) return <Choice title={title} onCamera={onCamera} onLibrary={onLibrary} />;
+  return <article className="label-preview-card"><div className="label-photo-wrap">{/* Blob preview URLs cannot use the Next.js image optimizer. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={photo.url} alt={`${title} preview`} /></div><div className="label-card-body"><p><span className="captured-check"><CheckIcon className="size-3.5" /></span><strong>{title} captured</strong></p><div className="label-card-actions"><button type="button" onClick={onUse} disabled={busy}>Use photo</button><button type="button" onClick={onRetake} disabled={busy}><CameraIcon className="size-4" /> Retake</button></div></div></article>;
 }

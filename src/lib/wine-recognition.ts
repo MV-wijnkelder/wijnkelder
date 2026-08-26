@@ -13,26 +13,23 @@ export type WineRecognition = {
   bottleSize: string;
   alcoholPercentage: number | null;
   confidence: number;
+  labelsConsistent: boolean;
+  labelConflicts: string[];
 };
 
 export type WineRecognitionResult =
-  | { recognized: true; wine: Wine }
+  | { recognized: true; wine: Wine; labelWarning?: string[] }
   | { recognized: false };
 
 export const wineFields: Array<{
   key: Exclude<keyof Wine, "confidence">;
   label: string;
 }> = [
-  { key: "wineName", label: "Wijnnaam" },
-  { key: "producer", label: "Producent" },
-  { key: "vintage", label: "Jaargang" },
-  { key: "country", label: "Land" },
-  { key: "region", label: "Regio" },
-  { key: "appellation", label: "Appellatie" },
-  { key: "grapeVarieties", label: "Druivenrassen" },
-  { key: "wineColor", label: "Wijnkleur" },
-  { key: "bottleSize", label: "Flesformaat" },
-  { key: "alcoholPercentage", label: "Alcoholpercentage" },
+  { key: "wineName", label: "Wine name" }, { key: "producer", label: "Producer" },
+  { key: "vintage", label: "Vintage" }, { key: "country", label: "Country" },
+  { key: "region", label: "Region" }, { key: "appellation", label: "Appellation" },
+  { key: "grapeVarieties", label: "Grape varieties" }, { key: "wineColor", label: "Wine color" },
+  { key: "bottleSize", label: "Bottle size" }, { key: "alcoholPercentage", label: "Alcohol percentage" },
 ];
 
 const UNKNOWN_VALUES = new Set(["unknown", "onbekend", "n/a", "null", "-"]);

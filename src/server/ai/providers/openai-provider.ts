@@ -35,11 +35,13 @@ const wineSchema = {
     bottleSize: { type: "string" },
     alcoholPercentage: { type: ["number", "null"], minimum: 0, maximum: 100 },
     confidence: { type: "integer", minimum: 0, maximum: 100 },
+    labelsConsistent: { type: "boolean" },
+    labelConflicts: { type: "array", items: { type: "string" } },
   },
   required: [
     "recognized", "producer", "wineName", "vintage", "country", "region",
     "appellation", "grapeVarieties", "wineColor", "bottleSize",
-    "alcoholPercentage", "confidence",
+    "alcoholPercentage", "confidence", "labelsConsistent", "labelConflicts",
   ],
 } as const;
 
@@ -64,7 +66,7 @@ export class OpenAIProvider implements AIProvider {
           content: [
             {
               type: "input_text",
-              text: `Analyse ${backImage ? "both images together" : "the front-label image"} and identify one wine. The first image is the front label: use it for producer, branding, bottle identification, and vintage. ${backImage ? "The second image is the back label: use it for grape varieties, alcohol, appellation, importer, technical details, and tasting notes when available. Merge all reliable information into ONE canonical wine result, preferring the back label whenever it is more specific." : ""} Set recognized to false when the image is not a wine label or the wine cannot be identified reliably. Use ${UNKNOWN} for every unknown text field, an empty array when grape varieties are unknown, and null when the alcohol percentage is unknown. Express bottle size as printed on the bottle and alcoholPercentage as a number without the percent sign. Base confidence on label legibility and identification certainty. Do not guess details that are not reliably visible or inferable from the label.`,
+              text: `Analyse ${backImage ? "both images together" : "the front-label image"} and identify one wine. The first image is the front label: use it for producer, branding, bottle identification, and vintage. ${backImage ? "Independently check whether the second image belongs to the same wine. Compare producer, wine name, vintage, appellation, and region. If any visible values conflict, set labelsConsistent to false, list concise conflicts in labelConflicts, lower confidence by at least 40 points, and do not silently combine the conflicting value. Otherwise use the back label for grape varieties, alcohol, appellation, importer, and technical details." : "Set labelsConsistent to true and labelConflicts to an empty array."} Set recognized to false when the front image is not a wine label or cannot be identified. Use ${UNKNOWN} for every unknown text field, an empty array when grape varieties are unknown, and null when alcohol is unknown. Base confidence on legibility and certainty. Do not guess.`,
             },
             imageContent(frontImage),
             ...(backImage ? [imageContent(backImage)] : []),
@@ -111,12 +113,15 @@ function parseOutput(payload: unknown): WineRecognitionResult {
   } catch {
     throw new OpenAIProviderError("INVALID_RESPONSE");
   }
-  if (!result.recognized || result.confidence < MINIMUM_CONFIDENCE) {
+  if (!result.recognized || (result.labelsConsistent && result.confidence < MINIMUM_CONFIDENCE)) {
     return { recognized: false };
   }
 
   return {
     recognized: true,
     wine: mapRecognitionToWine(result),
+    ...(!result.labelsConsistent && result.labelConflicts.length
+      ? { labelWarning: result.labelConflicts }
+      : {}),
   };
 }

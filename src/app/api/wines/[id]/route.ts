@@ -18,14 +18,14 @@ export async function PATCH(request: Request, context: Context) {
   try {
     const body = await request.json() as { change?: number; bottleCountDelta?: number };
     const change = body.change ?? body.bottleCountDelta ?? 1;
-    if (!Number.isInteger(change)) return NextResponse.json({ error: "Ongeldige wijziging." }, { status: 400 });
+    if (!Number.isInteger(change)) return NextResponse.json({ error: "Invalid bottle count change." }, { status: 400 });
     return found(await storage.changeBottleCount(await id(context), change));
   } catch (error) { return failure(error); }
 }
 
 export async function DELETE(_request: Request, context: Context) {
   try {
-    return await storage.delete(await id(context)) ? new NextResponse(null, { status: 204 }) : NextResponse.json({ error: "Wijn niet gevonden." }, { status: 404 });
+    return await storage.delete(await id(context)) ? new NextResponse(null, { status: 204 }) : NextResponse.json({ error: "Wine not found." }, { status: 404 });
   } catch (error) { return failure(error); }
 }
 
@@ -34,10 +34,10 @@ async function id(context: Context): Promise<number> {
   if (!Number.isSafeInteger(value) || value < 1) throw new InvalidIdError();
   return value;
 }
-function found(value: unknown | null) { return value ? NextResponse.json(value) : NextResponse.json({ error: "Wijn niet gevonden." }, { status: 404 }); }
+function found(value: unknown | null) { return value ? NextResponse.json(value) : NextResponse.json({ error: "Wine not found." }, { status: 404 }); }
 class InvalidIdError extends Error {}
 function failure(error: unknown) {
-  if (error instanceof InvalidIdError) return NextResponse.json({ error: "Ongeldig wijn-id." }, { status: 400 });
+  if (error instanceof InvalidIdError) return NextResponse.json({ error: "Invalid wine ID." }, { status: 400 });
   console.error("Neon wine storage operation failed", error);
-  return NextResponse.json({ error: "De databasebewerking is mislukt." }, { status: 500 });
+  return NextResponse.json({ error: "The database operation failed." }, { status: 500 });
 }

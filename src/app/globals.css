@@ -117,6 +117,13 @@ a { color: inherit; text-decoration: none; }
   animation: card-in 400ms cubic-bezier(.22,1,.36,1) both;
 }
 .label-empty-card { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .9rem; padding: 1.2rem; }
+.workflow-card { grid-template-columns: 1fr; text-align: center; }
+.workflow-card h2 { margin: .25rem 0 .6rem; font-size: 1.15rem; letter-spacing: -.025em; }
+.label-warning { display: grid; gap: .8rem; border: 1px solid rgb(167 124 66 / 28%); border-radius: 1.5rem; background: var(--glass); padding: 1.3rem; }
+.label-warning h2, .label-warning p { margin: 0; }
+.label-warning p, .label-warning li { color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.label-warning ul { margin: 0; padding-left: 1.25rem; }
+.continue-link { border: 0; background: transparent; padding: .6rem; color: var(--wine); font-weight: 650; cursor: pointer; }
 .label-empty-card strong, .label-add-card strong { display: block; font-size: 1rem; letter-spacing: -.02em; }
 .label-empty-card small, .label-add-card small { display: block; margin-top: .15rem; color: var(--muted); font-size: .75rem; }
 .label-add-icon { display: flex; width: 3rem; height: 3rem; align-items: center; justify-content: center; border-radius: 1rem; background: rgb(114 36 61 / 9%); color: var(--wine); }

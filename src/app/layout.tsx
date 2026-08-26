@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Marcel's Wijnkelder",
-  description: "Scan een wijnetiket en bewaar je favoriete flessen.",
+  title: "Marcel's Wine Cellar",
+  description: "Scan wine labels and keep track of your favorite bottles.",
 };
 
 export const viewport: Viewport = {
