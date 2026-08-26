@@ -184,7 +184,7 @@ a { color: inherit; text-decoration: none; }
 .success-message span { display: flex; width: 1.45rem; height: 1.45rem; align-items: center; justify-content: center; border-radius: 999px; background: #31834f; color: white; }
 .success-toast { position: fixed; z-index: 60; top: 1.25rem; left: 50%; display: flex; width: min(calc(100% - 2rem), 28rem); transform: translateX(-50%); align-items: center; justify-content: center; gap: .55rem; border: 1px solid rgb(47 126 76 / 16%); border-radius: 1.15rem; background: rgb(235 248 239 / 96%); box-shadow: 0 1rem 3rem rgb(34 18 25 / 18%); padding: 1rem; color: #286940; font-size: .88rem; font-weight: 650; animation: success-in 450ms cubic-bezier(.2,1.4,.4,1) both; }
 .success-toast span { display: flex; width: 1.45rem; height: 1.45rem; align-items: center; justify-content: center; border-radius: 999px; background: #31834f; color: white; }
-.dialog-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; background: rgb(24 13 17 / 48%); padding: 1.25rem; backdrop-filter: blur(3px); }
+.dialog-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; height: 100dvh; place-items: start center; overflow-y: auto; background: rgb(24 13 17 / 48%); padding: 1.25rem 1.25rem calc(2.5rem + env(safe-area-inset-bottom)); backdrop-filter: blur(3px); }
 .duplicate-dialog { width: min(100%, 27rem); border: 1px solid rgb(167 124 66 / 25%); border-radius: 1.25rem; background: var(--card); box-shadow: 0 1.5rem 5rem rgb(34 18 25 / 28%); padding: 1.5rem; text-align: center; }
 .duplicate-dialog strong { display: block; font-size: 1.08rem; }
 .duplicate-dialog p { margin: .5rem 0 .3rem; color: var(--ink); }
@@ -215,7 +215,7 @@ a { color: inherit; text-decoration: none; }
 .count-actions { display: flex; align-items: center; }
 .count-actions button { width: 2.6rem; padding: 0; font-size: 1rem; }
 .count-actions span { min-width: 2rem; text-align: center; font-weight: 700; }
-.edit-dialog { display: grid; width: min(100%, 36rem); max-height: calc(100vh - 2rem); overflow-y: auto; gap: .8rem; border: 1px solid var(--line); border-radius: 1.6rem; background: var(--canvas); padding: 1.5rem; box-shadow: 0 1.5rem 5rem rgb(34 18 25 / 28%); }
+.edit-dialog { display: grid; width: min(100%, 36rem); gap: .8rem; margin-block: auto; border: 1px solid var(--line); border-radius: 1.6rem; background: var(--canvas); padding: 1.5rem; box-shadow: 0 1.5rem 5rem rgb(34 18 25 / 28%); }
 .edit-dialog h2 { margin: 0 0 .3rem; letter-spacing: -.035em; }
 .edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin-top: .5rem; }
 
