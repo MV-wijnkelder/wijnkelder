@@ -17,7 +17,11 @@ test("saves a recognized wine through POST /api/wines", async () => {
 });
 
 test("loads the cellar with an encoded search query", async () => {
-  await withFetch(async (url) => { assert.equal(url, "/api/wines?q=ch%C3%A2teau%20rouge"); return Response.json([stored]); },
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wines?q=ch%C3%A2teau%20rouge");
+    assert.equal(init.cache, "no-store");
+    return Response.json([stored]);
+  },
     async () => assert.deepEqual(await WineService.list("château rouge"), [stored]));
 });
 
@@ -33,7 +37,19 @@ test("updates wine details and bottle counts", async () => {
 });
 
 test("deletes a wine and surfaces API errors", async () => {
-  await withFetch(async (url, init) => { assert.equal(url, "/api/wines/4"); assert.equal(init.method, "DELETE"); return new Response(null, { status: 204 }); }, () => WineService.delete(4));
+  let deleted = false;
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wines/4");
+    assert.equal(init.method, "DELETE");
+    deleted = true;
+    return new Response(null, { status: 204 });
+  }, () => WineService.delete(stored.id));
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wines?q=reserve");
+    assert.equal(init.cache, "no-store");
+    assert.equal(deleted, true);
+    return Response.json([]);
+  }, async () => assert.deepEqual(await WineService.list("reserve"), []));
   await withFetch(async () => Response.json({ error: "Database niet bereikbaar." }, { status: 503 }),
     async () => assert.rejects(WineService.list(), /Database niet bereikbaar/));
 });

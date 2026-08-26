@@ -3,12 +3,16 @@ import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 const storage = new NeonWineStorage();
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    return NextResponse.json(await storage.list(url.searchParams.get("q") ?? url.searchParams.get("search") ?? ""));
+    return NextResponse.json(
+      await storage.list(url.searchParams.get("q") ?? url.searchParams.get("search") ?? ""),
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) { return failure(error); }
 }
 
