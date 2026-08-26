@@ -32,5 +32,5 @@ export async function PATCH(request: Request) {
 function failure(error: unknown) {
   console.error("Neon wine storage operation failed", error);
   const configuration = error instanceof Error && error.message.includes("DATABASE_URL");
-  return NextResponse.json({ error: configuration ? "Databaseconfiguratie ontbreekt." : "De databasebewerking is mislukt." }, { status: configuration ? 503 : 500 });
+  return NextResponse.json({ error: configuration ? "Database configuration is missing." : "The database operation failed." }, { status: configuration ? 503 : 500 });
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { Wine } from "@/domain/wine";
 import { ArrowClockwiseIcon, CheckIcon, PlusIcon } from "@/components/icons";
+import Link from "next/link";
 
 type WineReviewProps = {
   wine: Wine;
@@ -15,14 +16,14 @@ type WineReviewProps = {
 type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence">;
 
 const textFields: Array<{ key: TextField; label: string; placeholder: string }> = [
-  { key: "producer", label: "Producent", placeholder: "Naam van de producent" },
-  { key: "wineName", label: "Wijnnaam", placeholder: "Naam van de wijn" },
-  { key: "vintage", label: "Jaargang", placeholder: "Bijv. 2020" },
-  { key: "country", label: "Land", placeholder: "Land van herkomst" },
-  { key: "region", label: "Regio", placeholder: "Wijnregio" },
-  { key: "appellation", label: "Appellatie", placeholder: "Appellatie" },
-  { key: "wineColor", label: "Wijnkleur", placeholder: "Bijv. rood" },
-  { key: "bottleSize", label: "Flesformaat", placeholder: "Bijv. 750 ml" },
+  { key: "producer", label: "Producer", placeholder: "Producer name" },
+  { key: "wineName", label: "Wine name", placeholder: "Wine name" },
+  { key: "vintage", label: "Vintage", placeholder: "For example, 2020" },
+  { key: "country", label: "Country", placeholder: "Country of origin" },
+  { key: "region", label: "Region", placeholder: "Wine region" },
+  { key: "appellation", label: "Appellation", placeholder: "Appellation" },
+  { key: "wineColor", label: "Wine color", placeholder: "For example, red" },
+  { key: "bottleSize", label: "Bottle size", placeholder: "For example, 750 ml" },
 ];
 
 export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewProps) {
@@ -57,9 +58,9 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
     setSaveError(null);
     try {
       const result = await onSave(wine);
-      setSaveMessage(result.duplicate ? "Fles toegevoegd aan de bestaande wijn." : "Wijn toegevoegd aan je wijnkelder.");
+      setSaveMessage(result.duplicate ? "Wine successfully added. Bottle quantity increased." : "Wine successfully added.");
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "De wijn kon niet worden opgeslagen.");
+      setSaveError(error instanceof Error ? error.message : "The wine could not be saved.");
     } finally {
       setIsSaving(false);
     }
@@ -69,21 +70,21 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
     <form className="review-card" onSubmit={confirmReview} aria-labelledby="review-title">
       <div className="result-heading">
         <div>
-          <p className="result-eyebrow">Controleer de herkenning</p>
-          <h2 id="review-title">Wijndetails</h2>
+          <p className="result-eyebrow">Review recognition</p>
+          <h2 id="review-title">Wine details</h2>
         </div>
-        <div className="confidence" aria-label={`${wine.confidence}% zekerheid`}>
+        <div className="confidence" aria-label={`${wine.confidence}% confidence`}>
           <strong>{wine.confidence}%</strong>
-          <span>Zekerheid</span>
+          <span>Confidence</span>
         </div>
       </div>
 
       <div className="ai-summary">
         <span className="ai-summary-icon"><CheckIcon className="size-4" /></span>
-        <div><strong>Herkenning voltooid</strong><p>Onderstaande informatie is door AI ingevuld. Controleer en pas aan waar nodig.</p></div>
+        <div><strong>Recognition complete</strong><p>AI filled in this information. Review and edit it where needed.</p></div>
       </div>
 
-      <p className="section-label">Bewerkbare informatie</p>
+      <p className="section-label">Editable information</p>
       <div className="review-fields">
         {textFields.slice(0, 6).map(({ key, label, placeholder }) => (
           <label className="review-field" key={key}>
@@ -98,14 +99,14 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
         ))}
 
         <label className="review-field">
-          <span>Druivenrassen</span>
+          <span>Grape varieties</span>
           <input
             type="text"
             value={wine.grapeVarieties.join(", ")}
-            placeholder="Bijv. Merlot, Cabernet Sauvignon"
+            placeholder="For example, Merlot, Cabernet Sauvignon"
             onChange={(event) => updateGrapes(event.target.value)}
           />
-          <small>Scheid meerdere druivenrassen met een komma.</small>
+          <small>Separate multiple grape varieties with a comma.</small>
         </label>
 
         {textFields.slice(6).map(({ key, label, placeholder }) => (
@@ -121,7 +122,7 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
         ))}
 
         <label className="review-field">
-          <span>Alcoholpercentage</span>
+          <span>Alcohol percentage</span>
           <div className="input-suffix">
             <input
               type="number"
@@ -130,7 +131,7 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
               step="0.1"
               inputMode="decimal"
               value={wine.alcoholPercentage ?? ""}
-              placeholder="Bijv. 13.5"
+              placeholder="For example, 13.5"
               onChange={updateAlcohol}
             />
             <span aria-hidden="true">%</span>
@@ -141,16 +142,19 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
       {saveMessage && <p className="success-message" role="status"><span><CheckIcon className="size-3.5" /></span>{saveMessage}</p>}
       {saveError && <p className="error-message" role="alert">{saveError}</p>}
 
-      <div className="review-actions">
-        <button className="action action-secondary w-full" type="button" onClick={onScanAgain}>
+      {saveMessage ? <div className="review-actions">
+        <button className="action action-primary w-full" type="button" onClick={onScanAgain}>
           <ArrowClockwiseIcon className="size-5" />
-          Scan opnieuw
+          Scan another wine
         </button>
+        <Link className="action action-secondary w-full" href="/cellar">My cellar</Link>
+      </div> : <div className="review-actions">
+        <button className="action action-secondary w-full" type="button" onClick={onScanAgain}><ArrowClockwiseIcon className="size-5" /> Start over</button>
         <button className="action action-primary w-full" type="submit" disabled={isSaving}>
           {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
-          {isSaving ? "Opslaan…" : "Toevoegen aan wijnkelder"}
+          {isSaving ? "Saving…" : "Add to cellar"}
         </button>
-      </div>
+      </div>}
     </form>
   );
 }

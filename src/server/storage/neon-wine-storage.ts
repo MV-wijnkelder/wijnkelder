@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { Wine } from "@/domain/wine";
+import { duplicateKey } from "@/lib/wine-normalization";
 
 export interface StoredWine extends Wine {
   id: number;
@@ -70,12 +71,6 @@ async function initialize(): Promise<void> {
   return initialization;
 }
 
-function duplicateKey(wine: Wine): string {
-  return [wine.producer, wine.wineName, wine.vintage]
-    .map((value) => value?.trim().toLocaleLowerCase() ?? "")
-    .join("\u001f");
-}
-
 function rowToWine(row: WineRow): StoredWine {
   return {
     id: Number(row.id), producer: row.producer, wineName: row.wine_name,
@@ -94,8 +89,8 @@ export class NeonWineStorage {
     const sql = client();
     const term = `%${search.trim()}%`;
     const rows = search.trim()
-      ? await sql`SELECT * FROM wines WHERE concat_ws(' ', producer, wine_name, vintage, country, region, appellation, wine_color, array_to_string(grape_varieties, ' ')) ILIKE ${term} ORDER BY updated_at DESC, id DESC`
-      : await sql`SELECT * FROM wines ORDER BY updated_at DESC, id DESC`;
+      ? await sql`SELECT * FROM wines WHERE concat_ws(' ', producer, wine_name, vintage, country, region, appellation, wine_color, array_to_string(grape_varieties, ' ')) ILIKE ${term} ORDER BY lower(producer) ASC NULLS LAST, lower(wine_name) ASC NULLS LAST, CASE WHEN vintage IS NULL OR btrim(vintage) = '' THEN 1 ELSE 0 END, vintage DESC, id ASC`
+      : await sql`SELECT * FROM wines ORDER BY lower(producer) ASC NULLS LAST, lower(wine_name) ASC NULLS LAST, CASE WHEN vintage IS NULL OR btrim(vintage) = '' THEN 1 ELSE 0 END, vintage DESC, id ASC`;
     return (rows as WineRow[]).map(rowToWine);
   }
 
@@ -110,7 +105,18 @@ export class NeonWineStorage {
     const sql = client();
     const count = positiveInteger(wine.bottleCount, 1);
     const key = duplicateKey(wine);
-    const existing = await sql`SELECT id FROM wines WHERE duplicate_key = ${key}` as Array<{ id: number }>;
+    // Compare the values themselves as well as the stored key. This also makes
+    // records created with the MVP's whitespace-only normalization match the
+    // stronger Sprint 2 normalization without a data migration.
+    const existing = await sql`SELECT id FROM wines WHERE duplicate_key = ${key} OR (
+      regexp_replace(lower(coalesce(producer, '')), '[^[:alnum:]]+', '', 'g') = regexp_replace(lower(coalesce(${wine.producer}, '')), '[^[:alnum:]]+', '', 'g') AND
+      regexp_replace(lower(coalesce(wine_name, '')), '[^[:alnum:]]+', '', 'g') = regexp_replace(lower(coalesce(${wine.wineName}, '')), '[^[:alnum:]]+', '', 'g') AND
+      regexp_replace(lower(coalesce(vintage, '')), '[^[:alnum:]]+', '', 'g') = regexp_replace(lower(coalesce(${wine.vintage}, '')), '[^[:alnum:]]+', '', 'g')
+    ) ORDER BY id LIMIT 1` as Array<{ id: number }>;
+    if (existing[0]) {
+      const rows = await sql`UPDATE wines SET bottle_count = bottle_count + ${count}, updated_at = NOW() WHERE id = ${existing[0].id} RETURNING *` as WineRow[];
+      return { wine: rowToWine(rows[0]), duplicate: true };
+    }
     const rows = await sql`
       INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, bottle_count, duplicate_key)
       VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${count}, ${key})

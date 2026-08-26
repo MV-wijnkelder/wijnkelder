@@ -46,6 +46,23 @@ test("response parsing reads JSON text with a JSON content type", async () => {
   assert.deepEqual(await parseRecognitionResponse(jsonResponse({ recognized: false })), { recognized: false });
 });
 
+test("dual-label consistency warnings are preserved for the review workflow", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => jsonResponse({
+    recognized: true,
+    wine: { ...wine, confidence: 35 },
+    labelWarning: ["Vintage differs: 2021 and 2022"],
+  });
+
+  const result = await AIService.recognizeWine(
+    new File(["front"], "front.jpg", { type: "image/jpeg" }),
+    new File(["back"], "back.jpg", { type: "image/jpeg" }),
+  );
+  assert.deepEqual(result.labelWarning, ["Vintage differs: 2021 and 2022"]);
+  assert.equal(result.wine.confidence, 35);
+});
+
 test("response parsing rejects non-JSON and malformed JSON responses", async () => {
   await assert.rejects(
     parseRecognitionResponse(new Response("ok", { headers: { "content-type": "text/plain" } })),
