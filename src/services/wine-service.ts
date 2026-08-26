@@ -12,7 +12,9 @@ type SaveResult = { wine: StoredWine; duplicate: boolean };
 export const WineService = {
   list(search = "") {
     const query = search ? `?q=${encodeURIComponent(search)}` : "";
-    return request<StoredWine[]>(`/api/wines${query}`);
+    // The cellar is mutable. Reusing a browser-cached GET here can resurrect a
+    // wine in the UI after its DELETE has already succeeded in the database.
+    return request<StoredWine[]>(`/api/wines${query}`, { cache: "no-store" });
   },
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
