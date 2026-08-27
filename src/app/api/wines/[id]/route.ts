@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
+import { enrichIfNeeded } from "@/server/wine-enrichment";
 
 export const runtime = "nodejs";
 const storage = new NeonWineStorage();
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  try { return found(await storage.get(await id(context))); } catch (error) { return failure(error); }
+  try {
+    const wine = await storage.get(await id(context));
+    return found(wine ? await enrichIfNeeded(storage, wine) : null);
+  } catch (error) { return failure(error); }
 }
 
 export async function PUT(request: Request, context: Context) {

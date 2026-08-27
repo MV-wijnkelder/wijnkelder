@@ -16,6 +16,7 @@ export const WineService = {
     // wine in the UI after its DELETE has already succeeded in the database.
     return request<StoredWine[]>(`/api/wines${query}`, { cache: "no-store" });
   },
+  get(id: number) { return request<StoredWine>(`/api/wines/${id}`, { cache: "no-store" }); },
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
   },

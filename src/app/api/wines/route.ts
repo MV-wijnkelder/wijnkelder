@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
+import { enrichIfNeeded } from "@/server/wine-enrichment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
   try {
     const wine = await request.json() as Wine & { bottleCount?: number };
     const result = await storage.add(wine);
+    result.wine = await enrichIfNeeded(storage, result.wine);
     return NextResponse.json(result, { status: result.duplicate ? 200 : 201 });
   } catch (error) { return failure(error); }
 }

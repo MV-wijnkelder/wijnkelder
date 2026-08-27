@@ -1,3 +1,4 @@
+import { emptyWineProfile } from "../domain/wine.ts";
 import type { Wine } from "@/domain/wine";
 
 /** Raw, provider-independent data returned by wine-label recognition. */
@@ -50,6 +51,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
     bottleSize: knownValue(recognition.bottleSize),
     alcoholPercentage: recognition.alcoholPercentage,
     confidence: recognition.confidence,
+    profile: emptyWineProfile(),
   };
 }
 
