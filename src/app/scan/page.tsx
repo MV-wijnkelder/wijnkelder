@@ -37,16 +37,18 @@ export default function ScanPage() {
 
   async function selectPhoto(side: LabelSide, source: "Camera" | "Library", event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;
+    const advancesAfterNativeConfirmation = side === "front" && source === "Camera";
+    if (advancesAfterNativeConfirmation) setStage("back-choice");
     setBusy(true); setError(null);
     try {
       const optimized = await compressImage(file);
       const photo = { file: optimized, url: URL.createObjectURL(optimized) };
       if (side === "front") setFront(photo); else setBack(photo);
-      if (source === "Camera") {
-        if (side === "front") setStage("back-choice");
-        else await recognize(photo, true);
-      }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "The photo could not be optimized."); }
+      if (side === "back" && source === "Camera") await recognize(photo, true);
+    } catch (cause) {
+      if (advancesAfterNativeConfirmation) setStage("front");
+      setError(cause instanceof Error ? cause.message : "The photo could not be optimized.");
+    }
     finally { setBusy(false); event.target.value = ""; }
   }
 
@@ -82,7 +84,7 @@ export default function ScanPage() {
       <div className="mt-8 flex flex-col gap-4">
         {stage === "start" && <Choice title="How would you like to add your wine?" onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} />}
         {stage === "front" && <PhotoStep title="Front label" photo={front} busy={busy} onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} onUse={() => setStage("back-choice")} onRetake={() => retake("front")} />}
-        {stage === "back-choice" && <div className="label-empty-card workflow-card"><h2>Would you like to add a back label?</h2><button className="action action-primary w-full" type="button" onClick={() => setStage("back")}>Yes</button><button className="action action-secondary w-full" type="button" onClick={() => void recognize()}>Skip</button></div>}
+        {stage === "back-choice" && <div className="label-empty-card workflow-card"><h2>Would you like to add a back label?</h2><button className="action action-primary w-full" type="button" disabled={busy} onClick={() => setStage("back")}>Yes</button><button className="action action-secondary w-full" type="button" disabled={busy} onClick={() => void recognize()}>Skip</button></div>}
         {stage === "back" && <PhotoStep title="Back label" photo={back} busy={busy} onCamera={() => open("back", "Camera")} onLibrary={() => open("back", "Library")} onUse={() => void recognize(back ?? undefined)} onRetake={() => retake("back")} />}
         {stage === "warning" && <div className="label-warning" role="alert"><h2>These labels may belong to different wines</h2><p>The recognition confidence was lowered because the labels conflict:</p><ul>{warning.map((item) => <li key={item}>{item}</li>)}</ul><button className="action action-primary w-full" type="button" onClick={() => retake("front")}>Retake front label</button><button className="action action-secondary w-full" type="button" onClick={() => retake("back")}>Retake back label</button><button className="continue-link" type="button" onClick={() => setStage("review")}>Continue anyway</button></div>}
         {stage === "review" && result && <WineReview wine={result} onChange={setResult} onScanAgain={reset} onSave={async (wine) => { const saved = await WineService.add(wine); return { duplicate: saved.duplicate }; }} />}
