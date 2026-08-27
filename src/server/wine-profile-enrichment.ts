@@ -6,6 +6,7 @@ export interface ProfileStorage { updateProfile(id: number, profile: WineProfile
 export function hasWineProfile(profile: WineProfile): boolean {
   return Boolean(profile.summary || profile.foodPairings.length ||
     profile.wineryInformation || profile.vintageRemarks ||
+    profile.tasting.appearance || profile.tasting.aromas.length || profile.tasting.flavors.length || profile.tasting.finish ||
     Object.values(profile.serving).some(Boolean) || Object.values(profile.drinking).some(Boolean) ||
     Object.values(profile.style).some(Boolean));
 }
