@@ -1,9 +1,11 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# AI Coding Agent Instructions
 
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- Read `docs/ProductVision.md` before every implementation.
+- Build mobile-first.
+- Use English only.
+- Keep the UX simple.
+- Treat the canonical Wine model as the single source of truth.
+- Never duplicate business logic.
+- Explain the root cause before fixing bugs.
+- Run tests.
+- Run the production build.
