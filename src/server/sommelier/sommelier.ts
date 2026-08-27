@@ -11,15 +11,24 @@ export type SommelierMessage = {
 /** Reserved context slots keep future integrations additive and explicit. */
 export type SommelierContext = {
   currentWineId?: number;
+  currentScannedWineId?: number;
   currentRecommendationId?: string;
   cellarEnabled?: boolean;
   restaurantWineListId?: string;
   shoppingMode?: boolean;
 };
 
+/** A transport-neutral placeholder for future image understanding integrations. */
+export type SommelierImageContext = {
+  kind: "wine_label" | "wine_list" | "menu" | "wine_shelf" | "tasting_list";
+  assetId: string;
+  extractedText?: string;
+};
+
 export type SommelierRequest = {
   messages: SommelierMessage[];
   context?: SommelierContext;
+  imageContext?: SommelierImageContext[];
 };
 
 export const MAX_SOMMELIER_MESSAGES = 30;
