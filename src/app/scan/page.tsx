@@ -35,19 +35,23 @@ export default function ScanPage() {
     inputs[`${side}${source}`].current?.click();
   }
 
-  async function selectPhoto(side: LabelSide, event: ChangeEvent<HTMLInputElement>) {
+  async function selectPhoto(side: LabelSide, source: "Camera" | "Library", event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;
     setBusy(true); setError(null);
     try {
       const optimized = await compressImage(file);
       const photo = { file: optimized, url: URL.createObjectURL(optimized) };
       if (side === "front") setFront(photo); else setBack(photo);
+      if (source === "Camera") {
+        if (side === "front") setStage("back-choice");
+        else await recognize(photo, true);
+      }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "The photo could not be optimized."); }
     finally { setBusy(false); event.target.value = ""; }
   }
 
-  async function recognize(backPhoto?: LabelPhoto) {
-    if (!front || busy) return;
+  async function recognize(backPhoto?: LabelPhoto, alreadyBusy = false) {
+    if (!front || (busy && !alreadyBusy)) return;
     setBusy(true); setError(null);
     try {
       const recognition = await AIService.recognizeWine(front.file, backPhoto?.file);
@@ -68,7 +72,7 @@ export default function ScanPage() {
     setResult(null); setWarning([]); setStage(side); open(side, "Camera");
   }
 
-  const fileInput = (side: LabelSide, source: "Camera" | "Library") => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
+  const fileInput = (side: LabelSide, source: "Camera" | "Library") => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, source, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
 
   return <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
