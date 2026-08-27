@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CameraIcon, SparklesIcon, WineglassIcon } from "@/components/icons";
 
 const actions = [
+  { label: "🍷 Your Sommelier", subtitle: "Ask anything about wine.", icon: SparklesIcon, primary: false, href: "/sommelier" },
   { label: "What should I drink?", icon: SparklesIcon, primary: true, href: "/recommendation" },
   { label: "Scan wine", icon: CameraIcon, primary: false, href: "/scan" },
   { label: "My cellar", icon: WineglassIcon, primary: false, href: "/cellar" },
@@ -29,10 +30,10 @@ export default function Home() {
         </p>
 
         <div className="mt-8 grid w-full gap-3 sm:mt-10 sm:grid-cols-2">
-          {actions.map(({ label, icon: Icon, primary, href }) => {
+          {actions.map(({ label, icon: Icon, primary, href, ...action }) => {
             const content = <>
               <Icon className="size-5" />
-              <span>{label}</span>
+              <span className="action-copy"><strong>{label}</strong>{"subtitle" in action && <small>{action.subtitle}</small>}</span>
             </>;
 
             return href ? (

@@ -307,3 +307,44 @@ a { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.action-copy { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.action-copy strong { font: inherit; }
+.action-copy small { margin-top: .18rem; font-size: .7rem; font-weight: 500; color: var(--muted); }
+.action-primary .action-copy small { color: rgb(255 255 255 / 72%); }
+
+.sommelier-shell { padding-inline: max(1rem, env(safe-area-inset-left)); }
+.sommelier-page { min-height: 0; }
+.sommelier-header { display: grid; grid-template-columns: 1fr auto 1fr; flex: 0 0 auto; align-items: center; border-bottom: 1px solid var(--line); padding: max(.6rem, env(safe-area-inset-top)) 0 .65rem; }
+.sommelier-header > div { display: grid; grid-template-columns: auto auto; align-items: center; justify-content: center; gap: 0 .45rem; text-align: center; }
+.sommelier-header h1 { margin: 0; font-size: 1rem; letter-spacing: -.02em; }
+.sommelier-header p { grid-column: 1 / -1; margin: .1rem 0 0; color: var(--muted); font-size: .68rem; }
+.sommelier-mark { display: flex; color: var(--wine); }
+.header-spacer { justify-self: end; width: 4rem; }
+.sommelier-conversation { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem .1rem; scrollbar-width: thin; }
+.sommelier-welcome { display: flex; min-height: 100%; max-width: 37rem; margin: auto; flex-direction: column; align-items: center; justify-content: center; padding: 1rem 0 2rem; text-align: center; }
+.sommelier-avatar { display: flex; width: 3.75rem; height: 3.75rem; align-items: center; justify-content: center; border-radius: 1.3rem; background: linear-gradient(145deg, #84304b, var(--wine-deep)); color: white; box-shadow: 0 12px 30px rgb(91 25 45 / 18%); }
+.sommelier-welcome h2 { margin: 1.2rem 0 .35rem; font-size: 2rem; letter-spacing: -.045em; }
+.sommelier-welcome > p { max-width: 31rem; margin: .25rem 0; color: var(--muted); line-height: 1.55; }
+.sommelier-welcome > p:first-of-type { color: var(--ink); font-weight: 650; }
+.sommelier-suggestions { display: grid; width: 100%; gap: .55rem; margin-top: 1.4rem; }
+.sommelier-suggestions button { min-height: 3rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--glass); padding: .7rem .85rem; color: var(--ink); text-align: left; cursor: pointer; transition: background 150ms ease, transform 150ms ease; }
+.sommelier-suggestions button:hover { background: var(--glass-strong); transform: translateY(-1px); }
+.message-list { display: grid; gap: 1.25rem; padding-bottom: 1rem; }
+.chat-message { max-width: min(88%, 35rem); }
+.chat-message > span { display: block; margin: 0 0 .35rem .2rem; color: var(--muted); font-size: .68rem; font-weight: 700; }
+.chat-message p { margin: 0; border: 1px solid var(--line); border-radius: 1.2rem 1.2rem 1.2rem .35rem; background: var(--glass); padding: .85rem 1rem; line-height: 1.55; white-space: pre-wrap; }
+.chat-message-user { justify-self: end; }
+.chat-message-user > span { text-align: right; margin-right: .2rem; }
+.chat-message-user p { border-color: rgb(114 36 61 / 20%); border-radius: 1.2rem 1.2rem .35rem 1.2rem; background: var(--wine); color: white; }
+.typing { display: flex; width: fit-content; gap: .3rem; padding-block: 1rem !important; }
+.typing i { width: .38rem; height: .38rem; border-radius: 999px; background: var(--muted); animation: typing-dot 1s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 150ms; }.typing i:nth-child(3) { animation-delay: 300ms; }
+.sommelier-composer { flex: 0 0 auto; padding: .7rem 0 max(.8rem, env(safe-area-inset-bottom)); }
+.sommelier-composer form { display: flex; gap: .55rem; border: 1px solid var(--line); border-radius: 1.25rem; background: var(--glass-strong); padding: .45rem; box-shadow: 0 12px 35px rgb(45 27 34 / 11%); backdrop-filter: blur(18px); }
+.sommelier-composer input { min-width: 0; flex: 1; border: 0; background: transparent; padding: .65rem .7rem; color: var(--ink); outline: none; }
+.sommelier-composer button { min-width: 4.4rem; border: 0; border-radius: .9rem; background: var(--wine); color: white; font-weight: 700; cursor: pointer; }
+.sommelier-composer button:disabled { cursor: default; opacity: .38; }
+.sommelier-error { margin: 0 0 .45rem; color: #a12e36; font-size: .78rem; text-align: center; }
+@media (min-width: 640px) { .sommelier-suggestions { grid-template-columns: 1fr 1fr; } .sommelier-conversation { padding-inline: 1rem; } }
+@keyframes typing-dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
