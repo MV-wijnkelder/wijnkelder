@@ -11,6 +11,9 @@ export const WineService = {
     return request<StoredWine[]>(`/api/wines${query}`, { cache: "no-store" });
   },
   get(id: number) { return request<StoredWine>(`/api/wines/${id}`, { cache: "no-store" }); },
+  refreshProfile(id: number) {
+    return request<StoredWine>(`/api/wines/${id}/profile`, { method: "POST" });
+  },
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
   },

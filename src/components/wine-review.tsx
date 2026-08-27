@@ -14,7 +14,7 @@ type WineReviewProps = {
   onExplore: (wine: Wine) => Promise<void>;
 };
 
-type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence" | "profile" | "cellar">;
+type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence" | "profile" | "profileMetadata" | "cellar">;
 
 const textFields: Array<{ key: TextField; label: string; placeholder: string }> = [
   { key: "producer", label: "Producer", placeholder: "Producer name" },

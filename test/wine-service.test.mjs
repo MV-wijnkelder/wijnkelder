@@ -46,6 +46,12 @@ test("updates wine details and bottle counts", async () => {
   });
 });
 
+test("refreshes only the stored wine profile endpoint", async () => {
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wines/4/profile"); assert.equal(init.method, "POST"); return Response.json(stored);
+  }, async () => assert.deepEqual(await WineService.refreshProfile(4), stored));
+});
+
 test("deletes a wine and surfaces API errors", async () => {
   let deleted = false;
   await withFetch(async (url, init) => {
