@@ -11,7 +11,7 @@ const recommendations = new RecommendationService();
 export async function POST(request: Request) {
   try {
     const input = await request.json() as RecommendationRequest;
-    if (typeof input.occasion !== "string" || typeof input.food !== "string") return NextResponse.json({ error: "Occasion and food are required." }, { status: 400 });
+    if (typeof input.food !== "string" || !input.food.trim() || (input.occasion !== undefined && typeof input.occasion !== "string")) return NextResponse.json({ error: "Tell us what you are eating." }, { status: 400 });
     return NextResponse.json({ recommendations: recommendations.recommend(await storage.list(), input) });
   } catch (error) {
     console.error("Recommendation operation failed", error);

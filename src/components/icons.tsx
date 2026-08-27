@@ -38,6 +38,10 @@ export function CheckIcon(props: IconProps) {
   return <Symbol {...props}><path d="m5 12.5 4.2 4.2L19 7" /></Symbol>;
 }
 
+export function SparklesIcon(props: IconProps) {
+  return <Symbol {...props}><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3Z" /><path d="m18.5 14 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3ZM5 12l.8 2.7 2.7.8-2.7.8L5 19l-.8-2.7-2.7-.8 2.7-.8L5 12Z" /></Symbol>;
+}
+
 export function TrashIcon(props: IconProps) {
   return <Symbol {...props}><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" /></Symbol>;
 }

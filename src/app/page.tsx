@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { CameraIcon, WineglassIcon } from "@/components/icons";
+import { CameraIcon, SparklesIcon, WineglassIcon } from "@/components/icons";
 
 const actions = [
-  { label: "Scan wine", icon: CameraIcon, primary: true, href: "/scan" },
+  { label: "What should I drink?", icon: SparklesIcon, primary: true, href: "/recommendation" },
+  { label: "Scan wine", icon: CameraIcon, primary: false, href: "/scan" },
   { label: "My cellar", icon: WineglassIcon, primary: false, href: "/cellar" },
 ] as const;
 
@@ -35,7 +36,7 @@ export default function Home() {
             </>;
 
             return href ? (
-              <Link className={primary ? "action action-primary" : "action action-secondary"} href={href} key={label}>
+              <Link className={`${primary ? "action action-primary" : "action action-secondary"} ${primary ? "sm:col-span-2" : ""}`} href={href} key={label}>
                 {content}
               </Link>
             ) : (
