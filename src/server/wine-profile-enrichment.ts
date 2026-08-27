@@ -5,6 +5,10 @@ export interface ProfileStorage { updateProfile(id: number, profile: WineProfile
 
 export function hasWineProfile(profile: WineProfile): boolean {
   return Boolean(profile.summary || profile.foodPairings.length ||
+    profile.sommelier.bestOccasions.length || profile.sommelier.excellentWith.length ||
+    profile.sommelier.goodWith.length || profile.sommelier.avoidWith.length ||
+    profile.sommelier.wineStyles.length || profile.sommelier.ageingPotential ||
+    profile.sommelier.drinkingStage || profile.sommelier.servingPersonality ||
     profile.wineryInformation || profile.vintageRemarks ||
     Object.values(profile.serving).some(Boolean) || Object.values(profile.drinking).some(Boolean) ||
     Object.values(profile.style).some(Boolean));

@@ -165,7 +165,14 @@ function normalizeProfile(value: WineProfile | null | undefined): WineProfile {
   const defaults = emptyWineProfile();
   if (!value || typeof value !== "object") return defaults;
   const summary = typeof value.summary === "string" ? value.summary.trim().split(/\s+/).slice(0, 80).join(" ") || null : null;
-  return { ...defaults, ...value, serving: { ...defaults.serving, ...value.serving }, drinking: { ...defaults.drinking, ...value.drinking }, style: { ...defaults.style, ...value.style }, foodPairings: Array.isArray(value.foodPairings) ? value.foodPairings : [], summary };
+  return {
+    ...defaults, ...value,
+    serving: { ...defaults.serving, ...value.serving },
+    drinking: { ...defaults.drinking, ...value.drinking },
+    style: { ...defaults.style, ...value.style },
+    sommelier: { ...defaults.sommelier, ...value.sommelier },
+    foodPairings: Array.isArray(value.foodPairings) ? value.foodPairings : [], summary,
+  };
 }
 
 function normalizeCellar(value: CellarDetails | null | undefined): CellarDetails {

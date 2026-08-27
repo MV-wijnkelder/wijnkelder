@@ -94,3 +94,31 @@ test("reserves Excellent Match for strong pairings and labels alternatives Good 
   assert.equal(result[1].status, "Good Match");
   assert.ok(result.length < 3);
 });
+
+test("uses the complete Sommelier Profile for occasion-led recommendations", () => {
+  const make = (id, name, occasions, excellentWith, goodWith, avoidWith, styles) => {
+    const item = profiledWine(id, { pairings: [], color: id === 1 ? "sparkling" : "red", style: styles.join(" "), body: id === 1 ? "low" : "high", acidity: "high", tannin: id === 1 ? "low" : "high", sweetness: "low" });
+    item.wineName = name;
+    item.profile.sommelier = { bestOccasions: occasions, excellentWith, goodWith, avoidWith, wineStyles: styles, ageingPotential: "Enjoy now or cellar confidently", drinkingStage: "Perfect now", servingPersonality: `A wonderful bottle to open for ${occasions[0].toLowerCase()}.` };
+    return item;
+  };
+  const cellar = [
+    make(1, "Firmina", ["Aperitif", "Celebration", "Terrace"], ["Shellfish", "Sushi"], ["Seafood"], ["Steak"], ["Fresh", "Elegant"]),
+    make(2, "Barolo", ["Dinner", "Sunday lunch"], ["Steak", "Roast lamb"], ["Mushroom risotto"], ["Sushi"], ["Powerful", "Complex"]),
+    make(3, "Brunello", ["Dinner", "Christmas"], ["Roast lamb"], ["Steak"], ["Delicate white fish"], ["Traditional", "Complex"]),
+    make(4, "Chianti Classico", ["Lunch", "Dinner"], ["Tomato pasta"], ["Barbecue"], ["Cream desserts"], ["Fresh", "Traditional"]),
+    make(5, "German Riesling", ["Aperitif", "Lunch"], ["Sushi"], ["Seafood"], ["Steak"], ["Fresh", "Mineral"]),
+  ];
+  const result = new RecommendationService().recommend(cellar, { food: "Aperitif" });
+  assert.equal(result[0].wine.wineName, "Firmina");
+  assert.equal(result[0].status, "Excellent Match");
+  assert.match(result[0].why, /Sommelier Profile recommends it for aperitif/i);
+  assert.match(result[0].why, /wonderful bottle to open/i);
+  assert.deepEqual(cellar.map(({ wineName }) => wineName), ["Firmina", "Barolo", "Brunello", "Chianti Classico", "German Riesling"]);
+});
+
+test("Sommelier avoid guidance prevents a superficially attractive pairing", () => {
+  const barolo = profiledWine(1, { pairings: ["sushi"], color: "red", style: "Barolo", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
+  barolo.profile.sommelier.avoidWith = ["Sushi"];
+  assert.deepEqual(new RecommendationService().recommend([barolo], { food: "Sushi" }), []);
+});

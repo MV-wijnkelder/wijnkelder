@@ -54,6 +54,7 @@ export interface CellarDetails {
 
 export type Maturity = "young" | "approaching peak" | "ready" | "mature" | "past peak";
 export type Intensity = "low" | "medium" | "high";
+export type DrinkingStage = "Too young" | "Developing" | "Perfect now" | "Past peak";
 
 export interface WineProfile {
   serving: { temperature: string | null; decantAdvice: string | null };
@@ -63,6 +64,17 @@ export interface WineProfile {
     sweetness: Intensity | null; alcohol: Intensity | null; wineStyle: string | null;
   };
   foodPairings: string[];
+  /** Inferred recommendation guidance, rather than copied producer facts. */
+  sommelier: {
+    bestOccasions: string[];
+    excellentWith: string[];
+    goodWith: string[];
+    avoidWith: string[];
+    wineStyles: string[];
+    ageingPotential: string | null;
+    drinkingStage: DrinkingStage | null;
+    servingPersonality: string | null;
+  };
   summary: string | null;
   wineryInformation: string | null;
   vintageRemarks: string | null;
@@ -82,7 +94,9 @@ export function emptyWineProfile(): WineProfile {
     serving: { temperature: null, decantAdvice: null },
     drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },
-    foodPairings: [], summary: null, wineryInformation: null, vintageRemarks: null,
+    foodPairings: [],
+    sommelier: { bestOccasions: [], excellentWith: [], goodWith: [], avoidWith: [], wineStyles: [], ageingPotential: null, drinkingStage: null, servingPersonality: null },
+    summary: null, wineryInformation: null, vintageRemarks: null,
   };
 }
 

@@ -53,14 +53,21 @@ const profileSchema = {
     drinking: { type: "object", additionalProperties: false, properties: { drinkFrom: { type: ["string", "null"] }, drinkUntil: { type: ["string", "null"] }, currentMaturity: { type: ["string", "null"], enum: ["young", "approaching peak", "ready", "mature", "past peak", null] } }, required: ["drinkFrom", "drinkUntil", "currentMaturity"] },
     style: { type: "object", additionalProperties: false, properties: { body: intensity(), acidity: intensity(), tannin: intensity(), sweetness: intensity(), alcohol: intensity(), wineStyle: { type: ["string", "null"] } }, required: ["body", "acidity", "tannin", "sweetness", "alcohol", "wineStyle"] },
     foodPairings: { type: "array", items: { type: "string" }, maxItems: 6 },
+    sommelier: { type: "object", additionalProperties: false, properties: {
+      bestOccasions: stringList(6), excellentWith: stringList(6), goodWith: stringList(6), avoidWith: stringList(5), wineStyles: stringList(6),
+      ageingPotential: { type: ["string", "null"] },
+      drinkingStage: { type: ["string", "null"], enum: ["Too young", "Developing", "Perfect now", "Past peak", null] },
+      servingPersonality: { type: ["string", "null"] },
+    }, required: ["bestOccasions", "excellentWith", "goodWith", "avoidWith", "wineStyles", "ageingPotential", "drinkingStage", "servingPersonality"] },
     summary: { type: ["string", "null"] },
     wineryInformation: { type: ["string", "null"] },
     vintageRemarks: { type: ["string", "null"] },
   },
-  required: ["serving", "drinking", "style", "foodPairings", "summary", "wineryInformation", "vintageRemarks"],
+  required: ["serving", "drinking", "style", "foodPairings", "sommelier", "summary", "wineryInformation", "vintageRemarks"],
 } as const;
 
 function intensity() { return { type: ["string", "null"], enum: ["low", "medium", "high", null] } as const; }
+function stringList(maxItems: number) { return { type: "array", items: { type: "string" }, maxItems } as const; }
 
 export class OpenAIProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
@@ -118,7 +125,7 @@ export class OpenAIProvider implements AIProvider {
       headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Include concise winery information only when reliably known and vintage remarks only when that vintage materially affects the advice. Otherwise return null for those fields. Do not invent awards, scores, tasting events, or producer claims.` }] }],
+        input: [{ role: "user", content: [{ type: "input_text", text: `Act as an experienced sommelier and create a complete recommendation profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Answer the practical question: "When would I confidently recommend opening this bottle?" Infer bestOccasions, excellentWith, goodWith, avoidWith, and concise wineStyles from the wine's structure (acidity, bubbles, body, tannin, sweetness, alcohol, development) and established typicity; do not copy website phrases. Distinguish truly excellent pairings from merely good ones. Make ageingPotential concise and vintage-aware. Choose exactly one drinkingStage. servingPersonality must be one short, natural recommendation sentence about the moment to open it, never temperature advice. Also preserve practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, legacy foodPairings, and a factual summary of at most 80 words. Include winery information only when reliably known and vintage remarks only when materially useful. Use natural English. Do not invent awards, scores, tasting events, or producer claims; use null or empty arrays where evidence is insufficient.` }] }],
         text: { format: { type: "json_schema", name: "wine_profile", strict: true, schema: profileSchema } },
       }),
     });
