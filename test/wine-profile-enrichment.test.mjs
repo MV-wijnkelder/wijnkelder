@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { emptyCellarDetails, emptyWineProfile } from "../src/domain/wine.ts";
-import { enrichWineProfile, hasWineProfile } from "../src/server/wine-profile-enrichment.ts";
+import { emptyCellarDetails, emptyWineProfile, emptyWineProfileMetadata } from "../src/domain/wine.ts";
+import { enrichWineProfile, hasWineProfile, refreshWineProfile } from "../src/server/wine-profile-enrichment.ts";
 
-const wine = { id: 7, producer: "Estate", wineName: "Reserve", vintage: "2020", country: "France", region: "Bordeaux", appellation: null, grapeVarieties: ["Merlot"], wineColor: "red", bottleSize: "750 ml", alcoholPercentage: 13, confidence: 90, profile: emptyWineProfile(), cellar: emptyCellarDetails(), bottleCount: 1, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
+const wine = { id: 7, producer: "Estate", wineName: "Reserve", vintage: "2020", country: "France", region: "Bordeaux", appellation: null, grapeVarieties: ["Merlot"], wineColor: "red", bottleSize: "750 ml", alcoholPercentage: 13, confidence: 90, profile: emptyWineProfile(), profileMetadata: emptyWineProfileMetadata(), cellar: emptyCellarDetails(), bottleCount: 1, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
 const profile = { serving: { temperature: "16–18°C", decantAdvice: "Decant for 30 minutes" }, drinking: { drinkFrom: "2024", drinkUntil: "2030", currentMaturity: "ready" }, style: { body: "medium", acidity: "medium", tannin: "medium", sweetness: "low", alcohol: "medium", wineStyle: "classic dry red" }, foodPairings: ["roast lamb"], summary: "A structured Bordeaux red." };
 
 test("an empty profile is generated, persisted, and returned", async () => {
@@ -28,4 +28,15 @@ test("an empty AI response is not persisted", async () => {
   let saved = false;
   const result = await enrichWineProfile(wine, { async generateWineProfile() { return emptyWineProfile(); } }, { async updateProfile() { saved = true; return null; } });
   assert.equal(result, wine); assert.equal(saved, false);
+});
+
+test("an explicit refresh replaces only generated profile data", async () => {
+  const original = { ...wine, profile: { ...profile, summary: "Old profile" }, bottleCount: 6 };
+  const result = await refreshWineProfile(original, { async generateWineProfile() { return profile; } }, { async updateProfile(id, value, refreshed) {
+    assert.equal(id, original.id); assert.equal(refreshed, true);
+    return { ...original, profile: value };
+  } });
+  assert.equal(result.profile.summary, profile.summary);
+  assert.equal(result.producer, original.producer);
+  assert.equal(result.bottleCount, 6);
 });

@@ -18,6 +18,8 @@ export interface Wine {
   confidence: number;
   /** Enrichment kept as one extensible document so new companion attributes do not require reshaping the wine identity. */
   profile: WineProfile;
+  /** Lifecycle dates for AI enrichment; deliberately separate from user-owned wine data. */
+  profileMetadata: WineProfileMetadata;
   /** Cellar/workbook data that is not part of the identity printed on a label. */
   cellar: CellarDetails;
 }
@@ -64,6 +66,15 @@ export interface WineProfile {
   summary: string | null;
   wineryInformation: string | null;
   vintageRemarks: string | null;
+}
+
+export interface WineProfileMetadata {
+  generatedAt: string | null;
+  lastRefreshedAt: string | null;
+}
+
+export function emptyWineProfileMetadata(): WineProfileMetadata {
+  return { generatedAt: null, lastRefreshedAt: null };
 }
 
 export function emptyWineProfile(): WineProfile {

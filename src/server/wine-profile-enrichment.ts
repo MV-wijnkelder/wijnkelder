@@ -1,13 +1,22 @@
 import type { StoredWine, WineProfile } from "@/domain/wine";
 
 export interface ProfileGenerator { generateWineProfile(wine: StoredWine): Promise<WineProfile> }
-export interface ProfileStorage { updateProfile(id: number, profile: WineProfile): Promise<StoredWine | null> }
+export interface ProfileStorage { updateProfile(id: number, profile: WineProfile, refreshed?: boolean): Promise<StoredWine | null> }
 
 export function hasWineProfile(profile: WineProfile): boolean {
   return Boolean(profile.summary || profile.foodPairings.length ||
     profile.wineryInformation || profile.vintageRemarks ||
     Object.values(profile.serving).some(Boolean) || Object.values(profile.drinking).some(Boolean) ||
     Object.values(profile.style).some(Boolean));
+}
+
+/** Explicit refresh replaces enrichment only and reports failures to the caller so retry messaging is honest. */
+export async function refreshWineProfile(wine: StoredWine, generator: ProfileGenerator, storage: ProfileStorage): Promise<StoredWine> {
+  const profile = await generator.generateWineProfile(wine);
+  if (!hasWineProfile(profile)) throw new Error("AI returned an empty wine profile");
+  const saved = await storage.updateProfile(wine.id, profile, true);
+  if (!saved) throw new Error("Wine no longer exists while saving its profile");
+  return saved;
 }
 
 /** Enrich at most once for a populated record; failures leave the stored wine untouched. */
