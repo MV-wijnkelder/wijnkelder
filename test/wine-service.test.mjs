@@ -16,6 +16,16 @@ test("saves a recognized wine through POST /api/wines", async () => {
   }, async () => assert.deepEqual(await WineService.add(wine), { wine: stored, duplicate: false }));
 });
 
+test("explores a wine through the non-persisting profile endpoint", async () => {
+  const explored = { ...wine, profile: { summary: "Profile" } };
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wine-profile");
+    assert.equal(init.method, "POST");
+    assert.deepEqual(JSON.parse(init.body), wine);
+    return Response.json(explored);
+  }, async () => assert.deepEqual(await WineService.explore(wine), explored));
+});
+
 test("loads the cellar with an encoded search query", async () => {
   await withFetch(async (url, init) => {
     assert.equal(url, "/api/wines?q=ch%C3%A2teau%20rouge");

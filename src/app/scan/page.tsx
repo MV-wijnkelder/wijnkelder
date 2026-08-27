@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
+import { WineProfile } from "@/components/wine-profile";
 import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
@@ -22,6 +23,8 @@ export default function ScanPage() {
   const [warning, setWarning] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exploring, setExploring] = useState(false);
+  const [exploreSaveMessage, setExploreSaveMessage] = useState<string | null>(null);
   const inputs = {
     frontCamera: useRef<HTMLInputElement>(null), frontLibrary: useRef<HTMLInputElement>(null),
     backCamera: useRef<HTMLInputElement>(null), backLibrary: useRef<HTMLInputElement>(null),
@@ -65,7 +68,7 @@ export default function ScanPage() {
   }
 
   function reset() {
-    setStage("start"); setFront(null); setBack(null); setResult(null); setWarning([]); setError(null); setBusy(false);
+    setStage("start"); setFront(null); setBack(null); setResult(null); setWarning([]); setError(null); setBusy(false); setExploring(false); setExploreSaveMessage(null);
   }
 
   function retake(side: LabelSide) {
@@ -79,14 +82,15 @@ export default function ScanPage() {
     <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
     <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
       <Link className="back-link" href="/" aria-label="Back to home"><ChevronLeftIcon className="size-5" /> Back</Link>
-      <div className="mt-6 text-center sm:mt-8"><div className="app-icon app-icon-small mx-auto mb-5"><CameraIcon className="size-7" /></div><h1 className="text-4xl font-semibold tracking-[-0.045em] text-ink">Scan Wine</h1></div>
+      {!exploring && <div className="mt-6 text-center sm:mt-8"><div className="app-icon app-icon-small mx-auto mb-5"><CameraIcon className="size-7" /></div><h1 className="text-4xl font-semibold tracking-[-0.045em] text-ink">Scan Wine</h1></div>}
       <div className="mt-8 flex flex-col gap-4">
         {stage === "start" && <Choice title="How would you like to add your wine?" onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} />}
         {stage === "front" && <PhotoStep title="Front label" photo={front} busy={busy} onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} onUse={() => setStage("back-choice")} onRetake={() => retake("front")} />}
         {stage === "back-choice" && <div className="label-empty-card workflow-card"><h2>Would you like to add a back label?</h2><button className="action action-primary w-full" type="button" disabled={busy} onClick={() => setStage("back")}>Yes</button><button className="action action-secondary w-full" type="button" disabled={busy} onClick={() => void recognize()}>Skip</button></div>}
         {stage === "back" && <PhotoStep title="Back label" photo={back} busy={busy} onCamera={() => open("back", "Camera")} onLibrary={() => open("back", "Library")} onUse={() => void recognize(back ?? undefined)} onRetake={() => retake("back")} />}
         {stage === "warning" && <div className="label-warning" role="alert"><h2>These labels may belong to different wines</h2><p>The recognition confidence was lowered because the labels conflict:</p><ul>{warning.map((item) => <li key={item}>{item}</li>)}</ul><button className="action action-primary w-full" type="button" onClick={() => retake("front")}>Retake front label</button><button className="action action-secondary w-full" type="button" onClick={() => retake("back")}>Retake back label</button><button className="continue-link" type="button" onClick={() => setStage("review")}>Continue anyway</button></div>}
-        {stage === "review" && result && <WineReview wine={result} onChange={setResult} onScanAgain={reset} onSave={async (wine) => { const saved = await WineService.add(wine); return { duplicate: saved.duplicate }; }} />}
+        {stage === "review" && result && !exploring && <WineReview wine={result} onChange={setResult} onScanAgain={reset} onSave={async (wine) => { const saved = await WineService.add(wine); return { duplicate: saved.duplicate }; }} onExplore={async (wine) => { setResult(await WineService.explore(wine)); setExploring(true); }} />}
+        {stage === "review" && result && exploring && <><WineProfile wine={result} />{exploreSaveMessage ? <p className="success-message" role="status"><span><CheckIcon className="size-3.5" /></span>{exploreSaveMessage}</p> : null}<div className="explore-actions"><button className="action action-primary w-full" type="button" disabled={busy || Boolean(exploreSaveMessage)} onClick={() => void (async () => { setBusy(true); setError(null); try { const saved = await WineService.add(result); setExploreSaveMessage(saved.duplicate ? "Wine added. Bottle quantity increased." : "Wine added to My Cellar."); } catch (cause) { setError(cause instanceof Error ? cause.message : "The wine could not be saved."); } finally { setBusy(false); } })()}>{busy ? "Saving…" : "Add to My Cellar"}</button><Link className="action action-secondary w-full" href="/">Done</Link></div></>}
         {busy && <p className="optimization-status" role="status"><span className="optimization-spinner" /> Processing photo…</p>}
         {error && <p className="error-message" role="alert">{error}</p>}
       </div>
