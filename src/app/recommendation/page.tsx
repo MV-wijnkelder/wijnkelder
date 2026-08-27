@@ -69,8 +69,8 @@ export default function RecommendationPage() {
           {opened === item.wine.id ? <p className="opened-confirmation">Enjoy your bottle. Your cellar is up to date.</p> : <button className="action action-primary" type="button" onClick={() => setSelected(item)}>I&apos;ll drink this</button>}
         </article>)}
 
-        <section className="precision-panel"><h2>Need more precision?</h2>{precisionOpen ? <form onSubmit={recommend}><label htmlFor="precision">Tell us one more thing about the meal.</label><input id="precision" placeholder={precisionQuestion(food)} value={precision} onChange={(event) => setPrecision(event.target.value)} /><button className="action action-secondary" disabled={!precision.trim() || loading}>Refine recommendations</button></form> : <button className="continue-link" type="button" onClick={() => setPrecisionOpen(true)}>Add one detail</button>}</section>
       </div>}
+      {!loading && !error && (recommendations.length > 0 || noSuitableMatch) && <section className="precision-panel recommendation-precision"><h2>Need more precision?</h2>{precisionOpen ? <form onSubmit={recommend}><label htmlFor="precision">Tell us one more thing about the meal.</label><input id="precision" placeholder={precisionQuestion(food)} value={precision} onChange={(event) => setPrecision(event.target.value)} /><button className="action action-secondary" disabled={!precision.trim() || loading}>Refine recommendations</button></form> : <button className="continue-link" type="button" onClick={() => setPrecisionOpen(true)}>Add one detail</button>}</section>}
     </section>
 
     {selected && <div className="dialog-backdrop" role="presentation"><section className="selection-dialog" role="dialog" aria-modal="true" aria-labelledby="open-title"><WineglassIcon className="size-7" /><h2 id="open-title">Did you actually open this bottle?</h2><p>{selected.wine.wineName || "This wine"} · {selected.wine.vintage || "No vintage"}</p><div><button className="action action-secondary" type="button" onClick={() => setSelected(null)}>No</button><button className="action action-primary" type="button" disabled={loading} onClick={() => void confirmOpened()}>Yes</button></div></section></div>}
@@ -81,5 +81,7 @@ function precisionQuestion(food: string): string {
   if (/turkey/i.test(food)) return "How is the turkey prepared?";
   if (/steak/i.test(food)) return "How is the steak cooked?";
   if (/sushi/i.test(food)) return "Mostly fish or vegetable sushi?";
+  if (/aperitif|aperitief/i.test(food)) return "Cheese, olives, smoked salmon, or charcuterie?";
+  if (/salmon|zalm|seabass|zeebaars/i.test(food)) return "Raw, grilled, roasted, or with a cream sauce?";
   return "Formal dinner or casual?";
 }

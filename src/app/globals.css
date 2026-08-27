@@ -256,6 +256,7 @@ a { color: inherit; text-decoration: none; }
 .no-match > p:not(.match-status) { margin-bottom: .4rem; color: var(--muted); font-size: .82rem; font-weight: 700; }
 .no-match ul { margin: 0; padding-left: 1.2rem; color: var(--muted); line-height: 1.7; }
 .precision-panel { border: 1px solid var(--line); border-radius: 1.4rem; padding: 1.2rem; text-align: center; }
+.recommendation-precision { margin-top: 1rem; }
 .precision-panel h2 { margin: 0; font-size: 1.05rem; }
 .precision-panel form { display: grid; gap: .7rem; margin-top: 1rem; text-align: left; }
 .opened-confirmation { color: #286940; font-size: .85rem; font-weight: 650; text-align: center; }

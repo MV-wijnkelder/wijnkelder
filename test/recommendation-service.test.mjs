@@ -57,13 +57,35 @@ test("additional precision changes structural ranking when a better alternative 
   assert.equal(service.recommend(cellar, { food: "chicken", occasion: "creamy sauce" })[0].wine.id, 2);
 });
 
-test("explanations cite stored matching evidence rather than generic claims", () => {
+test("explanations speak like a sommelier rather than exposing implementation details", () => {
   const selected = profiledWine(1, { pairings: ["salmon"], color: "white", style: "Chardonnay", body: "medium", acidity: "high", tannin: "low", sweetness: "low", bottles: 2 });
   const result = new RecommendationService().recommend([selected], { food: "salmon" })[0];
-  assert.match(result.why, /explicitly pairs with salmon/i);
+  assert.match(result.why, /natural partner for salmon/i);
   assert.match(result.why, /high acidity/i);
+  assert.doesNotMatch(`${result.reason} ${result.why} ${result.bullets.join(" ")}`, /profile|weight|algorithm|score/i);
   assert.doesNotMatch(result.why, /bottles? (?:is|are) currently available/i);
   assert.doesNotMatch(result.why, /strongest available cellar option/i);
+});
+
+test("recommends genuinely suitable Italian cellar wines with steak", () => {
+  const styles = ["Barolo", "Brunello di Montalcino", "Chianti Classico Riserva", "Valpolicella Ripasso"];
+  const cellar = styles.map((style, index) => profiledWine(index + 1, { pairings: ["roast meat"], color: "red", style, body: index === 3 ? "medium" : "high", acidity: "high", tannin: index === 3 ? "medium" : "high", sweetness: "low", maturity: "ready" }));
+  const result = new RecommendationService().recommend(cellar, { food: "grilled steak" });
+  assert.deepEqual(result.map(({ wine: item }) => item.id), [1, 2, 3]);
+  assert.ok(result.every(({ status }) => status === "Excellent Match" || status === "Good Match"));
+  assert.equal(new RecommendationService().recommend([cellar[3]], { food: "steak" }).length, 1);
+});
+
+test("understands Dutch food terms, common misspellings, and preparation", () => {
+  const cellar = [
+    profiledWine(1, { pairings: ["salmon"], color: "white", style: "fresh Chardonnay", body: "medium", acidity: "high", tannin: "low", sweetness: "low" }),
+    profiledWine(2, { pairings: ["steak"], color: "red", style: "Barolo", body: "high", acidity: "high", tannin: "high", sweetness: "low" }),
+    profiledWine(3, { pairings: ["asparagus"], color: "white", style: "crisp Sauvignon Blanc", body: "low", acidity: "high", tannin: "low", sweetness: "low" }),
+  ];
+  const service = new RecommendationService();
+  assert.equal(service.recommend(cellar, { food: "salomn met roomsaus" })[0].wine.id, 1);
+  assert.equal(service.recommend(cellar, { food: "biefstuk van de barbeque" })[0].wine.id, 2);
+  assert.equal(service.recommend(cellar, { food: "asperagus" })[0].wine.id, 3);
 });
 
 test("covers core meals with distinct, quality-gated sommelier choices", () => {
