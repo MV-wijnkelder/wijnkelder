@@ -1,4 +1,5 @@
 import type { WineRecognitionResult } from "@/lib/wine-recognition";
+import { emptyWineProfile } from "../domain/wine.ts";
 
 const RECOGNITION_ENDPOINT = "/api/recognize-wine";
 
@@ -153,6 +154,7 @@ function normalizeRecognitionResult(value: unknown): WineRecognitionResult {
       bottleSize: wine.bottleSize as string | null,
       alcoholPercentage: wine.alcoholPercentage as number | null,
       confidence: wine.confidence,
+      profile: emptyWineProfile(),
     },
   };
 }

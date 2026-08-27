@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
-import type { Wine } from "@/domain/wine";
+import { emptyWineProfile } from "@/domain/wine";
+import type { Wine, WineProfile } from "@/domain/wine";
 import { duplicateKey } from "@/lib/wine-normalization";
 
 export interface StoredWine extends Wine {
@@ -23,6 +24,7 @@ type WineRow = {
   bottle_size: string | null;
   alcohol_percentage: number | string | null;
   confidence: number;
+  profile: WineProfile | null;
   bottle_count: number;
   created_at: Date | string;
   updated_at: Date | string;
@@ -63,6 +65,7 @@ async function initialize(): Promise<void> {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
+    await sql`ALTER TABLE wines ADD COLUMN IF NOT EXISTS profile JSONB NOT NULL DEFAULT '{}'::jsonb`;
     await sql`CREATE INDEX IF NOT EXISTS wines_updated_at_idx ON wines (updated_at DESC)`;
   })().catch((error) => {
     initialization = undefined;
@@ -78,7 +81,7 @@ function rowToWine(row: WineRow): StoredWine {
     appellation: row.appellation, grapeVarieties: row.grape_varieties,
     wineColor: row.wine_color, bottleSize: row.bottle_size,
     alcoholPercentage: row.alcohol_percentage === null ? null : Number(row.alcohol_percentage),
-    confidence: row.confidence, bottleCount: row.bottle_count,
+    confidence: row.confidence, profile: normalizeProfile(row.profile), bottleCount: row.bottle_count,
     createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
@@ -118,8 +121,8 @@ export class NeonWineStorage {
       return { wine: rowToWine(rows[0]), duplicate: true };
     }
     const rows = await sql`
-      INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, bottle_count, duplicate_key)
-      VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${count}, ${key})
+      INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, profile, bottle_count, duplicate_key)
+      VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${JSON.stringify(normalizeProfile(wine.profile))}, ${count}, ${key})
       ON CONFLICT (duplicate_key) DO UPDATE SET bottle_count = wines.bottle_count + EXCLUDED.bottle_count, updated_at = NOW()
       RETURNING *` as WineRow[];
     return { wine: rowToWine(rows[0]), duplicate: existing.length > 0 };
@@ -128,7 +131,7 @@ export class NeonWineStorage {
   async update(id: number, wine: WineInput): Promise<StoredWine | null> {
     await initialize();
     const rows = await client()`
-      UPDATE wines SET producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
+      UPDATE wines SET producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, profile=${JSON.stringify(normalizeProfile(wine.profile))}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
       WHERE id=${id} RETURNING *` as WineRow[];
     return rows[0] ? rowToWine(rows[0]) : null;
   }
@@ -144,6 +147,13 @@ export class NeonWineStorage {
     const rows = await client()`DELETE FROM wines WHERE id=${id} RETURNING id`;
     return rows.length > 0;
   }
+}
+
+function normalizeProfile(value: WineProfile | null | undefined): WineProfile {
+  const defaults = emptyWineProfile();
+  if (!value || typeof value !== "object") return defaults;
+  const summary = typeof value.summary === "string" ? value.summary.trim().split(/\s+/).slice(0, 80).join(" ") || null : null;
+  return { ...defaults, ...value, serving: { ...defaults.serving, ...value.serving }, drinking: { ...defaults.drinking, ...value.drinking }, style: { ...defaults.style, ...value.style }, foodPairings: Array.isArray(value.foodPairings) ? value.foodPairings : [], summary };
 }
 
 function positiveInteger(value: number | undefined, fallback: number): number {
