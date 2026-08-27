@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       recommendations: matches,
       noSuitableMatch: matches.length === 0 ? {
         message: `Your current cellar does not contain a wine I would recommend for ${input.food.trim()}.`,
-        idealStyles: idealWineStyles(input.food),
+        idealStyles: idealWineStyles(input.food, input.occasion),
       } : null,
     });
   } catch (error) {
