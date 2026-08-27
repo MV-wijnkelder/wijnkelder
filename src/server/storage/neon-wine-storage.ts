@@ -131,6 +131,12 @@ export class NeonWineStorage {
     return rows[0] ? rowToWine(rows[0]) : null;
   }
 
+  async updateProfile(id: number, profile: WineProfile): Promise<StoredWine | null> {
+    await initialize();
+    const rows = await client()`UPDATE wines SET profile=${JSON.stringify(normalizeProfile(profile))}, updated_at=NOW() WHERE id=${id} RETURNING *` as WineRow[];
+    return rows[0] ? rowToWine(rows[0]) : null;
+  }
+
   async changeBottleCount(id: number, change: number): Promise<StoredWine | null> {
     await initialize();
     const rows = await client()`UPDATE wines SET bottle_count=GREATEST(0, bottle_count + ${change}), updated_at=NOW() WHERE id=${id} RETURNING *` as WineRow[];

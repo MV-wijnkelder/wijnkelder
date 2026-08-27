@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
+import { AIService } from "@/server/ai/ai-service";
+import { OpenAIProvider } from "@/server/ai/providers/openai-provider";
+import { enrichWineProfile } from "@/server/wine-profile-enrichment";
 
 export const runtime = "nodejs";
 const storage = new NeonWineStorage();
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  try { return found(await storage.get(await id(context))); } catch (error) { return failure(error); }
+  try {
+    const wine = await storage.get(await id(context));
+    if (!wine) return found(null);
+    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const generator = apiKey
+      ? new AIService(new OpenAIProvider(apiKey))
+      : { generateWineProfile: async () => { throw new Error("OPENAI_API_KEY is not configured"); } };
+    return found(await enrichWineProfile(wine, generator, storage));
+  } catch (error) { return failure(error); }
 }
 
 export async function PUT(request: Request, context: Context) {
