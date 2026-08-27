@@ -6,6 +6,7 @@ import { ChevronLeftIcon, SparklesIcon, WineglassIcon } from "@/components/icons
 import type { WineRecommendation } from "@/server/recommendations/recommendation-service";
 
 const examples = ["Turkey", "Steak", "Sushi", "Cheese platter", "Pasta with mushrooms"];
+type NoSuitableMatch = { message: string; idealStyles: string[] };
 
 export default function RecommendationPage() {
   const [food, setFood] = useState("");
@@ -16,16 +17,18 @@ export default function RecommendationPage() {
   const [precisionOpen, setPrecisionOpen] = useState(false);
   const [selected, setSelected] = useState<WineRecommendation | null>(null);
   const [opened, setOpened] = useState<number | null>(null);
+  const [noSuitableMatch, setNoSuitableMatch] = useState<NoSuitableMatch | null>(null);
 
   async function recommend(event: FormEvent) {
     event.preventDefault();
     if (!food.trim()) return;
-    setLoading(true); setError(null); setOpened(null);
+    setLoading(true); setError(null); setOpened(null); setNoSuitableMatch(null);
     try {
       const response = await fetch("/api/recommendations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ food, occasion: precision }) });
-      const data = await response.json() as { recommendations?: WineRecommendation[]; error?: string };
+      const data = await response.json() as { recommendations?: WineRecommendation[]; noSuitableMatch?: NoSuitableMatch | null; error?: string };
       if (!response.ok) throw new Error(data.error || "Recommendations are temporarily unavailable.");
       setRecommendations(data.recommendations ?? []);
+      setNoSuitableMatch(data.noSuitableMatch ?? null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Recommendations are temporarily unavailable."); }
     finally { setLoading(false); }
   }
@@ -56,11 +59,11 @@ export default function RecommendationPage() {
       </form>
 
       {error && <p className="error-message" role="alert">{error}</p>}
-      {!loading && recommendations.length === 0 && food && !error && <p className="cellar-status">No available bottles matched. Your cellar may be empty.</p>}
+      {!loading && noSuitableMatch && !error && <section className="no-match" aria-live="polite"><p className="match-status match-status-none">⚪ No Suitable Match</p><h2>{noSuitableMatch.message}</h2><p>Ideal wine styles</p><ul>{noSuitableMatch.idealStyles.map((style) => <li key={style}>{style}</li>)}</ul></section>}
       {recommendations.length > 0 && <div className="recommendation-results" aria-live="polite">
         {recommendations.map((item) => <article className="recommendation-card" key={item.wine.id}>
           <div className="recommendation-card-title"><div><p>{item.wine.producer || "Your cellar"}</p><h2>{item.wine.wineName || "Unnamed wine"}</h2><span>{item.wine.vintage || "Vintage not stated"}</span></div><WineglassIcon className="size-6" /></div>
-          <p className="recommendation-label">Recommended</p><h3>{item.headline}</h3>
+          <p className={`match-status ${item.status === "Excellent Match" ? "match-status-excellent" : "match-status-good"}`}>{item.status === "Excellent Match" ? "🟢" : "🟡"} {item.status}</p>
           <ul>{item.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
           <details><summary>Why?</summary><p>{item.why}</p></details>
           {opened === item.wine.id ? <p className="opened-confirmation">Enjoy your bottle. Your cellar is up to date.</p> : <button className="action action-primary" type="button" onClick={() => setSelected(item)}>I&apos;ll drink this</button>}

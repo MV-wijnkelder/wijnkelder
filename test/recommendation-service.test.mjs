@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { emptyWineProfile } from "../src/domain/wine.ts";
-import { RecommendationService } from "../src/server/recommendations/recommendation-service.ts";
+import { idealWineStyles, RecommendationService } from "../src/server/recommendations/recommendation-service.ts";
 
 function wine(id, food, bottles = 1) { const profile = emptyWineProfile(); profile.foodPairings = food; return { id, bottleCount: bottles, confidence: 90, profile, grapeVarieties: [], country: null }; }
 
@@ -22,7 +22,7 @@ test("returns no more than three available wines ranked by relevance", () => {
   assert.ok(result[0].score > result[1].score);
   assert.match(result[0].reason, /strong match/i);
   assert.equal(result[0].bullets.length, 3);
-  assert.match(result[0].why, /currently available/i);
+  assert.equal(result[0].status, "Good Match");
 });
 
 test("uses drinking readiness and bottle availability without returning empty inventory", () => {
@@ -62,6 +62,35 @@ test("explanations cite stored matching evidence rather than generic claims", ()
   const result = new RecommendationService().recommend([selected], { food: "salmon" })[0];
   assert.match(result.why, /explicitly pairs with salmon/i);
   assert.match(result.why, /high acidity/i);
-  assert.match(result.why, /2 bottles are currently available/i);
+  assert.doesNotMatch(result.why, /bottles? (?:is|are) currently available/i);
   assert.doesNotMatch(result.why, /strongest available cellar option/i);
+});
+
+test("covers core meals with distinct, quality-gated sommelier choices", () => {
+  const cellar = [
+    profiledWine(1, { pairings: ["sushi", "cod"], color: "white", style: "Chablis", body: "low", acidity: "high", tannin: "low", sweetness: "low" }),
+    profiledWine(2, { pairings: ["salmon", "chicken", "turkey"], color: "white", style: "Chardonnay", body: "medium", acidity: "high", tannin: "low", sweetness: "low" }),
+    profiledWine(3, { pairings: ["steak", "barbecue"], color: "red", style: "bold Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" }),
+    profiledWine(4, { pairings: ["mushroom risotto"], color: "red", style: "earthy Pinot Noir", body: "medium", acidity: "high", tannin: "low", sweetness: "low" }),
+    profiledWine(5, { pairings: ["pizza"], color: "red", style: "Chianti Sangiovese", body: "medium", acidity: "high", tannin: "medium", sweetness: "low" }),
+    profiledWine(6, { pairings: ["cheese platter"], color: "sweet", style: "Tawny Port", body: "high", acidity: "medium", tannin: "low", sweetness: "high" }),
+  ];
+  const service = new RecommendationService();
+  const meals = ["Sushi", "Salmon", "Cod", "Turkey", "Chicken", "Steak", "Barbecue", "Mushroom risotto", "Pizza", "Cheese platter"];
+  assert.deepEqual(meals.map((food) => service.recommend(cellar, { food })[0]?.wine.id), [1, 2, 1, 2, 2, 3, 3, 4, 5, 6]);
+});
+
+test("returns no compromise and protects an outstanding but unsuitable bottle", () => {
+  const barolo = profiledWine(1, { pairings: ["beef"], color: "red", style: "aged Barolo", body: "high", acidity: "high", tannin: "high", sweetness: "low", maturity: "mature" });
+  assert.deepEqual(new RecommendationService().recommend([barolo], { food: "sushi", occasion: "casual dinner" }), []);
+  assert.deepEqual(idealWineStyles("sushi"), ["Chablis", "Dry Riesling", "Champagne"]);
+});
+
+test("reserves Excellent Match for strong pairings and labels alternatives Good Match", () => {
+  const exact = profiledWine(1, { pairings: ["grilled steak"], color: "red", style: "bold Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" });
+  const acceptable = profiledWine(2, { pairings: ["beef"], color: "red", style: "medium red", body: "medium", acidity: "medium", tannin: "medium", sweetness: "low" });
+  const result = new RecommendationService().recommend([acceptable, exact], { food: "grilled steak" });
+  assert.equal(result[0].status, "Excellent Match");
+  assert.equal(result[1].status, "Good Match");
+  assert.ok(result.length < 3);
 });
