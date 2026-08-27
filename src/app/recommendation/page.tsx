@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { ChevronLeftIcon, SparklesIcon, WineglassIcon } from "@/components/icons";
 import type { WineRecommendation } from "@/server/recommendations/recommendation-service";
 
-const examples = ["Turkey", "Steak", "Sushi", "Cheese platter", "Pasta with mushrooms"];
+const examples = ["Recommend an aperitif", "Steak tonight", "Sushi", "Surprise me", "Which wines are ready to drink?"];
 type NoSuitableMatch = { message: string; idealStyles: string[] };
 
 export default function RecommendationPage() {
@@ -18,17 +18,19 @@ export default function RecommendationPage() {
   const [selected, setSelected] = useState<WineRecommendation | null>(null);
   const [opened, setOpened] = useState<number | null>(null);
   const [noSuitableMatch, setNoSuitableMatch] = useState<NoSuitableMatch | null>(null);
+  const [answer, setAnswer] = useState<string | null>(null);
 
   async function recommend(event: FormEvent) {
     event.preventDefault();
     if (!food.trim()) return;
-    setLoading(true); setError(null); setOpened(null); setNoSuitableMatch(null);
+    setLoading(true); setError(null); setOpened(null); setNoSuitableMatch(null); setAnswer(null);
     try {
-      const response = await fetch("/api/recommendations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ food, occasion: precision }) });
-      const data = await response.json() as { recommendations?: WineRecommendation[]; noSuitableMatch?: NoSuitableMatch | null; error?: string };
+      const response = await fetch("/api/recommendations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: food, occasion: precision }) });
+      const data = await response.json() as { recommendations?: WineRecommendation[]; noSuitableMatch?: NoSuitableMatch | null; answer?: string; error?: string };
       if (!response.ok) throw new Error(data.error || "Recommendations are temporarily unavailable.");
       setRecommendations(data.recommendations ?? []);
       setNoSuitableMatch(data.noSuitableMatch ?? null);
+      setAnswer(data.answer ?? null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Recommendations are temporarily unavailable."); }
     finally { setLoading(false); }
   }
@@ -52,13 +54,14 @@ export default function RecommendationPage() {
       <header className="recommendation-heading"><div className="app-icon app-icon-small"><SparklesIcon className="size-6" /></div><p className="result-eyebrow">From your cellar</p><h1>What should I drink?</h1><p>A thoughtful bottle for tonight, chosen only from wines you own.</p></header>
 
       <form className="recommendation-form" onSubmit={recommend}>
-        <label htmlFor="food">What are you eating tonight?</label>
-        <input id="food" value={food} onChange={(event) => setFood(event.target.value)} placeholder="What are you eating tonight?" autoComplete="off" />
+        <label htmlFor="food">What would you like from your cellar?</label>
+        <input id="food" value={food} onChange={(event) => setFood(event.target.value)} placeholder="Recommend an aperitif or a wine for steak…" autoComplete="off" />
         <div className="recommendation-examples" aria-label="Examples">{examples.map((example) => <button key={example} type="button" onClick={() => setFood(example)}>• {example}</button>)}</div>
         <button className="action action-primary" disabled={loading || !food.trim()} type="submit">{loading ? "Choosing wines…" : "Recommend wines"}</button>
       </form>
 
       {error && <p className="error-message" role="alert">{error}</p>}
+      {!loading && answer && !error && <section className="no-match" aria-live="polite"><p className="match-status match-status-good">From your cellar</p><h2>{answer}</h2></section>}
       {!loading && noSuitableMatch && !error && <section className="no-match" aria-live="polite"><p className="match-status match-status-none">⚪ No Suitable Match</p><h2>{noSuitableMatch.message}</h2><p>Ideal wine styles</p><ul>{noSuitableMatch.idealStyles.map((style) => <li key={style}>{style}</li>)}</ul></section>}
       {recommendations.length > 0 && <div className="recommendation-results" aria-live="polite">
         {recommendations.map((item) => <article className="recommendation-card" key={item.wine.id}>

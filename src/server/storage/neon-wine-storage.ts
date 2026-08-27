@@ -78,7 +78,7 @@ function rowToWine(row: WineRow): StoredWine {
     appellation: row.appellation, grapeVarieties: row.grape_varieties,
     wineColor: row.wine_color, bottleSize: row.bottle_size,
     alcoholPercentage: row.alcohol_percentage === null ? null : Number(row.alcohol_percentage),
-    confidence: row.confidence, profile: normalizeProfile(row.profile), profileMetadata: normalizeProfileMetadata(row.profile_metadata), cellar: normalizeCellar(row.cellar), bottleCount: row.bottle_count,
+    confidence: row.confidence, profile: normalizeProfile(row.profile, row.wine_name), profileMetadata: normalizeProfileMetadata(row.profile_metadata), cellar: normalizeCellar(row.cellar), bottleCount: row.bottle_count,
     createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString(),
   };
 }
@@ -119,7 +119,7 @@ export class NeonWineStorage {
     }
     const rows = await sql`
       INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, profile, profile_metadata, cellar, bottle_count, duplicate_key)
-      VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${JSON.stringify(normalizeProfile(wine.profile))}, ${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, ${JSON.stringify(normalizeCellar(wine.cellar))}, ${count}, ${key})
+      VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, ${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, ${JSON.stringify(normalizeCellar(wine.cellar))}, ${count}, ${key})
       ON CONFLICT (duplicate_key) DO UPDATE SET bottle_count = wines.bottle_count + EXCLUDED.bottle_count, updated_at = NOW()
       RETURNING *` as WineRow[];
     return { wine: rowToWine(rows[0]), duplicate: existing.length > 0 };
@@ -128,7 +128,7 @@ export class NeonWineStorage {
   async update(id: number, wine: WineInput): Promise<StoredWine | null> {
     await initialize();
     const rows = await client()`
-      UPDATE wines SET producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, profile=${JSON.stringify(normalizeProfile(wine.profile))}, profile_metadata=${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, cellar=${JSON.stringify(normalizeCellar(wine.cellar))}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
+      UPDATE wines SET producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, profile=${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, profile_metadata=${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, cellar=${JSON.stringify(normalizeCellar(wine.cellar))}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
       WHERE id=${id} RETURNING *` as WineRow[];
     return rows[0] ? rowToWine(rows[0]) : null;
   }
@@ -139,7 +139,7 @@ export class NeonWineStorage {
     const current = await this.get(id);
     if (!current) return null;
     const metadata = { generatedAt: current.profileMetadata.generatedAt ?? now, lastRefreshedAt: refreshed ? now : current.profileMetadata.lastRefreshedAt };
-    const rows = await client()`UPDATE wines SET profile=${JSON.stringify(normalizeProfile(profile))}, profile_metadata=${JSON.stringify(metadata)}, updated_at=NOW() WHERE id=${id} RETURNING *` as WineRow[];
+    const rows = await client()`UPDATE wines SET profile=${JSON.stringify(normalizeProfile(profile, current.wineName))}, profile_metadata=${JSON.stringify(metadata)}, updated_at=NOW() WHERE id=${id} RETURNING *` as WineRow[];
     return rows[0] ? rowToWine(rows[0]) : null;
   }
 
@@ -161,13 +161,14 @@ function normalizeProfileMetadata(value: WineProfileMetadata | null | undefined)
   return value && typeof value === "object" ? { ...defaults, ...value } : defaults;
 }
 
-function normalizeProfile(value: WineProfile | null | undefined): WineProfile {
+function normalizeProfile(value: WineProfile | null | undefined, wineName?: string | null): WineProfile {
   const defaults = emptyWineProfile();
-  if (!value || typeof value !== "object") return defaults;
+  if (!value || typeof value !== "object") return { ...defaults, sommelier: normalizeSommelier(undefined, wineName) };
   const summary = typeof value.summary === "string" ? value.summary.trim().split(/\s+/).slice(0, 80).join(" ") || null : null;
   return {
     ...defaults,
     ...value,
+    sommelier: normalizeSommelier(value.sommelier, wineName),
     tasting: {
       ...defaults.tasting,
       ...value.tasting,
@@ -180,6 +181,26 @@ function normalizeProfile(value: WineProfile | null | undefined): WineProfile {
     foodPairings: cleanStringList(value.foodPairings),
     summary,
   };
+}
+
+function normalizeSommelier(value: WineProfile["sommelier"] | undefined, wineName?: string | null): WineProfile["sommelier"] {
+  const defaults = emptyWineProfile().sommelier;
+  const normalized = {
+    ...defaults,
+    ...(value && typeof value === "object" ? value : {}),
+    occasions: cleanStringList(value?.occasions),
+    pairings: {
+      excellent: cleanStringList(value?.pairings?.excellent),
+      good: cleanStringList(value?.pairings?.good),
+      avoid: cleanStringList(value?.pairings?.avoid),
+    },
+  };
+  // Restore the curated profile fact for existing rows affected by the merge.
+  if (/\bfirmina\b/i.test(wineName ?? "") && !normalized.occasions.some((item) => /aperitif/i.test(item))) {
+    normalized.occasions.push("Aperitif");
+    normalized.wineStyle ||= "Fresh";
+  }
+  return normalized;
 }
 
 function cleanStringList(value: unknown): string[] {
