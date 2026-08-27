@@ -3,6 +3,7 @@ import type { SommelierRequest } from "@/server/sommelier/sommelier";
 import { isValidSommelierMessage, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "@/server/sommelier/sommelier";
 import { answerSommelier } from "@/server/sommelier/sommelier-service";
 import { OpenAISommelierModel } from "@/server/sommelier/openai-sommelier-model";
+import { OpenAILiveIntelligenceSkill } from "@/server/sommelier/live-intelligence-skill";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
     const storage = new NeonWineStorage();
-    const reply = await answerSommelier({ messages: body.messages, requestContext: body.context, baseInstructions: SOMMELIER_INSTRUCTIONS, model: new OpenAISommelierModel(apiKey), contextSource: { getWine: (id) => storage.get(id), listCellar: () => storage.list() } });
+    const reply = await answerSommelier({ messages: body.messages, requestContext: body.context, baseInstructions: SOMMELIER_INSTRUCTIONS, model: new OpenAISommelierModel(apiKey), liveIntelligence: new OpenAILiveIntelligenceSkill(apiKey), contextSource: { getWine: (id) => storage.get(id), listCellar: () => storage.list() } });
     return NextResponse.json({ reply });
   } catch (error) {
     console.error("Sommelier conversation failed", error);

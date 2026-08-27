@@ -4,6 +4,9 @@ import type { SommelierContext, SommelierMessage } from "./sommelier";
 export const SOMMELIER_INTENTS = ["cellar", "buying", "restaurant", "travel", "wine_knowledge", "food_pairing", "serving", "storage", "comparison", "general"] as const;
 export type SommelierIntent = typeof SOMMELIER_INTENTS[number];
 
+export const SOMMELIER_ROUTING_INSTRUCTIONS = `Classify the latest user request in its conversation. Return JSON only with intent (cellar, buying, restaurant, travel, wine_knowledge, food_pairing, serving, storage, comparison, or general), needsCurrentWine, needsCellar, and needsCurrentInformation booleans.
+Set needsCurrentInformation true for current prices, cheapest buying locations, availability, restaurant or wine-bar recommendations, opening hours, reservations, distances, routes, events, festivals, promotions, recent winery news, and current critic scores. Set it false for stable wine knowledge and serving advice. Use the cellar without live information for questions about bottles the user owns. For buying decisions, set both needsCellar and needsCurrentInformation true when personal inventory could affect the recommendation. Do not answer the user.`;
+
 export type SommelierRoute = {
   intent: SommelierIntent;
   needsCurrentWine: boolean;
@@ -19,6 +22,15 @@ export interface SommelierModel {
 export interface SommelierContextSource {
   getWine(id: number): Promise<StoredWine | null>;
   listCellar(): Promise<StoredWine[]>;
+}
+
+export type LiveIntelligenceResult =
+  | { status: "available"; content: string }
+  | { status: "unavailable" };
+
+/** Specialist boundary for current web, business, market, and travel facts. */
+export interface LiveIntelligenceSkill {
+  research(messages: SommelierMessage[]): Promise<LiveIntelligenceResult>;
 }
 
 const SPECIALIST_GUIDANCE: Record<SommelierIntent, string> = {
@@ -40,17 +52,40 @@ export async function answerSommelier(input: {
   baseInstructions: string;
   model: SommelierModel;
   contextSource: SommelierContextSource;
+  liveIntelligence?: LiveIntelligenceSkill;
 }): Promise<string> {
   const route = await input.model.classify(input.messages);
-  const context = await resolveContext(route, input.requestContext, input.contextSource);
-  const currentInformationNote = route.needsCurrentInformation
-    ? "No live web, maps, price, or inventory tool is connected. Never fabricate current facts; state that limitation only when relevant."
-    : "";
+  const applicationContext = await resolveContext(route, input.requestContext, input.contextSource);
+  const liveResult = route.needsCurrentInformation
+    ? await getLiveIntelligence(input.liveIntelligence, input.messages)
+    : null;
+  const context = combineContext(applicationContext, liveResult);
+  const currentInformationNote = liveResult?.status === "available"
+    ? "Use the supplied Live Intelligence for time-sensitive claims. Preserve useful source links, mention material uncertainty, and never expose routing or tool details."
+    : liveResult?.status === "unavailable"
+      ? "Current information could not be obtained. Say so honestly, do not fabricate current facts, and then give the best useful advice available."
+      : "";
   return input.model.answer({
     messages: input.messages,
     context,
     instructions: `${input.baseInstructions}\n\n## Active specialist guidance\n${SPECIALIST_GUIDANCE[route.intent]}\n${currentInformationNote}`,
   });
+}
+
+async function getLiveIntelligence(skill: LiveIntelligenceSkill | undefined, messages: SommelierMessage[]): Promise<LiveIntelligenceResult> {
+  if (!skill) return { status: "unavailable" };
+  try {
+    return await skill.research(messages);
+  } catch (error) {
+    console.error("Live Intelligence failed", error);
+    return { status: "unavailable" };
+  }
+}
+
+function combineContext(applicationContext: string | null, liveResult: LiveIntelligenceResult | null): string | null {
+  const sections = [applicationContext];
+  if (liveResult?.status === "available") sections.push(`Current Live Intelligence:\n${liveResult.content}`);
+  return sections.filter((section): section is string => Boolean(section)).join("\n\n") || null;
 }
 
 async function resolveContext(route: SommelierRoute, context: SommelierContext | undefined, source: SommelierContextSource): Promise<string | null> {

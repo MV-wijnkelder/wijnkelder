@@ -1,5 +1,5 @@
 import type { SommelierMessage } from "./sommelier";
-import { isSommelierRoute, type SommelierModel, type SommelierRoute } from "./sommelier-service";
+import { isSommelierRoute, SOMMELIER_ROUTING_INSTRUCTIONS, type SommelierModel, type SommelierRoute } from "./sommelier-service";
 
 const URL = "https://api.openai.com/v1/responses";
 
@@ -9,7 +9,7 @@ export class OpenAISommelierModel implements SommelierModel {
   async classify(messages: SommelierMessage[]): Promise<SommelierRoute> {
     const result = await this.request({
       model: this.model,
-      instructions: "Classify the latest user request in its conversation. Return JSON only with intent (cellar, buying, restaurant, travel, wine_knowledge, food_pairing, serving, storage, comparison, or general), needsCurrentWine, needsCellar, and needsCurrentInformation booleans. Current information means live prices, availability, business details, routes, distances, or travel conditions. Do not answer the user.",
+      instructions: SOMMELIER_ROUTING_INSTRUCTIONS,
       input: messages,
       text: { format: { type: "json_schema", name: "sommelier_route", strict: true, schema: { type: "object", additionalProperties: false, properties: { intent: { type: "string", enum: ["cellar", "buying", "restaurant", "travel", "wine_knowledge", "food_pairing", "serving", "storage", "comparison", "general"] }, needsCurrentWine: { type: "boolean" }, needsCellar: { type: "boolean" }, needsCurrentInformation: { type: "boolean" } }, required: ["intent", "needsCurrentWine", "needsCellar", "needsCurrentInformation"] } } },
     });
