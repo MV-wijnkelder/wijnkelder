@@ -5,14 +5,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeftIcon, PlusIcon, TrashIcon, WineglassIcon } from "@/components/icons";
 import type { StoredWine } from "@/services/wine-service";
 import { WineService } from "@/services/wine-service";
+import { CELLAR_STATE_KEY, emptyCellarNavigationState, parseCellarNavigationState } from "@/lib/cellar-navigation";
 
 export default function CellarPage() {
   const [wines, setWines] = useState<StoredWine[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => typeof window === "undefined" ? "" : parseCellarNavigationState(sessionStorage.getItem(CELLAR_STATE_KEY)).search);
   const [editing, setEditing] = useState<StoredWine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadSequence = useRef(0);
+  const restored = useRef(false);
+  const rememberPosition = useCallback((wineId: number | null = null) => {
+    const previous = parseCellarNavigationState(sessionStorage.getItem(CELLAR_STATE_KEY));
+    sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify({ search, scrollY: window.scrollY, wineId: wineId ?? previous.wineId }));
+  }, [search]);
 
   const load = useCallback(async (query = "") => {
     const sequence = ++loadSequence.current;
@@ -23,6 +29,21 @@ export default function CellarPage() {
   }, []);
 
   useEffect(() => { const timer = setTimeout(() => void load(search), 250); return () => clearTimeout(timer); }, [load, search]);
+  useEffect(() => { sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify({ ...parseCellarNavigationState(sessionStorage.getItem(CELLAR_STATE_KEY)), search })); }, [search]);
+  useEffect(() => {
+    const previous = history.scrollRestoration; history.scrollRestoration = "manual";
+    const save = () => rememberPosition(); window.addEventListener("pagehide", save);
+    return () => { window.removeEventListener("pagehide", save); history.scrollRestoration = previous; };
+  }, [rememberPosition]);
+  useEffect(() => {
+    if (isLoading || restored.current) return;
+    restored.current = true;
+    const state = parseCellarNavigationState(sessionStorage.getItem(CELLAR_STATE_KEY));
+    requestAnimationFrame(() => {
+      const card = state.wineId ? document.querySelector<HTMLElement>(`[data-wine-id="${state.wineId}"]`) : null;
+      if (card && state.scrollY === 0) card.scrollIntoView({ block: "start" }); else window.scrollTo({ top: state.scrollY, behavior: "instant" });
+    });
+  }, [isLoading]);
 
   async function changeCount(wine: StoredWine, change: number) {
     try {
@@ -50,12 +71,12 @@ export default function CellarPage() {
   return <main className="app-shell relative min-h-screen overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-3xl">
-      <Link className="back-link" href="/"><ChevronLeftIcon className="size-5" /> Home</Link>
+      <Link className="back-link" href="/" onClick={() => sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify(emptyCellarNavigationState))}><ChevronLeftIcon className="size-5" /> Home</Link>
       <div className="cellar-heading"><div className="app-icon app-icon-small"><WineglassIcon className="size-6" /></div><div><p className="result-eyebrow">Your collection</p><h1>My Cellar</h1></div></div>
-      <label className="cellar-search"><span className="sr-only">Search your cellar</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, producer, region…" type="search" /></label>
+      <label className="cellar-search"><span className="sr-only">Search your cellar</span><input suppressHydrationWarning value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, producer, region…" type="search" /></label>
       {error && <p className="error-message" role="alert">{error}</p>}
-      {isLoading ? <p className="cellar-status" role="status">Loading wines…</p> : wines.length === 0 ? <div className="cellar-empty"><WineglassIcon className="size-8" /><strong>{search ? "No wines found" : "Your cellar is empty"}</strong><p>{search ? "Try a different search term." : "Scan a label to add your first wine."}</p>{!search && <Link className="action action-primary" href="/scan"><PlusIcon className="size-5" /> Scan wine</Link>}</div> : <div className="wine-list">{wines.map((wine) => <article className="wine-card" key={wine.id}>
-        <Link className="wine-card-main" href={`/cellar/${wine.id}`} aria-label={`Open ${wine.wineName || "wine"} profile`}><div><p>{wine.producer || "Unknown producer"}</p><h2>{wine.wineName || "Unnamed wine"}</h2><span>{[wine.vintage, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"}</span></div><strong className="bottle-badge">{wine.bottleCount} {wine.bottleCount === 1 ? "bottle" : "bottles"}</strong></Link>
+      {isLoading ? <p className="cellar-status" role="status">Loading wines…</p> : wines.length === 0 ? <div className="cellar-empty"><WineglassIcon className="size-8" /><strong>{search ? "No wines found" : "Your cellar is empty"}</strong><p>{search ? "Try a different search term." : "Scan a label to add your first wine."}</p>{!search && <Link className="action action-primary" href="/scan"><PlusIcon className="size-5" /> Scan wine</Link>}</div> : <div className="wine-list">{wines.map((wine) => <article className="wine-card" key={wine.id} data-wine-id={wine.id}>
+        <Link className="wine-card-main" href={`/cellar/${wine.id}`} onClick={() => rememberPosition(wine.id)} aria-label={`Open ${wine.wineName || "wine"} profile`}><div><p>{wine.producer || "Unknown producer"}</p><h2>{wine.wineName || "Unnamed wine"}</h2><span>{[wine.vintage, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"}</span></div><strong className="bottle-badge">{wine.bottleCount} {wine.bottleCount === 1 ? "bottle" : "bottles"}</strong></Link>
         <div className="wine-card-actions"><div className="count-actions"><button type="button" onClick={() => void changeCount(wine, -1)} disabled={wine.bottleCount === 0} aria-label="One fewer bottle">−</button><span>{wine.bottleCount}</span><button type="button" onClick={() => void changeCount(wine, 1)} aria-label="One more bottle">+</button></div><button type="button" onClick={() => setEditing(wine)}>Edit</button><button className="delete-button" type="button" onClick={() => void remove(wine)} aria-label="Delete wine"><TrashIcon className="size-4" /></button></div>
       </article>)}</div>}
     </section>

@@ -18,6 +18,36 @@ export interface Wine {
   confidence: number;
   /** Enrichment kept as one extensible document so new companion attributes do not require reshaping the wine identity. */
   profile: WineProfile;
+  /** Cellar/workbook data that is not part of the identity printed on a label. */
+  cellar: CellarDetails;
+}
+
+export interface StoredWine extends Wine {
+  id: number;
+  bottleCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Canonical home for the inventory columns used by the MCHRDV workbook.
+ * `workbookExtras` preserves columns that are added to a workbook later without
+ * manufacturing values or requiring a lossy import/export cycle.
+ */
+export interface CellarDetails {
+  storageLocation: string | null;
+  rack: string | null;
+  shelf: string | null;
+  position: string | null;
+  purchaseDate: string | null;
+  purchasePrice: number | null;
+  purchaseCurrency: string | null;
+  purchasedFrom: string | null;
+  tastingNotes: string | null;
+  rating: number | null;
+  lastTastedAt: string | null;
+  sourceWorkbookRow: number | null;
+  workbookExtras: Record<string, string | number | boolean | null>;
 }
 
 export type Maturity = "young" | "approaching peak" | "ready" | "mature" | "past peak";
@@ -40,5 +70,14 @@ export function emptyWineProfile(): WineProfile {
     drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },
     foodPairings: [], summary: null,
+  };
+}
+
+export function emptyCellarDetails(): CellarDetails {
+  return {
+    storageLocation: null, rack: null, shelf: null, position: null,
+    purchaseDate: null, purchasePrice: null, purchaseCurrency: null, purchasedFrom: null,
+    tastingNotes: null, rating: null, lastTastedAt: null, sourceWorkbookRow: null,
+    workbookExtras: {},
   };
 }
