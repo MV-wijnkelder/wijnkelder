@@ -1,11 +1,5 @@
-import type { Wine } from "@/domain/wine";
-
-export interface StoredWine extends Wine {
-  id: number;
-  bottleCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { StoredWine, Wine } from "@/domain/wine";
+export type { StoredWine } from "@/domain/wine";
 
 type SaveResult = { wine: StoredWine; duplicate: boolean };
 

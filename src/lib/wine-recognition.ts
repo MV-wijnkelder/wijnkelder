@@ -1,4 +1,4 @@
-import { emptyWineProfile } from "../domain/wine.ts";
+import { emptyCellarDetails, emptyWineProfile } from "../domain/wine.ts";
 import type { Wine } from "@/domain/wine";
 
 /** Raw, provider-independent data returned by wine-label recognition. */
@@ -23,7 +23,7 @@ export type WineRecognitionResult =
   | { recognized: false };
 
 export const wineFields: Array<{
-  key: Exclude<keyof Wine, "confidence">;
+  key: Exclude<keyof Wine, "confidence" | "profile" | "cellar">;
   label: string;
 }> = [
   { key: "wineName", label: "Wine name" }, { key: "producer", label: "Producer" },
@@ -52,6 +52,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
     alcoholPercentage: recognition.alcoholPercentage,
     confidence: recognition.confidence,
     profile: emptyWineProfile(),
+    cellar: emptyCellarDetails(),
   };
 }
 

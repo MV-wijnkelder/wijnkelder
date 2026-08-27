@@ -13,7 +13,7 @@ type WineReviewProps = {
   onSave: (wine: Wine) => Promise<{ duplicate: boolean }>;
 };
 
-type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence" | "profile">;
+type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence" | "profile" | "cellar">;
 
 const textFields: Array<{ key: TextField; label: string; placeholder: string }> = [
   { key: "producer", label: "Producer", placeholder: "Producer name" },

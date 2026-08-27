@@ -1,4 +1,4 @@
-import type { StoredWine } from "@/server/storage/neon-wine-storage";
+import type { StoredWine } from "@/domain/wine";
 
 export interface RecommendationRequest {
   occasion: string;

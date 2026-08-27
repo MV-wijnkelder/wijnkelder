@@ -38,7 +38,7 @@ test("single and dual label responses produce the exact same canonical schema", 
   const dual = await AIService.recognizeWine(front, back);
 
   assert.deepEqual(dual, single);
-  assert.deepEqual(Object.keys(dual.wine), [...Object.keys(wine), "profile"]);
+  assert.deepEqual(Object.keys(dual.wine), [...Object.keys(wine), "profile", "cellar"]);
   assert.doesNotMatch(JSON.stringify(dual), /backLabel|blob:/);
 });
 
