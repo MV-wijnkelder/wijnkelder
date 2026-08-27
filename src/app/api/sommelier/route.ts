@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import type { SommelierRequest } from "@/server/sommelier/sommelier";
 import { isValidSommelierMessage, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "@/server/sommelier/sommelier";
+import { answerSommelier } from "@/server/sommelier/sommelier-service";
+import { OpenAISommelierModel } from "@/server/sommelier/openai-sommelier-model";
+import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 export async function POST(request: Request) {
   try {
     const body = await request.json() as SommelierRequest;
@@ -14,15 +16,8 @@ export async function POST(request: Request) {
     }
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
-    const response = await fetch(OPENAI_RESPONSES_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-4.1-mini", instructions: SOMMELIER_INSTRUCTIONS, input: body.messages }),
-    });
-    if (!response.ok) throw new Error(`OpenAI request failed with status ${response.status}`);
-    const result = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> };
-    const reply = result.output_text ?? result.output?.flatMap((item) => item.content ?? []).find((item) => item.type === "output_text")?.text;
-    if (!reply) throw new Error("OpenAI returned no text");
+    const storage = new NeonWineStorage();
+    const reply = await answerSommelier({ messages: body.messages, requestContext: body.context, baseInstructions: SOMMELIER_INSTRUCTIONS, model: new OpenAISommelierModel(apiKey), contextSource: { getWine: (id) => storage.get(id), listCellar: () => storage.list() } });
     return NextResponse.json({ reply });
   } catch (error) {
     console.error("Sommelier conversation failed", error);
