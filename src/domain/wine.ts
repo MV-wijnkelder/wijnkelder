@@ -54,8 +54,20 @@ export interface CellarDetails {
 
 export type Maturity = "young" | "approaching peak" | "ready" | "mature" | "past peak";
 export type Intensity = "low" | "medium" | "high";
+export type PairingQuality = "excellent" | "good" | "avoid";
+
+/** Recommendation facts used by the cellar sommelier. Kept inside the canonical profile. */
+export interface SommelierProfile {
+  occasions: string[];
+  pairings: Record<PairingQuality, string[]>;
+  wineStyle: string | null;
+  ageingPotential: string | null;
+  drinkingStage: Maturity | null;
+  servingPersonality: string | null;
+}
 
 export interface WineProfile {
+  sommelier: SommelierProfile;
   /** Structured sensory guidance; these are sommelier suggestions, not user tasting notes. */
   tasting: {
     appearance: string | null;
@@ -86,6 +98,7 @@ export function emptyWineProfileMetadata(): WineProfileMetadata {
 
 export function emptyWineProfile(): WineProfile {
   return {
+    sommelier: { occasions: [], pairings: { excellent: [], good: [], avoid: [] }, wineStyle: null, ageingPotential: null, drinkingStage: null, servingPersonality: null },
     tasting: { appearance: null, aromas: [], flavors: [], finish: null },
     serving: { temperature: null, decantAdvice: null },
     drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { emptyWineProfile } from "../src/domain/wine.ts";
-import { idealWineStyles, RecommendationService } from "../src/server/recommendations/recommendation-service.ts";
+import { detectRecommendationIntent, idealWineStyles, RecommendationService } from "../src/server/recommendations/recommendation-service.ts";
 
 function wine(id, food, bottles = 1) { const profile = emptyWineProfile(); profile.foodPairings = food; return { id, bottleCount: bottles, confidence: 90, profile, grapeVarieties: [], country: null }; }
 
@@ -115,4 +115,25 @@ test("reserves Excellent Match for strong pairings and labels alternatives Good 
   assert.equal(result[0].status, "Excellent Match");
   assert.equal(result[1].status, "Good Match");
   assert.ok(result.length < 3);
+});
+
+test("converts focused natural language into structured cellar intent", () => {
+  assert.deepEqual(detectRecommendationIntent("Recommend an aperitif from my cellar"), { kind: "recommendation", occasion: "Aperitif", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("I'm having steak tonight"), { kind: "recommendation", occasion: "Steak", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("Surprise me"), { kind: "recommendation", occasion: "Surprise", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("Which bottle should I open tonight?"), { kind: "recommendation", occasion: "Drink Tonight", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("Which wines are ready to drink?"), { kind: "ready", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("Compare Badarina and Siepi"), { kind: "compare", names: ["Badarina", "Siepi"], source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("What Italian wines do I own?"), { kind: "inventory", country: "Italy", source: "cellar" });
+});
+
+test("structured occasions make Firmina the top aperitif recommendation", () => {
+  const firmina = profiledWine(1, { pairings: [], color: "white", style: "Fresh", body: "low", acidity: "high", tannin: "low", sweetness: "low" });
+  firmina.wineName = "Firmina";
+  firmina.profile.sommelier.occasions = ["Aperitif"];
+  firmina.profile.sommelier.wineStyle = "Fresh";
+  const generic = profiledWine(2, { pairings: ["fish"], color: "white", style: "Fresh", body: "low", acidity: "high", tannin: "low", sweetness: "low" });
+  const result = new RecommendationService().recommend([generic, firmina], { query: "Recommend an aperitif from my cellar" });
+  assert.equal(result[0].wine.wineName, "Firmina");
+  assert.equal(result[0].status, "Excellent Match");
 });
