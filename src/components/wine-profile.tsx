@@ -1,0 +1,24 @@
+import type { Wine } from "@/domain/wine";
+import { WineglassIcon } from "@/components/icons";
+
+export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: number }) {
+  const { profile } = wine;
+  const maturityAdvice = profile.drinking.currentMaturity
+    ? (["ready", "mature", "past peak"].includes(profile.drinking.currentMaturity) ? "Drink now" : "Hold")
+    : null;
+  return <article className="wine-profile">
+    <header className="profile-hero"><div className="app-icon app-icon-small"><WineglassIcon className="size-6" /></div><p>{wine.producer || "Unknown producer"}</p><h1>{wine.wineName || "Unnamed wine"}</h1><span>{[wine.vintage, wine.appellation, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"}</span>{wine.grapeVarieties.length > 0 && <div className="profile-tags">{wine.grapeVarieties.map((grape) => <span key={grape}>{grape}</span>)}</div>}</header>
+    <ProfileSection title="Wine"><Details values={[["Producer", wine.producer], ["Wine", wine.wineName], ["Vintage", wine.vintage], ["Country", wine.country], ["Region", wine.region], ["Appellation", wine.appellation], ["Grape varieties", wine.grapeVarieties.join(", ") || null], ["Color", wine.wineColor], ["Bottle size", wine.bottleSize], ["Alcohol", wine.alcoholPercentage === null ? null : `${wine.alcoholPercentage}%`], ...(bottleCount === undefined ? [] : [["Bottles", String(bottleCount)] as [string, string]])]} /></ProfileSection>
+    <ProfileSection title="Drinking window"><Details values={[["Drink from", profile.drinking.drinkFrom], ["Drink until", profile.drinking.drinkUntil], ["Drink now / Hold", maturityAdvice], ["Current maturity", profile.drinking.currentMaturity]]} /></ProfileSection>
+    <ProfileSection title="Serving advice"><Details values={[["Temperature", profile.serving.temperature], ["Decant advice", profile.serving.decantAdvice]]} /></ProfileSection>
+    <ProfileSection title="Style"><Details values={[["Style", profile.style.wineStyle], ["Body", profile.style.body], ["Acidity", profile.style.acidity], ["Tannin", profile.style.tannin], ["Sweetness", profile.style.sweetness], ["Alcohol intensity", profile.style.alcohol]]} /></ProfileSection>
+    <ProfileSection title="Food pairing">{profile.foodPairings.length ? <div className="profile-tags">{profile.foodPairings.map((food) => <span key={food}>{food}</span>)}</div> : <Empty />}</ProfileSection>
+    <ProfileSection title="About this wine">{profile.summary ? <p className="profile-summary">{profile.summary}</p> : <Empty />}</ProfileSection>
+    {profile.wineryInformation && <ProfileSection title="Winery information"><p className="profile-summary">{profile.wineryInformation}</p></ProfileSection>}
+    {profile.vintageRemarks && <ProfileSection title="Vintage remarks"><p className="profile-summary">{profile.vintageRemarks}</p></ProfileSection>}
+  </article>;
+}
+
+function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="profile-section"><h2>{title}</h2>{children}</section>; }
+function Details({ values }: { values: Array<[string, string | null]> }) { const known = values.filter(([, value]) => value); return known.length ? <dl>{known.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : <Empty />; }
+function Empty() { return <p className="profile-empty">Not available yet</p>; }

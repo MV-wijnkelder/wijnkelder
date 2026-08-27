@@ -14,6 +14,9 @@ export const WineService = {
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
   },
+  explore(wine: Wine) {
+    return request<Wine>("/api/wine-profile", { method: "POST", body: JSON.stringify(wine) });
+  },
   update(wine: StoredWine) {
     return request<StoredWine>(`/api/wines/${wine.id}`, { method: "PUT", body: JSON.stringify(wine) });
   },

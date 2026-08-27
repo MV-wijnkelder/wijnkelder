@@ -62,6 +62,8 @@ export interface WineProfile {
   };
   foodPairings: string[];
   summary: string | null;
+  wineryInformation: string | null;
+  vintageRemarks: string | null;
 }
 
 export function emptyWineProfile(): WineProfile {
@@ -69,7 +71,7 @@ export function emptyWineProfile(): WineProfile {
     serving: { temperature: null, decantAdvice: null },
     drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },
-    foodPairings: [], summary: null,
+    foodPairings: [], summary: null, wineryInformation: null, vintageRemarks: null,
   };
 }
 

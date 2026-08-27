@@ -11,6 +11,7 @@ type WineReviewProps = {
   onChange: (wine: Wine) => void;
   onScanAgain: () => void;
   onSave: (wine: Wine) => Promise<{ duplicate: boolean }>;
+  onExplore: (wine: Wine) => Promise<void>;
 };
 
 type TextField = Exclude<keyof Wine, "grapeVarieties" | "alcoholPercentage" | "confidence" | "profile" | "cellar">;
@@ -26,14 +27,23 @@ const textFields: Array<{ key: TextField; label: string; placeholder: string }> 
   { key: "bottleSize", label: "Bottle size", placeholder: "For example, 750 ml" },
 ];
 
-export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewProps) {
+export function WineReview({ wine, onChange, onScanAgain, onSave, onExplore }: WineReviewProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExploring, setIsExploring] = useState(false);
 
   function updateText(key: TextField, value: string) {
     onChange({ ...wine, [key]: value.trimStart() || null });
     setSaveMessage(null);
+  }
+
+  async function exploreWine() {
+    if (isSaving || isExploring) return;
+    setIsExploring(true); setSaveError(null);
+    try { await onExplore(wine); }
+    catch (error) { setSaveError(error instanceof Error ? error.message : "The wine profile could not be created."); }
+    finally { setIsExploring(false); }
   }
 
   function updateGrapes(value: string) {
@@ -148,11 +158,15 @@ export function WineReview({ wine, onChange, onScanAgain, onSave }: WineReviewPr
           Scan another wine
         </button>
         <Link className="action action-secondary w-full" href="/cellar">My cellar</Link>
-      </div> : <div className="review-actions">
-        <button className="action action-secondary w-full" type="button" onClick={onScanAgain}><ArrowClockwiseIcon className="size-5" /> Start over</button>
-        <button className="action action-primary w-full" type="submit" disabled={isSaving}>
+      </div> : <div className="review-actions review-actions-three">
+        <button className="continue-link" type="button" onClick={onScanAgain}>Start over</button>
+        <button className="action action-primary w-full" type="submit" disabled={isSaving || isExploring}>
           {isSaving ? <span className="spinner" aria-hidden="true" /> : <PlusIcon className="size-5" />}
-          {isSaving ? "Saving…" : "Add to cellar"}
+          {isSaving ? "Saving…" : "Add to My Cellar"}
+        </button>
+        <button className="action action-primary w-full" type="button" disabled={isSaving || isExploring} onClick={() => void exploreWine()}>
+          {isExploring && <span className="spinner" aria-hidden="true" />}
+          {isExploring ? "Creating profile…" : "Explore this Wine"}
         </button>
       </div>}
     </form>
