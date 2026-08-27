@@ -7,15 +7,15 @@ import { WineReview } from "@/components/wine-review";
 import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon } from "@/components/icons";
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
+import { stageForPhotoPicker } from "@/lib/scan-navigation";
+import type { LabelSide, PhotoSource, ScanStage } from "@/lib/scan-navigation";
 import { AIService } from "@/services/ai-service";
 import { WineService } from "@/services/wine-service";
 
-type LabelSide = "front" | "back";
 type LabelPhoto = { file: File; url: string };
-type Stage = "start" | "front" | "back-choice" | "back" | "warning" | "review";
 
 export default function ScanPage() {
-  const [stage, setStage] = useState<Stage>("start");
+  const [stage, setStage] = useState<ScanStage>("start");
   const [front, setFront] = useState<LabelPhoto | null>(null);
   const [back, setBack] = useState<LabelPhoto | null>(null);
   const [result, setResult] = useState<Wine | null>(null);
@@ -30,15 +30,14 @@ export default function ScanPage() {
   useEffect(() => () => { if (frontUrl) URL.revokeObjectURL(frontUrl); }, [frontUrl]);
   useEffect(() => () => { if (backUrl) URL.revokeObjectURL(backUrl); }, [backUrl]);
 
-  function open(side: LabelSide, source: "Camera" | "Library") {
-    setStage(side); setError(null);
+  function open(side: LabelSide, source: PhotoSource) {
+    setStage(stageForPhotoPicker(side, source)); setError(null);
     inputs[`${side}${source}`].current?.click();
   }
 
-  async function selectPhoto(side: LabelSide, source: "Camera" | "Library", event: ChangeEvent<HTMLInputElement>) {
+  async function selectPhoto(side: LabelSide, source: PhotoSource, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;
-    const advancesAfterNativeConfirmation = side === "front" && source === "Camera";
-    if (advancesAfterNativeConfirmation) setStage("back-choice");
+    const isFrontCamera = side === "front" && source === "Camera";
     setBusy(true); setError(null);
     try {
       const optimized = await compressImage(file);
@@ -46,7 +45,7 @@ export default function ScanPage() {
       if (side === "front") setFront(photo); else setBack(photo);
       if (side === "back" && source === "Camera") await recognize(photo, true);
     } catch (cause) {
-      if (advancesAfterNativeConfirmation) setStage("front");
+      if (isFrontCamera) setStage("front");
       setError(cause instanceof Error ? cause.message : "The photo could not be optimized.");
     }
     finally { setBusy(false); event.target.value = ""; }
@@ -74,7 +73,7 @@ export default function ScanPage() {
     setResult(null); setWarning([]); setStage(side); open(side, "Camera");
   }
 
-  const fileInput = (side: LabelSide, source: "Camera" | "Library") => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, source, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
+  const fileInput = (side: LabelSide, source: PhotoSource) => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, source, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
 
   return <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
