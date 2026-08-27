@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
+import { AIService } from "@/server/ai/ai-service";
+import { OpenAIProvider } from "@/server/ai/providers/openai-provider";
+import { enrichWineProfile } from "@/server/wine-profile-enrichment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +23,16 @@ export async function POST(request: Request) {
   try {
     const wine = await request.json() as Wine & { bottleCount?: number };
     const result = await storage.add(wine);
-    return NextResponse.json(result, { status: result.duplicate ? 200 : 201 });
+    const enriched = await enrichWineProfile(result.wine, profileGenerator(), storage);
+    return NextResponse.json({ ...result, wine: enriched }, { status: result.duplicate ? 200 : 201 });
   } catch (error) { return failure(error); }
+}
+
+function profileGenerator() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  return apiKey
+    ? new AIService(new OpenAIProvider(apiKey))
+    : { generateWineProfile: async () => { throw new Error("OPENAI_API_KEY is not configured"); } };
 }
 
 // Kept for clients that use PATCH /api/wines to add a bottle to a matching wine.

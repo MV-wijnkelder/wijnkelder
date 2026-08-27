@@ -1,6 +1,7 @@
 import { mapRecognitionToWine } from "@/lib/wine-recognition";
 import type { WineRecognition, WineRecognitionResult } from "@/lib/wine-recognition";
 import type { AIProvider, RecognitionImage } from "../ai-provider";
+import type { Wine, WineProfile } from "@/domain/wine";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const UNKNOWN = "Unknown";
@@ -44,6 +45,20 @@ const wineSchema = {
     "alcoholPercentage", "confidence", "labelsConsistent", "labelConflicts",
   ],
 } as const;
+
+const profileSchema = {
+  type: "object", additionalProperties: false,
+  properties: {
+    serving: { type: "object", additionalProperties: false, properties: { temperature: { type: ["string", "null"] }, decantAdvice: { type: ["string", "null"] } }, required: ["temperature", "decantAdvice"] },
+    drinking: { type: "object", additionalProperties: false, properties: { drinkFrom: { type: ["string", "null"] }, drinkUntil: { type: ["string", "null"] }, currentMaturity: { type: ["string", "null"], enum: ["young", "approaching peak", "ready", "mature", "past peak", null] } }, required: ["drinkFrom", "drinkUntil", "currentMaturity"] },
+    style: { type: "object", additionalProperties: false, properties: { body: intensity(), acidity: intensity(), tannin: intensity(), sweetness: intensity(), alcohol: intensity(), wineStyle: { type: ["string", "null"] } }, required: ["body", "acidity", "tannin", "sweetness", "alcohol", "wineStyle"] },
+    foodPairings: { type: "array", items: { type: "string" }, maxItems: 6 },
+    summary: { type: ["string", "null"] },
+  },
+  required: ["serving", "drinking", "style", "foodPairings", "summary"],
+} as const;
+
+function intensity() { return { type: ["string", "null"], enum: ["low", "medium", "high", null] } as const; }
 
 export class OpenAIProvider implements AIProvider {
   constructor(private readonly apiKey: string) {}
@@ -94,16 +109,40 @@ export class OpenAIProvider implements AIProvider {
 
     return parseOutput(await response.json());
   }
+
+  async generateWineProfile(wine: Wine): Promise<WineProfile> {
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Return null only where the supplied identity is genuinely insufficient; do not invent awards, scores, tasting events, or producer claims.` }] }],
+        text: { format: { type: "json_schema", name: "wine_profile", strict: true, schema: profileSchema } },
+      }),
+    });
+    if (!response.ok) {
+      console.error("OpenAI profile generation failed", response.status, await response.text());
+      if (response.status === 401 || response.status === 403) throw new OpenAIProviderError("AUTHENTICATION_FAILED");
+      if (response.status === 429) throw new OpenAIProviderError("RATE_LIMITED");
+      throw new OpenAIProviderError("UPSTREAM_UNAVAILABLE");
+    }
+    return parseProfileOutput(await response.json());
+  }
+}
+
+function outputText(payload: unknown): string | undefined {
+  const response = payload as { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> };
+  return response.output_text ?? response.output?.flatMap((item) => item.content ?? []).find((content) => content.type === "output_text")?.text;
+}
+
+function parseProfileOutput(payload: unknown): WineProfile {
+  const text = outputText(payload);
+  if (!text) throw new OpenAIProviderError("INVALID_RESPONSE");
+  try { return JSON.parse(text) as WineProfile; } catch { throw new OpenAIProviderError("INVALID_RESPONSE"); }
 }
 
 function parseOutput(payload: unknown): WineRecognitionResult {
-  const response = payload as {
-    output_text?: string;
-    output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
-  };
-  const text = response.output_text ?? response.output
-    ?.flatMap((item) => item.content ?? [])
-    .find((content) => content.type === "output_text")?.text;
+  const text = outputText(payload);
 
   if (!text) throw new OpenAIProviderError("INVALID_RESPONSE");
 
