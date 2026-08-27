@@ -68,7 +68,7 @@ export default function CellarPage() {
     } catch (editError) { setError(message(editError)); }
   }
 
-  return <main className="app-shell relative min-h-screen overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
+  return <main className="app-shell relative min-h-screen overflow-x-clip px-5 py-6 sm:px-6 sm:py-10">
     <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-3xl">
       <Link className="back-link" href="/" onClick={() => sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify(emptyCellarNavigationState))}><ChevronLeftIcon className="size-5" /> Home</Link>
