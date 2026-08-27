@@ -49,6 +49,12 @@ const wineSchema = {
 const profileSchema = {
   type: "object", additionalProperties: false,
   properties: {
+    tasting: { type: "object", additionalProperties: false, properties: {
+      appearance: { type: ["string", "null"] },
+      aromas: { type: "array", items: { type: "string" }, maxItems: 6 },
+      flavors: { type: "array", items: { type: "string" }, maxItems: 6 },
+      finish: { type: ["string", "null"] },
+    }, required: ["appearance", "aromas", "flavors", "finish"] },
     serving: { type: "object", additionalProperties: false, properties: { temperature: { type: ["string", "null"] }, decantAdvice: { type: ["string", "null"] } }, required: ["temperature", "decantAdvice"] },
     drinking: { type: "object", additionalProperties: false, properties: { drinkFrom: { type: ["string", "null"] }, drinkUntil: { type: ["string", "null"] }, currentMaturity: { type: ["string", "null"], enum: ["young", "approaching peak", "ready", "mature", "past peak", null] } }, required: ["drinkFrom", "drinkUntil", "currentMaturity"] },
     style: { type: "object", additionalProperties: false, properties: { body: intensity(), acidity: intensity(), tannin: intensity(), sweetness: intensity(), alcohol: intensity(), wineStyle: { type: ["string", "null"] } }, required: ["body", "acidity", "tannin", "sweetness", "alcohol", "wineStyle"] },
@@ -57,7 +63,7 @@ const profileSchema = {
     wineryInformation: { type: ["string", "null"] },
     vintageRemarks: { type: ["string", "null"] },
   },
-  required: ["serving", "drinking", "style", "foodPairings", "summary", "wineryInformation", "vintageRemarks"],
+  required: ["tasting", "serving", "drinking", "style", "foodPairings", "summary", "wineryInformation", "vintageRemarks"],
 } as const;
 
 function intensity() { return { type: ["string", "null"], enum: ["low", "medium", "high", null] } as const; }
@@ -118,7 +124,7 @@ export class OpenAIProvider implements AIProvider {
       headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Include concise winery information only when reliably known and vintage remarks only when that vintage materially affects the advice. Otherwise return null for those fields. Do not invent awards, scores, tasting events, or producer claims.` }] }],
+        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Provide a structured sensory profile with a brief appearance, up to six specific aromas, up to six specific flavors, and a brief finish. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Include concise winery information only when reliably known and vintage remarks only when that vintage materially affects the advice. Use null or an empty array whenever a detail is not reliably known. Do not invent awards, scores, tasting events, or producer claims.` }] }],
         text: { format: { type: "json_schema", name: "wine_profile", strict: true, schema: profileSchema } },
       }),
     });

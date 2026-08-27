@@ -165,7 +165,26 @@ function normalizeProfile(value: WineProfile | null | undefined): WineProfile {
   const defaults = emptyWineProfile();
   if (!value || typeof value !== "object") return defaults;
   const summary = typeof value.summary === "string" ? value.summary.trim().split(/\s+/).slice(0, 80).join(" ") || null : null;
-  return { ...defaults, ...value, serving: { ...defaults.serving, ...value.serving }, drinking: { ...defaults.drinking, ...value.drinking }, style: { ...defaults.style, ...value.style }, foodPairings: Array.isArray(value.foodPairings) ? value.foodPairings : [], summary };
+  return {
+    ...defaults,
+    ...value,
+    tasting: {
+      ...defaults.tasting,
+      ...value.tasting,
+      aromas: cleanStringList(value.tasting?.aromas),
+      flavors: cleanStringList(value.tasting?.flavors),
+    },
+    serving: { ...defaults.serving, ...value.serving },
+    drinking: { ...defaults.drinking, ...value.drinking },
+    style: { ...defaults.style, ...value.style },
+    foodPairings: cleanStringList(value.foodPairings),
+    summary,
+  };
+}
+
+function cleanStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean))];
 }
 
 function normalizeCellar(value: CellarDetails | null | undefined): CellarDetails {

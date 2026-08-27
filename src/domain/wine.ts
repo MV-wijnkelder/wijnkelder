@@ -56,6 +56,13 @@ export type Maturity = "young" | "approaching peak" | "ready" | "mature" | "past
 export type Intensity = "low" | "medium" | "high";
 
 export interface WineProfile {
+  /** Structured sensory guidance; these are sommelier suggestions, not user tasting notes. */
+  tasting: {
+    appearance: string | null;
+    aromas: string[];
+    flavors: string[];
+    finish: string | null;
+  };
   serving: { temperature: string | null; decantAdvice: string | null };
   drinking: { drinkFrom: string | null; drinkUntil: string | null; currentMaturity: Maturity | null };
   style: {
@@ -79,6 +86,7 @@ export function emptyWineProfileMetadata(): WineProfileMetadata {
 
 export function emptyWineProfile(): WineProfile {
   return {
+    tasting: { appearance: null, aromas: [], flavors: [], finish: null },
     serving: { temperature: null, decantAdvice: null },
     drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },

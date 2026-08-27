@@ -4,7 +4,7 @@ import { emptyCellarDetails, emptyWineProfile, emptyWineProfileMetadata } from "
 import { enrichWineProfile, hasWineProfile, refreshWineProfile } from "../src/server/wine-profile-enrichment.ts";
 
 const wine = { id: 7, producer: "Estate", wineName: "Reserve", vintage: "2020", country: "France", region: "Bordeaux", appellation: null, grapeVarieties: ["Merlot"], wineColor: "red", bottleSize: "750 ml", alcoholPercentage: 13, confidence: 90, profile: emptyWineProfile(), profileMetadata: emptyWineProfileMetadata(), cellar: emptyCellarDetails(), bottleCount: 1, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
-const profile = { serving: { temperature: "16–18°C", decantAdvice: "Decant for 30 minutes" }, drinking: { drinkFrom: "2024", drinkUntil: "2030", currentMaturity: "ready" }, style: { body: "medium", acidity: "medium", tannin: "medium", sweetness: "low", alcohol: "medium", wineStyle: "classic dry red" }, foodPairings: ["roast lamb"], summary: "A structured Bordeaux red." };
+const profile = { ...emptyWineProfile(), tasting: { appearance: "Ruby", aromas: ["blackcurrant", "cedar"], flavors: ["plum"], finish: "Long and savory" }, serving: { temperature: "16–18°C", decantAdvice: "Decant for 30 minutes" }, drinking: { drinkFrom: "2024", drinkUntil: "2030", currentMaturity: "ready" }, style: { body: "medium", acidity: "medium", tannin: "medium", sweetness: "low", alcohol: "medium", wineStyle: "classic dry red" }, foodPairings: ["roast lamb"], summary: "A structured Bordeaux red." };
 
 test("an empty profile is generated, persisted, and returned", async () => {
   let generated = 0, persisted = 0;
@@ -16,6 +16,12 @@ test("a populated profile is never regenerated", async () => {
   const populated = { ...wine, profile };
   const result = await enrichWineProfile(populated, { async generateWineProfile() { throw new Error("must not run"); } }, { async updateProfile() { throw new Error("must not save"); } });
   assert.equal(result, populated);
+});
+
+test("structured sensory guidance makes a profile populated", () => {
+  const sensoryOnly = emptyWineProfile();
+  sensoryOnly.tasting.aromas = ["violet"];
+  assert.equal(hasWineProfile(sensoryOnly), true);
 });
 
 test("a temporary enrichment failure leaves the wine usable and retryable", async () => {
