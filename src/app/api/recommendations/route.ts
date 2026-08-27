@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { RecommendationService } from "@/server/recommendations/recommendation-service";
+import { idealWineStyles, RecommendationService } from "@/server/recommendations/recommendation-service";
 import type { RecommendationRequest } from "@/server/recommendations/recommendation-service";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 
@@ -12,7 +12,14 @@ export async function POST(request: Request) {
   try {
     const input = await request.json() as RecommendationRequest;
     if (typeof input.food !== "string" || !input.food.trim() || (input.occasion !== undefined && typeof input.occasion !== "string")) return NextResponse.json({ error: "Tell us what you are eating." }, { status: 400 });
-    return NextResponse.json({ recommendations: recommendations.recommend(await storage.list(), input) });
+    const matches = recommendations.recommend(await storage.list(), input);
+    return NextResponse.json({
+      recommendations: matches,
+      noSuitableMatch: matches.length === 0 ? {
+        message: `Your current cellar does not contain a wine I would recommend for ${input.food.trim()}.`,
+        idealStyles: idealWineStyles(input.food),
+      } : null,
+    });
   } catch (error) {
     console.error("Recommendation operation failed", error);
     return NextResponse.json({ error: "Recommendations are temporarily unavailable." }, { status: 500 });

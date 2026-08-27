@@ -14,6 +14,7 @@ export interface WineRecommendation {
   headline: string;
   bullets: [string, string, string];
   why: string;
+  status: "Excellent Match" | "Good Match";
 }
 
 type Level = "low" | "medium" | "high";
@@ -32,10 +33,14 @@ export class RecommendationService {
       .map((wine) => {
         const parts = scoreWine(wine, meal, request);
         const score = Math.max(0, Math.min(100, Math.round(Object.values(parts).reduce((sum, value) => sum + value, 0))));
-        return present(wine, meal, parts, score);
+        return { recommendation: present(wine, meal, parts, score), parts };
       })
-      .sort((a, b) => b.score - a.score || b.wine.confidence - a.wine.confidence || a.wine.id - b.wine.id)
-      .slice(0, 3);
+      // A bottle has to clear an absolute pairing bar. Ranking alone must never
+      // turn the least unsuitable bottle in a cellar into a recommendation.
+      .filter(({ recommendation, parts }) => recommendation.score >= 28 && !isUnsuitable(recommendation.wine, meal) && (parts.direct + parts.food >= 28 || parts.direct + parts.food + parts.style + parts.structure >= 30))
+      .sort((a, b) => b.recommendation.score - a.recommendation.score || b.recommendation.wine.confidence - a.recommendation.wine.confidence || a.recommendation.wine.id - b.recommendation.wine.id)
+      .slice(0, 3)
+      .map(({ recommendation }) => recommendation);
   }
 }
 
@@ -61,8 +66,8 @@ function scoreWine(wine: StoredWine, meal: Meal, request: RecommendationRequest)
 function styleScore(wine: StoredWine, meal: Meal): number {
   const styleWords = words(`${wine.wineColor ?? ""} ${wine.profile.style.wineStyle ?? ""} ${wine.grapeVarieties.join(" ")}`);
   let score = 0;
-  if (meal.families.has("red-meat")) score += hasAny(styleWords, ["red", "cabernet", "syrah", "shiraz", "malbec", "nebbiolo"]) ? 16 : -8;
-  if (meal.families.has("delicate-fish") || meal.families.has("sushi")) score += hasAny(styleWords, ["white", "sparkling", "riesling", "sauvignon", "chablis", "champagne"]) ? 16 : -7;
+  if (meal.families.has("red-meat")) score += hasAny(styleWords, ["red", "cabernet", "syrah", "shiraz", "malbec", "nebbiolo"]) ? 16 : hasAny(styleWords, ["white", "sparkling", "delicate"]) ? -8 : 0;
+  if (meal.families.has("delicate-fish") || meal.families.has("sushi")) score += hasAny(styleWords, ["white", "sparkling", "riesling", "sauvignon", "chablis", "champagne"]) ? 16 : hasAny(styleWords, ["red", "bold", "full-bodied"]) ? -7 : 0;
   if (meal.families.has("oily-fish")) score += hasAny(styleWords, ["white", "rosé", "rose", "pinot", "chardonnay", "riesling"]) ? 12 : 0;
   if (meal.families.has("mushroom")) score += hasAny(styleWords, ["pinot", "nebbiolo", "chardonnay", "earthy"]) ? 14 : 0;
   if (meal.families.has("cheese")) score += hasAny(styleWords, ["port", "sweet", "riesling", "sparkling", "full-bodied"]) ? 12 : 0;
@@ -106,7 +111,9 @@ function present(wine: StoredWine, meal: Meal, parts: ScoreParts, score: number)
   const drinking = drinkingText(profile);
   const mealLabel = meal.text;
   const pairing = matchedPairing ? `Profile pairing fits ${mealLabel}` : `Style considered for ${mealLabel}`;
-  const headline = matchedPairing ? "A natural pairing" : parts.maturity >= 7 ? "Well timed for the meal" : "The best available fit";
+  const mealEvidence = parts.direct + parts.food + parts.style + parts.structure;
+  const status = score >= 62 && mealEvidence >= 48 ? "Excellent Match" : "Good Match";
+  const headline = status;
   const evidence: string[] = [];
   if (parts.direct > 0) evidence.push(`its Wine Profile explicitly pairs with ${matchedFoodTerms(meal, profile)}`);
   else if (parts.food > 0) evidence.push("its listed pairings are in the same food family");
@@ -115,9 +122,38 @@ function present(wine: StoredWine, meal: Meal, parts: ScoreParts, score: number)
   if (parts.serving > 0) evidence.push("its serving profile fits the added meal detail");
   if (!evidence.length) evidence.push("its maturity and style make it the closest available option");
   const name = wine.wineName ?? "This wine";
-  const why = `${name} ranks for ${mealLabel} because ${evidence.slice(0, 3).join(", and ")}. ${drinking}. ${availabilityText(wine.bottleCount)}`;
+  const why = `${name} suits ${mealLabel} because ${evidence.slice(0, 3).join(", and ")}. ${drinking}.`;
   const reason = matchedPairing ? `Strong match: ${evidence[0]}.` : `${capitalize(evidence[0])}.`;
-  return { wine, score, reason, headline, bullets: [pairing, drinking, style], why };
+  return { wine, score, reason, headline, bullets: [pairing, drinking, style], why, status };
+}
+
+function isUnsuitable(wine: StoredWine, meal: Meal): boolean {
+  const style = words(`${wine.wineColor ?? ""} ${wine.profile.style.wineStyle ?? ""} ${wine.grapeVarieties.join(" ")}`);
+  const delicate = meal.families.has("sushi") || meal.families.has("delicate-fish");
+  if (delicate && (wine.profile.style.tannin === "high" || hasAny(style, ["barolo", "nebbiolo", "cabernet", "malbec", "shiraz", "syrah"]))) return true;
+  if (meal.cues.has("spicy") && wine.profile.style.tannin === "high") return true;
+  if (wine.profile.drinking.currentMaturity === "past peak") return true;
+  return outsideDrinkingWindow(wine.profile);
+}
+
+function outsideDrinkingWindow(profile: WineProfile): boolean {
+  const year = new Date().getUTCFullYear();
+  const from = Number.parseInt(profile.drinking.drinkFrom ?? "", 10);
+  const until = Number.parseInt(profile.drinking.drinkUntil ?? "", 10);
+  return (Number.isFinite(from) && year < from) || (Number.isFinite(until) && year > until);
+}
+
+export function idealWineStyles(food: string): string[] {
+  const families = understandMeal(food).families;
+  if (families.has("sushi")) return ["Chablis", "Dry Riesling", "Champagne"];
+  if (families.has("delicate-fish")) return ["Chablis", "Sauvignon Blanc", "Dry Riesling"];
+  if (families.has("oily-fish")) return ["White Burgundy", "Dry Riesling", "Pinot Noir"];
+  if (families.has("red-meat")) return ["Cabernet Sauvignon", "Syrah", "Malbec"];
+  if (families.has("poultry")) return ["Chardonnay", "Pinot Noir", "White Burgundy"];
+  if (families.has("mushroom")) return ["Pinot Noir", "Nebbiolo", "White Burgundy"];
+  if (families.has("tomato")) return ["Chianti", "Barbera", "Sangiovese"];
+  if (families.has("cheese")) return ["Tawny Port", "Mature Champagne", "Off-dry Riesling"];
+  return ["A wine with matching weight", "A fresh, food-friendly wine", "A mature wine in its drinking window"];
 }
 
 function understandMeal(food: string, occasion?: string): Meal {
@@ -152,7 +188,6 @@ function drinkingText(profile: WineProfile): string { const maturity = profile.d
 function describeStyle(profile: WineProfile): string { const parts = [profile.style.body && `${capitalize(profile.style.body)}-bodied`, profile.style.acidity && `${profile.style.acidity} acidity`, profile.style.tannin && `${profile.style.tannin} tannin`, profile.style.wineStyle].filter(Boolean); return parts.length ? parts.join(" with ") : "Style details are not yet stored"; }
 function structureEvidence(profile: WineProfile, meal: Meal): string { const facts = [profile.style.body && `${profile.style.body} body`, profile.style.acidity && `${profile.style.acidity} acidity`, meal.families.has("red-meat") && profile.style.tannin && `${profile.style.tannin} tannin`].filter(Boolean); return facts.join(" and ") || "stored structure"; }
 function matchedFoodTerms(meal: Meal, profile: WineProfile): string { const matches = [...meal.words].filter((word) => words(profile.foodPairings.join(" ")).has(word)); return matches.slice(0, 2).join(" and ") || "the dish"; }
-function availabilityText(count: number): string { return count === 1 ? "One bottle is currently available in the cellar." : `${count} bottles are currently available in the cellar.`; }
 function level(value: Level): number { return value === "low" ? 0 : value === "medium" ? 1 : 2; }
 function capitalize(value: string): string { return value.charAt(0).toUpperCase() + value.slice(1); }
 const STOP_WORDS = new Set(["a", "an", "and", "for", "in", "of", "on", "the", "to", "with"]);

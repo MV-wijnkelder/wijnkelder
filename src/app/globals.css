@@ -247,6 +247,14 @@ a { color: inherit; text-decoration: none; }
 .recommendation-card summary { color: var(--wine); font-size: .84rem; font-weight: 700; cursor: pointer; }
 .recommendation-card details p { margin: .8rem 0 .2rem; color: var(--muted); font-size: .82rem; line-height: 1.65; }
 .recommendation-card > .action { width: 100%; min-height: 3.2rem; }
+.match-status { margin: 1rem 0 .35rem; font-size: .78rem; font-weight: 800; letter-spacing: .04em; }
+.match-status-excellent { color: #287146; }
+.match-status-good { color: #987018; }
+.match-status-none { color: var(--muted); }
+.no-match { margin-top: 1.4rem; border: 1px solid var(--line); border-radius: 1.55rem; background: var(--glass); padding: 1.25rem; }
+.no-match h2 { margin: .5rem 0 1rem; font-size: 1.15rem; line-height: 1.45; }
+.no-match > p:not(.match-status) { margin-bottom: .4rem; color: var(--muted); font-size: .82rem; font-weight: 700; }
+.no-match ul { margin: 0; padding-left: 1.2rem; color: var(--muted); line-height: 1.7; }
 .precision-panel { border: 1px solid var(--line); border-radius: 1.4rem; padding: 1.2rem; text-align: center; }
 .precision-panel h2 { margin: 0; font-size: 1.05rem; }
 .precision-panel form { display: grid; gap: .7rem; margin-top: 1rem; text-align: left; }
