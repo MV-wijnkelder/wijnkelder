@@ -3,6 +3,7 @@ import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 import { enrichWineProfile } from "@/server/wine-profile-enrichment";
 import { wineProfileGenerator } from "@/server/wine-profile-generator";
+import { populateMarketValue } from "@/server/market-value/automatic-market-value";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +12,11 @@ const storage = new NeonWineStorage();
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    const wines = await storage.list(url.searchParams.get("q") ?? url.searchParams.get("search") ?? "");
+    const valued = [];
+    for (const wine of wines) valued.push(await populateMarketValue(wine, storage));
     return NextResponse.json(
-      await storage.list(url.searchParams.get("q") ?? url.searchParams.get("search") ?? ""),
+      valued,
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) { return failure(error); }
@@ -23,7 +27,8 @@ export async function POST(request: Request) {
     const wine = await request.json() as Wine & { bottleCount?: number };
     const result = await storage.add(wine);
     const enriched = await enrichWineProfile(result.wine, wineProfileGenerator(), storage);
-    return NextResponse.json({ ...result, wine: enriched }, { status: result.duplicate ? 200 : 201 });
+    const valued = await populateMarketValue(enriched, storage);
+    return NextResponse.json({ ...result, wine: valued }, { status: result.duplicate ? 200 : 201 });
   } catch (error) { return failure(error); }
 }
 

@@ -1,4 +1,4 @@
-import { emptyCellarDetails, emptyWineProfile, emptyWineProfileMetadata } from "../domain/wine.ts";
+import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "../domain/wine.ts";
 import type { Wine } from "@/domain/wine";
 
 /** Raw, provider-independent data returned by wine-label recognition. */
@@ -54,6 +54,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
     confidence: recognition.confidence,
     marketValue: null,
     marketValueCurrency: null,
+    marketValueMetadata: emptyMarketValueMetadata(),
     profile: emptyWineProfile(),
     profileMetadata: emptyWineProfileMetadata(),
     cellar: emptyCellarDetails(),

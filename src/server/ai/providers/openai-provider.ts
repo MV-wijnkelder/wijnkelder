@@ -81,10 +81,8 @@ const enrichmentSchema = {
   type: "object", additionalProperties: false,
   properties: {
     profile: profileSchema,
-    marketValue: { type: ["number", "null"], exclusiveMinimum: 0 },
-    marketValueCurrency: { type: ["string", "null"], enum: ["EUR", null] },
   },
-  required: ["profile", "marketValue", "marketValueCurrency"],
+  required: ["profile"],
 } as const;
 
 function intensity() { return { type: ["string", "null"], enum: ["low", "medium", "high", null] } as const; }
@@ -145,7 +143,7 @@ export class OpenAIProvider implements AIProvider {
       headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Return the profile plus the current estimated EUR market value of one bottle only when reliably available; otherwise return null for both marketValue and marketValueCurrency. Never derive it from purchase price and do not invent a value. Provide structured recommendation facts: occasions, excellent/good/avoid pairings, wine style, ageing potential, drinking stage, and serving personality. Firmina must include Aperitif as an occasion and Fresh as its wine style. Also provide a structured sensory profile with a brief appearance, up to six specific aromas, up to six specific flavors, and a brief finish. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Include concise winery information only when reliably known and vintage remarks only when that vintage materially affects the advice. Use null or an empty array whenever a detail is not reliably known. Do not invent awards, scores, tasting events, or producer claims.` }] }],
+        input: [{ role: "user", content: [{ type: "input_text", text: `Create a concise, useful sommelier profile for this identified wine: ${JSON.stringify({ producer: wine.producer, wineName: wine.wineName, vintage: wine.vintage, country: wine.country, region: wine.region, appellation: wine.appellation, grapeVarieties: wine.grapeVarieties, wineColor: wine.wineColor, alcoholPercentage: wine.alcoholPercentage })}. Provide structured recommendation facts: occasions, excellent/good/avoid pairings, wine style, ageing potential, drinking stage, and serving personality. Firmina must include Aperitif as an occasion and Fresh as its wine style. Also provide a structured sensory profile with a brief appearance, up to six specific aromas, up to six specific flavors, and a brief finish. Use practical serving temperature and decanting advice, a vintage-aware drinking window and maturity, style levels, specific food pairings, and a factual summary of at most 80 words. Include concise winery information only when reliably known and vintage remarks only when that vintage materially affects the advice. Use null or an empty array whenever a detail is not reliably known. Do not invent awards, scores, tasting events, or producer claims.` }] }],
         text: { format: { type: "json_schema", name: "wine_enrichment", strict: true, schema: enrichmentSchema } },
       }),
     });

@@ -1,5 +1,5 @@
 import type { WineRecognitionResult } from "@/lib/wine-recognition";
-import { emptyCellarDetails, emptyWineProfile, emptyWineProfileMetadata } from "../domain/wine.ts";
+import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "../domain/wine.ts";
 
 const RECOGNITION_ENDPOINT = "/api/recognize-wine";
 
@@ -156,6 +156,7 @@ function normalizeRecognitionResult(value: unknown): WineRecognitionResult {
       confidence: wine.confidence,
       marketValue: null,
       marketValueCurrency: null,
+      marketValueMetadata: emptyMarketValueMetadata(),
       profile: emptyWineProfile(),
       profileMetadata: emptyWineProfileMetadata(),
       cellar: emptyCellarDetails(),
