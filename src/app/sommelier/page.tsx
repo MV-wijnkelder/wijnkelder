@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { CameraIcon, ChevronLeftIcon, PhotoIcon, SparklesIcon } from "@/components/icons";
 import { compressImage } from "@/lib/image-compression";
+import { clearRememberedImageSets, loadRememberedImageSets, saveRememberedImageSets, type RememberedImageSet } from "@/lib/sommelier-image-memory";
+import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "@/lib/sommelier-request";
 import type { SommelierMessage } from "@/server/sommelier/sommelier";
 
 const suggestions = [
@@ -23,16 +25,19 @@ export default function SommelierPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<AttachedImage[]>([]);
+  const [imageSets, setImageSets] = useState<RememberedImageSet[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
         const saved = localStorage.getItem(HISTORY_KEY);
         if (saved) setMessages(JSON.parse(saved) as SommelierMessage[]);
+        void loadRememberedImageSets().then(setImageSets).catch(() => setImageSets([]));
       } catch { localStorage.removeItem(HISTORY_KEY); }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -51,19 +56,30 @@ export default function SommelierPage() {
     if ((!question && !images.length) || loading) return;
     const prompt = question || "Please analyse these images and advise me.";
     const nextMessages: SommelierMessage[] = [...messages, { role: "user", content: prompt }];
+    const request = new AbortController();
+    requestRef.current = request;
     setMessages(nextMessages); setInput(""); setLoading(true); setError(null);
     try {
-      const form = new FormData();
-      form.set("messages", JSON.stringify(nextMessages));
-      images.forEach(({ file }) => form.append("images", file));
-      const response = await fetch("/api/sommelier", { method: "POST", body: form });
-      const data = await response.json() as { reply?: string; error?: string };
-      if (!response.ok || !data.reply) throw new Error(data.error || "Your sommelier is temporarily unavailable.");
-      setMessages((current) => [...current, { role: "assistant", content: data.reply! }]);
+      const newSet = images.length ? { id: crypto.randomUUID(), label: `Image Set ${imageSets.length + 1}`, files: images.map(({ file }) => file) } : null;
+      const rememberedSets = [...imageSets, ...(newSet ? [newSet] : [])].slice(-6);
+      while (rememberedSets.reduce((total, set) => total + set.files.length, 0) > 18) rememberedSets.shift();
+      const reply = await requestSommelier(() => {
+        const form = new FormData();
+        form.set("messages", JSON.stringify(nextMessages));
+        form.set("imageSets", JSON.stringify(rememberedSets.map((set) => ({ id: set.id, label: set.label, imageCount: set.files.length }))));
+        rememberedSets.forEach((set) => set.files.forEach((file) => form.append("images", file)));
+        return form;
+      }, fetch, request.signal);
+      if (request.signal.aborted) return;
+      setMessages((current) => [...current, { role: "assistant", content: reply }]);
+      if (newSet) { setImageSets(rememberedSets); void saveRememberedImageSets(rememberedSets).catch(() => undefined); }
       images.forEach(({ url }) => URL.revokeObjectURL(url)); setImages([]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Your sommelier is temporarily unavailable.");
-    } finally { setLoading(false); }
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+      setError(cause instanceof Error ? cause.message : FRIENDLY_SOMMELIER_ERROR);
+    } finally {
+      if (requestRef.current === request) { requestRef.current = null; setLoading(false); }
+    }
   }
 
   async function attach(event: ChangeEvent<HTMLInputElement>) {
@@ -81,13 +97,21 @@ export default function SommelierPage() {
     setImages((current) => { URL.revokeObjectURL(current[index].url); return current.filter((_, itemIndex) => itemIndex !== index); });
   }
 
+  function newConversation() {
+    requestRef.current?.abort(); requestRef.current = null;
+    images.forEach(({ url }) => URL.revokeObjectURL(url));
+    setMessages([]); setImages([]); setImageSets([]); setInput(""); setError(null); setLoading(false);
+    localStorage.removeItem(HISTORY_KEY);
+    void clearRememberedImageSets().catch(() => undefined);
+  }
+
   return <main className="app-shell sommelier-shell relative h-dvh overflow-hidden">
     <div aria-hidden="true" className="ambient ambient-top" />
     <section className="sommelier-page page-enter relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
       <header className="sommelier-header">
         <Link className="back-link" href="/"><ChevronLeftIcon className="size-5" /> Home</Link>
         <div><span className="sommelier-mark"><SparklesIcon className="size-4" /></span><h1>🍷 Your Sommelier</h1><p>Ask anything about wine.</p></div>
-        <span aria-hidden="true" className="header-spacer" />
+        <button className="sommelier-new-chat" type="button" onClick={newConversation}>New chat</button>
       </header>
 
       <div className="sommelier-conversation" aria-live="polite">

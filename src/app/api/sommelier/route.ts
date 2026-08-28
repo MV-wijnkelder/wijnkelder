@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SommelierImageContext, SommelierRequest } from "@/server/sommelier/sommelier";
-import { isValidSommelierMessage, MAX_SOMMELIER_IMAGES, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "@/server/sommelier/sommelier";
+import { isValidSommelierMessage, MAX_SOMMELIER_CONTEXT_IMAGES, MAX_SOMMELIER_IMAGE_SETS, MAX_SOMMELIER_IMAGES, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "@/server/sommelier/sommelier";
 import { answerSommelier } from "@/server/sommelier/sommelier-service";
 import { OpenAISommelierModel } from "@/server/sommelier/openai-sommelier-model";
 import { OpenAILiveIntelligenceSkill } from "@/server/sommelier/live-intelligence-skill";
@@ -34,9 +34,12 @@ async function readRequest(request: Request): Promise<{ body: SommelierRequest; 
   const rawMessages = form.get("messages");
   if (typeof rawMessages !== "string") throw new Error("Messages are missing");
   const files = form.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
-  if (files.length > MAX_SOMMELIER_IMAGES || files.some((file) => !IMAGE_TYPES.has(file.type) || file.size > MAX_IMAGE_BYTES)) throw new Error("Unsupported image upload");
+  const rawImageSets = form.get("imageSets");
+  const imageSets = typeof rawImageSets === "string" ? JSON.parse(rawImageSets) as Array<{ id: string; label: string; imageCount: number }> : [];
+  if (files.length > MAX_SOMMELIER_CONTEXT_IMAGES || imageSets.length > MAX_SOMMELIER_IMAGE_SETS || imageSets.some((set) => !set.id || !set.label || set.imageCount < 1 || set.imageCount > MAX_SOMMELIER_IMAGES) || imageSets.reduce((total, set) => total + set.imageCount, 0) !== files.length || files.some((file) => !IMAGE_TYPES.has(file.type) || file.size > MAX_IMAGE_BYTES)) throw new Error("Unsupported image upload");
+  let fileIndex = 0;
   return {
     body: { messages: JSON.parse(rawMessages) as SommelierRequest["messages"], context: { cellarEnabled: true } },
-    images: await Promise.all(files.map(async (file) => ({ mediaType: file.type as SommelierImageContext["mediaType"], bytes: new Uint8Array(await file.arrayBuffer()) }))),
+    images: (await Promise.all(imageSets.flatMap((set) => files.slice(fileIndex, fileIndex += set.imageCount).map(async (file) => ({ setId: set.id, setLabel: set.label, mediaType: file.type as SommelierImageContext["mediaType"], bytes: new Uint8Array(await file.arrayBuffer()) }))))),
   };
 }

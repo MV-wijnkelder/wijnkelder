@@ -22,9 +22,14 @@ export class OpenAISommelierModel implements SommelierModel {
     const messages: unknown[] = [...input.messages];
     if (input.images?.length) {
       const latest = input.messages.at(-1)!;
+      const imageSets = input.images.reduce((sets, image) => sets.set(image.setId, [...(sets.get(image.setId) ?? []), image]), new Map<string, SommelierImageContext[]>());
       messages[messages.length - 1] = { role: "user", content: [
-        { type: "input_text", text: latest.content },
-        ...input.images.map((image) => ({ type: "input_image", image_url: `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}` })),
+        { type: "input_text", text: `Remembered image context from this conversation follows.\n${[...imageSets.values()].map((images) => `${images[0].setLabel} (${images.length} image${images.length === 1 ? "" : "s"})`).join("\n")}` },
+        ...[...imageSets.values()].flatMap((images) => [
+          { type: "input_text", text: `${images[0].setLabel}:` },
+          ...images.map((image) => ({ type: "input_image", image_url: `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}` })),
+        ]),
+        { type: "input_text", text: `Latest question: ${latest.content}` },
       ] };
     }
     return this.request({ model: this.model, instructions: input.instructions, input: input.context ? [{ role: "developer", content: input.context }, ...messages] : messages });
