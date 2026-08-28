@@ -573,3 +573,105 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .sommelier-header .premium-subtitle { margin-top: .2rem; font-size: .7rem; }
 .sommelier-header .back-button, .sommelier-header .sommelier-new-chat { min-height: 2.75rem; padding-inline: .7rem; }
 @media (max-width: 420px) { .sommelier-header { gap: .4rem; }.sommelier-header .premium-header h1 { font-size: 1rem; }.sommelier-header .premium-subtitle { display: none; }.sommelier-header .back-button,.sommelier-header .sommelier-new-chat { font-size: .72rem; } }
+
+/* Sprint 11D: canonical premium design system. These tokens and shared primitives
+   are the single visual contract for every screen and state. */
+:root {
+  --canvas: #130f10;
+  --ink: #f4ecdc;
+  --muted: #b9aea2;
+  --wine: #6f3040;
+  --wine-deep: #391820;
+  --gold: #c6a15d;
+  --gold-soft: #e2c98e;
+  --oak: #45372e;
+  --glass: rgb(35 29 28 / 82%);
+  --glass-strong: rgb(43 35 33 / 94%);
+  --line: rgb(210 174 105 / 24%);
+  --field: rgb(248 231 199 / 7%);
+  --premium-content: 48rem;
+  --premium-radius: 1.5rem;
+  --premium-control-height: 3.5rem;
+  --premium-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 28%), inset 0 1px rgb(255 255 255 / 7%);
+  --premium-transition: 180ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Content is intentionally visible in its final state on the first paint. */
+.page-enter, .home-content, .label-empty-card, .label-add-card,
+.label-preview-card, .success-message, .success-toast { animation: none; }
+
+.premium-page { min-height: 100dvh; padding: max(1.25rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom)); }
+.premium-page .page-enter, .home-content { width: min(100%, var(--premium-content)); margin-inline: auto; }
+.home-content { width: min(100%, 68rem); }
+
+.premium-page .premium-header { margin: 2rem auto 1.75rem; }
+.premium-page .premium-header h1 { font-size: clamp(2.25rem, 9vw, 3.75rem); line-height: 1.04; }
+.premium-page .premium-subtitle { font-size: .94rem; }
+
+/* One button geometry, type treatment and interaction model. */
+.premium-page .premium-button,
+.premium-page .action {
+  min-height: var(--premium-control-height);
+  border-radius: 1rem;
+  padding: 0 1.2rem;
+  font: 680 .875rem/1 var(--font-system);
+  letter-spacing: .005em;
+  box-shadow: 0 .65rem 1.5rem rgb(0 0 0 / 20%), inset 0 1px rgb(255 255 255 / 10%);
+  transition: transform var(--premium-transition), border-color var(--premium-transition), background var(--premium-transition), box-shadow var(--premium-transition);
+}
+.action-primary {
+  border: 1px solid rgb(214 178 105 / 42%);
+  background: linear-gradient(180deg, #59473a, #392c26);
+  color: #fff8e9;
+}
+.action-primary:hover { border-color: rgb(226 197 139 / 65%); background: linear-gradient(180deg, #665142, #403129); box-shadow: 0 .9rem 2rem rgb(0 0 0 / 27%), inset 0 1px rgb(255 255 255 / 13%); }
+.action-secondary { border: 1px solid var(--line); background: var(--glass); color: var(--ink); }
+.action-secondary:hover { border-color: rgb(210 174 105 / 42%); background: var(--glass-strong); }
+.action-quiet { border: 1px solid transparent; background: transparent; color: var(--gold-soft); box-shadow: none !important; }
+.action-quiet:hover { border-color: var(--line); background: rgb(198 161 93 / 8%); }
+.action:hover { transform: translateY(-1px); }
+.action:active { transform: scale(.98); }
+.action:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 3px; }
+.action:disabled { opacity: .5; }
+
+/* Primary destinations use the same button primitive without inventing a second language. */
+.primary-action-card { min-height: 5.75rem !important; justify-content: flex-start !important; border-color: var(--line); background: linear-gradient(145deg, #4c3b32, #2e2422); text-align: left; }
+.primary-action-card > svg { flex: 0 0 auto; color: var(--gold-soft); }
+.primary-action-card .action-copy small { color: var(--muted); }
+.primary-action-card:hover { border-color: rgb(226 197 139 / 58%); background: linear-gradient(145deg, #594539, #352927); }
+
+/* Every surface shares the GlassCard visual recipe, including functional cards
+   whose semantic element must remain a form, dialog, or article. */
+.premium-page :is(.glass-card,.wine-card,.review-card,.recommendation-form,.recommendation-card,.profile-section,.label-empty-card,.label-add-card,.label-preview-card,.label-warning,.no-match,.precision-panel,.edit-dialog,.selection-dialog,.duplicate-dialog,.cellar-empty,.explore-actions) {
+  border: 1px solid var(--line);
+  border-radius: var(--premium-radius);
+  background: var(--glass);
+  box-shadow: var(--premium-shadow);
+  backdrop-filter: blur(22px) saturate(125%);
+  -webkit-backdrop-filter: blur(22px) saturate(125%);
+}
+
+/* Secondary and compact controls inherit the palette, radii and icon family. */
+.recommendation-examples button, .wine-card-actions > button, .count-actions button,
+.label-card-actions .premium-button, .sommelier-photo-actions button,
+.sommelier-composer form > button {
+  border: 1px solid var(--line); border-radius: .9rem; background: rgb(55 44 40 / 88%);
+  color: var(--ink); box-shadow: inset 0 1px rgb(255 255 255 / 7%);
+}
+.continue-link, .sommelier-new-chat { color: var(--gold-soft); }
+.wine-card-actions .delete-button, .sommelier-error { color: #d7a8a2; }
+.bottle-badge, .confidence { background: rgb(198 161 93 / 12%); color: var(--gold-soft); }
+.chat-message-user p { border-color: rgb(210 174 105 / 32%); background: linear-gradient(145deg, #5a3037, #402329); }
+.sommelier-avatar, .premium-page .premium-header .premium-mark, .brand-seal, .app-icon {
+  border-color: rgb(214 178 105 / 42%); background: linear-gradient(145deg, #4e312f, #281b1b); color: var(--gold-soft);
+}
+.error-message, .status-error, .sommelier-error { border-color: rgb(187 119 111 / 28%); background: rgb(69 35 37 / 88%); color: #e5bbb4; }
+.success-message, .status-success { border-color: rgb(157 177 125 / 28%); background: rgb(41 59 42 / 88%); color: #cbd9b5; }
+.dialog-backdrop { background: rgb(9 7 8 / 72%); backdrop-filter: blur(10px); }
+
+@media (min-width: 640px) {
+  .premium-page { padding-inline: 1.5rem; padding-top: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
