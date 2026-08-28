@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     const cellar = await storage.list();
     const available = cellar.filter((wine) => wine.bottleCount > 0);
     if (process.env.NODE_ENV === "development") console.debug("[recommendations] request", { intent: intent.kind, occasion: intent.kind === "recommendation" ? intent.occasion : null, cellarWinesLoaded: cellar.length, winesAfterFiltering: available.length });
+    if (intent.kind === "unknown") return NextResponse.json({ recommendations: [], noSuitableMatch: null, answer: "I couldn't recognise the dish. Could you tell me what you're planning to eat tonight?" });
     if (intent.kind !== "recommendation") return NextResponse.json({ recommendations: [], noSuitableMatch: null, answer: answerCellarQuestion(available, intent) });
     const structuredInput = { ...input, query, food: intent.occasion };
     const matches = recommendations.recommend(available, structuredInput);

@@ -4,7 +4,8 @@ import type { ComponentType, InputHTMLAttributes, ReactNode, SVGProps } from "re
 type Atmosphere = "home" | "cellar" | "scan" | "recommendation" | "sommelier";
 
 export function HeroBackground({ atmosphere = "home" }: { atmosphere?: Atmosphere }) {
-  return <div className={`hero-background hero-background-${atmosphere}`} aria-hidden="true"><span className="hero-glow" /><span className="hero-vignette" /><span className="hero-texture" /></div>;
+  const artwork = `/images/${atmosphere}-hero.webp`;
+  return <><link rel="preload" as="image" href={artwork} /><div className={`hero-background hero-background-${atmosphere}`} aria-hidden="true"><span className="hero-glow" /><span className="hero-vignette" /><span className="hero-texture" /></div></>;
 }
 
 export function PremiumHeader({ eyebrow, title, subtitle, icon: Icon }: { eyebrow?: string; title: string; subtitle?: ReactNode; icon?: ComponentType<SVGProps<SVGSVGElement>> }) {

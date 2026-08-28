@@ -364,11 +364,12 @@ a { color: inherit; text-decoration: none; }
   --glass-strong: rgb(45 29 34 / 90%); --line: rgb(224 190 123 / 22%);
   --field: rgb(255 247 229 / 7%); --hero-artwork: none; color-scheme: dark;
   --font-serif: Georgia, "Times New Roman", serif;
+  --premium-radius: 1.5rem; --premium-control-height: 3.6rem; --premium-content: 48rem;
 }
 html, body { min-height: 100%; background: var(--canvas); }
 h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .premium-page { position: relative; isolation: isolate; background: #171012; color: var(--ink); }
-.hero-background { position: absolute; z-index: -1; inset: 0; overflow: hidden; background-image: linear-gradient(rgb(0 0 0 / 18%),rgb(0 0 0 / 18%)),var(--hero-artwork),linear-gradient(145deg,#120c0e,#25151a 52%,#110b0d); background-position: center; background-size: cover; pointer-events: none; }
+.hero-background { position: fixed; z-index: -1; inset: 0; width: 100%; height: 100dvh; overflow: hidden; contain: strict; background-color: #171012; background-image: linear-gradient(rgb(0 0 0 / 18%),rgb(0 0 0 / 18%)),var(--hero-artwork),linear-gradient(145deg,#120c0e,#25151a 52%,#110b0d); background-position: center; background-repeat: no-repeat; background-size: cover; pointer-events: none; }
 .hero-background-home { --hero-artwork: url("/images/home-hero.webp"); }
 .hero-background-cellar { --hero-artwork: url("/images/cellar-hero.webp"); }
 .hero-background-scan { --hero-artwork: url("/images/scan-hero.webp"); }
@@ -388,7 +389,7 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .home-hero { max-width: 45rem; margin: 0 auto; padding: 2.2rem 0 2rem; text-align: center; }
 .brand-seal, .premium-mark { display: inline-flex; align-items: center; justify-content: center; width: 3.6rem; height: 3.6rem; border: 1px solid rgb(222 184 108 / 45%); border-radius: 50%; background: rgb(65 25 35 / 60%); color: var(--gold); box-shadow: 0 1rem 3rem rgb(0 0 0 / 25%), inset 0 0 1rem rgb(215 179 106 / 8%); }
 .home-hero > p, .premium-header > p, .section-title > p { margin: 1rem 0 .45rem; color: var(--gold); font: 700 .68rem/1.3 var(--font-system); letter-spacing: .22em; text-transform: uppercase; }
-.home-hero h1 { margin: 0; font-size: clamp(2.65rem,12vw,5.5rem); line-height: .95; letter-spacing: .09em; text-shadow: 0 3px 2rem rgb(0 0 0 / 45%); }
+.home-hero h1 { max-width: 100%; margin: 0; font-size: clamp(1.85rem,9.2vw,5.5rem); line-height: 1; letter-spacing: clamp(.025em,1.6vw,.09em); white-space: nowrap; text-shadow: 0 3px 2rem rgb(0 0 0 / 45%); }
 .home-hero > div:last-child { margin-top: 1.35rem; color: var(--muted); font-size: clamp(1rem,3vw,1.3rem); line-height: 1.55; }
 .home-actions { display: grid; gap: .8rem; }
 .primary-action-card { display: grid; grid-template-columns: auto 1fr auto; min-height: 6.8rem; align-items: center; gap: 1rem; border: 1px solid var(--line); border-radius: 1.35rem; background: linear-gradient(135deg,rgb(62 37 43 / 80%),rgb(30 20 23 / 65%)); padding: 1.1rem; box-shadow: inset 0 1px rgb(255 255 255 / 8%),0 1.2rem 2.5rem rgb(0 0 0 / 18%); backdrop-filter: blur(20px) saturate(120%); transition: transform 180ms ease,border-color 180ms ease,background 180ms ease; }
@@ -399,7 +400,7 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .primary-action-card strong { display: block; font-family: var(--font-serif); font-size: 1.18rem; font-weight: 500; }
 .primary-action-card small { display: block; margin-top: .3rem; color: var(--muted); font-size: .78rem; line-height: 1.4; }
 .primary-action-card i { color: var(--gold); font-size: 1.25rem; font-style: normal; }
-.glass-card { border: 1px solid var(--line); border-radius: 1.5rem; background: var(--glass); box-shadow: inset 0 1px rgb(255 255 255 / 7%),0 1.5rem 3rem rgb(0 0 0 / 20%); backdrop-filter: blur(22px); }
+.glass-card { border: 1px solid var(--line); border-radius: var(--premium-radius); background: var(--glass); box-shadow: inset 0 1px rgb(255 255 255 / 7%),0 1.5rem 3rem rgb(0 0 0 / 20%); backdrop-filter: blur(22px); }
 .cellar-summary { margin-top: 1rem; padding: 1.3rem; }
 .section-title p { margin-top: 0; }.section-title h2 { margin: 0; font-size: 1.6rem; }
 .summary-grid { display: grid; gap: 1.1rem; margin-top: 1.2rem; }
@@ -407,5 +408,9 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .summary-list h3 { margin: 0 0 .55rem; color: var(--gold); font: 700 .65rem var(--font-system); letter-spacing: .13em; text-transform: uppercase; }.summary-list ul { display: grid; gap: .38rem; margin: 0; padding: 0; list-style: none; }.summary-list li { display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .8rem; }.summary-list li strong { color: var(--ink); }.summary-list p { margin: 0; color: var(--muted); font-size: .78rem; font-style: italic; }
 .premium-header { margin: 1.5rem auto; text-align: center; }.premium-header > p { margin-bottom: .3rem; }.premium-header h1 { margin: 0; font-size: clamp(2.4rem,10vw,4rem); letter-spacing: -.035em; }.premium-subtitle { max-width: 30rem; margin: .65rem auto 0; color: var(--muted); line-height: 1.55; }
 .premium-input { color: var(--ink); }.back-link { color: var(--gold); }.action-primary { border-color: rgb(216 177 104 / 42%); background: linear-gradient(180deg,#862c48,#5c172d); }.action-secondary { border-color: var(--line); background: var(--glass); color: var(--ink); }.wine-card,.review-card,.recommendation-form,.recommendation-card,.profile-section,.label-empty-card,.label-add-card,.label-preview-card,.sommelier-suggestions button,.sommelier-composer form { border-color: var(--line); background: var(--glass); box-shadow: inset 0 1px rgb(255 255 255 / 7%),0 1rem 2.5rem rgb(0 0 0 / 18%); }
+.premium-page .page-enter { width: min(100%,var(--premium-content)); }
+.premium-page .action, .premium-page .premium-button { min-height: var(--premium-control-height); border-radius: 1.1rem; }
+.premium-page :is(.wine-card,.review-card,.recommendation-form,.recommendation-card,.profile-section,.label-empty-card,.label-add-card,.label-preview-card) { border-radius: var(--premium-radius); }
+.sommelier-welcome { justify-content: center; }
 .cellar-search { display: block; }.cellar-search input,.recommendation-form input,.precision-panel input,.review-field input { background: var(--field); color: var(--ink); }.wine-card-main h2,.recommendation-card-title h2 { font-family: var(--font-serif); }.app-icon { border-color: rgb(216 177 104 / 36%); background: linear-gradient(145deg,#73223c,#3f0d1d); color: var(--gold); }
 @media (min-width: 700px) { .home-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }.cellar-summary { padding: 1.7rem; }.summary-grid { grid-template-columns: 1.1fr 1fr 1fr; }.bottle-total { border-right: 1px solid var(--line); border-bottom: 0; padding: .3rem 1.2rem .3rem 0; flex-direction: column; }.summary-list { padding-inline: .5rem; } }
