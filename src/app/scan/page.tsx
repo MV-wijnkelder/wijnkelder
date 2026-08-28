@@ -6,6 +6,7 @@ import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
 import { WineProfile } from "@/components/wine-profile";
 import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon } from "@/components/icons";
+import { HeroBackground, PremiumHeader } from "@/components/premium-ui";
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
 import { stageForPhotoPicker } from "@/lib/scan-navigation";
@@ -78,11 +79,11 @@ export default function ScanPage() {
 
   const fileInput = (side: LabelSide, source: PhotoSource) => <input ref={inputs[`${side}${source}`]} className="sr-only" type="file" accept="image/*" capture={source === "Camera" ? "environment" : undefined} onChange={(event) => void selectPhoto(side, source, event)} aria-label={`${side} label ${source.toLowerCase()}`} />;
 
-  return <main className="app-shell relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
-    <div aria-hidden="true" className="ambient ambient-top" /><div aria-hidden="true" className="ambient ambient-bottom" />
+  return <main className="app-shell premium-page relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
+    <HeroBackground atmosphere="scan" />
     <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
       <Link className="back-link" href="/" aria-label="Back to home"><ChevronLeftIcon className="size-5" /> Back</Link>
-      {!exploring && <div className="mt-6 text-center sm:mt-8"><div className="app-icon app-icon-small mx-auto mb-5"><CameraIcon className="size-7" /></div><h1 className="text-4xl font-semibold tracking-[-0.045em] text-ink">Scan Wine</h1></div>}
+      {!exploring && <PremiumHeader icon={CameraIcon} eyebrow="Add to your collection" title="Scan a Wine" subtitle="Capture a label and let VINOCASTELLO identify the bottle." />}
       <div className="mt-8 flex flex-col gap-4">
         {stage === "start" && <Choice title="How would you like to add your wine?" onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} />}
         {stage === "front" && <PhotoStep title="Front label" photo={front} busy={busy} onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} onUse={() => setStage("back-choice")} onRetake={() => retake("front")} />}

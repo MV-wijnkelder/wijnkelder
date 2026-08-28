@@ -2,12 +2,12 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Marcel's Wine Cellar",
-  description: "Scan wine labels and keep track of your favorite bottles.",
+  title: "VINOCASTELLO",
+  description: "Your private collection and trusted personal sommelier.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f3ef",
+  themeColor: "#171012",
   viewportFit: "cover",
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="nl">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );
