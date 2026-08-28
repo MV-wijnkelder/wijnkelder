@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { CameraIcon, ChevronLeftIcon, PhotoIcon, SparklesIcon } from "@/components/icons";
+import { HeroBackground } from "@/components/premium-ui";
 import { compressImage } from "@/lib/image-compression";
 import { clearRememberedImageSets, loadRememberedImageSets, saveRememberedImageSets, type RememberedImageSet } from "@/lib/sommelier-image-memory";
 import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "@/lib/sommelier-request";
@@ -105,12 +106,12 @@ export default function SommelierPage() {
     void clearRememberedImageSets().catch(() => undefined);
   }
 
-  return <main className="app-shell sommelier-shell relative h-dvh overflow-hidden">
-    <div aria-hidden="true" className="ambient ambient-top" />
+  return <main className="app-shell sommelier-shell premium-page relative h-dvh overflow-hidden">
+    <HeroBackground atmosphere="sommelier" />
     <section className="sommelier-page page-enter relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
       <header className="sommelier-header">
         <Link className="back-link" href="/"><ChevronLeftIcon className="size-5" /> Home</Link>
-        <div><span className="sommelier-mark"><SparklesIcon className="size-4" /></span><h1>🍷 Your Sommelier</h1><p>Ask anything about wine.</p></div>
+        <div><span className="sommelier-mark"><SparklesIcon className="size-4" /></span><h1>Your Sommelier</h1><p>VINOCASTELLO · Private wine advice</p></div>
         <button className="sommelier-new-chat" type="button" onClick={newConversation}>New chat</button>
       </header>
 
