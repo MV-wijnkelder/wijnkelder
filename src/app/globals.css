@@ -345,6 +345,13 @@ a { color: inherit; text-decoration: none; }
 .sommelier-composer input { min-width: 0; flex: 1; border: 0; background: transparent; padding: .65rem .7rem; color: var(--ink); outline: none; }
 .sommelier-composer button { min-width: 4.4rem; border: 0; border-radius: .9rem; background: var(--wine); color: white; font-weight: 700; cursor: pointer; }
 .sommelier-composer button:disabled { cursor: default; opacity: .38; }
+.sommelier-photo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .5rem; }
+.sommelier-photo-actions button { display: flex; min-height: 2.6rem; align-items: center; justify-content: center; gap: .4rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--glass); color: var(--ink); font-weight: 650; cursor: pointer; }
+.sommelier-photo-actions button:disabled { cursor: default; opacity: .4; }
+.sommelier-attachments { display: flex; gap: .5rem; overflow-x: auto; padding: 0 0 .55rem; }
+.sommelier-attachments > div { position: relative; flex: 0 0 auto; }
+.sommelier-attachments img { width: 4rem; height: 4rem; border: 1px solid var(--line); border-radius: .75rem; object-fit: cover; }
+.sommelier-attachments button { position: absolute; top: -.3rem; right: -.3rem; width: 1.35rem; height: 1.35rem; border: 0; border-radius: 999px; background: var(--wine-deep); color: white; font-size: 1rem; line-height: 1; cursor: pointer; }
 .sommelier-error { margin: 0 0 .45rem; color: #a12e36; font-size: .78rem; text-align: center; }
 @media (min-width: 640px) { .sommelier-suggestions { grid-template-columns: 1fr 1fr; } .sommelier-conversation { padding-inline: 1rem; } }
 @keyframes typing-dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }

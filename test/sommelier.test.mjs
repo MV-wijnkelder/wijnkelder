@@ -30,6 +30,25 @@ test("routes to a specialist and only loads relevant canonical context", async (
   assert.match(calls[0].context, /Riesling/);
 });
 
+test("cellar questions load the canonical cellar without a client opt-in", async () => {
+  const model = {
+    async classify() { return { intent: "cellar", needsCurrentWine: false, needsCellar: true, needsCurrentInformation: false }; },
+    async answer(input) { assert.match(input.context, /Barolo/); return "You own one Barolo."; },
+  };
+  const source = { async getWine() { return null; }, async listCellar() { return [{ id: 12, wineName: "Barolo" }]; } };
+  await answerSommelier({ messages: [{ role: "user", content: "Which Italian wines do I own?" }], baseInstructions: "Be helpful.", model, contextSource: source });
+});
+
+test("forwards attached images to the same personal sommelier model", async () => {
+  const image = { mediaType: "image/jpeg", bytes: new Uint8Array([1, 2, 3]) };
+  const model = {
+    async classify() { return { intent: "restaurant", needsCurrentWine: false, needsCellar: true, needsCurrentInformation: false }; },
+    async answer(input) { assert.deepEqual(input.images, [image]); return "Best overall pairing: Riesling."; },
+  };
+  const source = { async getWine() { return null; }, async listCellar() { return []; } };
+  await answerSommelier({ messages: [{ role: "user", content: "What should we order?" }], images: [image], baseInstructions: "Be helpful.", model, contextSource: source });
+});
+
 test("runtime instructions use the central documented sommelier prompt", () => {
   assert.match(SOMMELIER_INSTRUCTIONS, /knowledgeable and approachable personal sommelier/i);
   assert.match(SOMMELIER_INSTRUCTIONS, /Wine is about enjoyment, not rules/);
