@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { WineReview } from "@/components/wine-review";
 import { WineProfile } from "@/components/wine-profile";
-import { CameraIcon, CheckIcon, ChevronLeftIcon, PhotoIcon } from "@/components/icons";
-import { HeroBackground, PremiumHeader } from "@/components/premium-ui";
+import { CameraIcon, CheckIcon, PhotoIcon } from "@/components/icons";
+import { BackButton, HeroBackground, PremiumHeader } from "@/components/premium-ui";
 import type { Wine } from "@/domain/wine";
 import { compressImage } from "@/lib/image-compression";
 import { stageForPhotoPicker } from "@/lib/scan-navigation";
@@ -82,7 +82,7 @@ export default function ScanPage() {
   return <main className="app-shell premium-page relative flex min-h-screen justify-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <HeroBackground atmosphere="scan" />
     <section className="page-enter relative z-10 flex w-full max-w-xl flex-col">
-      <Link className="back-link" href="/" aria-label="Back to home"><ChevronLeftIcon className="size-5" /> Back</Link>
+      <BackButton href="/" />
       {!exploring && <PremiumHeader icon={CameraIcon} eyebrow="Add to your collection" title="Scan a Wine" subtitle="Capture a label and let VINOCASTELLO identify the bottle." />}
       <div className="mt-8 flex flex-col gap-4">
         {stage === "start" && <Choice title="How would you like to add your wine?" onCamera={() => open("front", "Camera")} onLibrary={() => open("front", "Library")} />}

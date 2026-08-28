@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeftIcon, PlusIcon, TrashIcon, WineglassIcon } from "@/components/icons";
-import { HeroBackground, PremiumHeader, PremiumInput } from "@/components/premium-ui";
+import { PlusIcon, TrashIcon, WineglassIcon } from "@/components/icons";
+import { BackButton, HeroBackground, PremiumHeader, PremiumInput } from "@/components/premium-ui";
 import type { StoredWine } from "@/services/wine-service";
 import { WineService } from "@/services/wine-service";
 import { CELLAR_STATE_KEY, emptyCellarNavigationState, parseCellarNavigationState } from "@/lib/cellar-navigation";
@@ -72,7 +72,7 @@ export default function CellarPage() {
   return <main className="app-shell premium-page relative min-h-screen overflow-x-clip px-5 py-6 sm:px-6 sm:py-10">
     <HeroBackground atmosphere="cellar" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-3xl">
-      <Link className="back-link" href="/" onClick={() => sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify(emptyCellarNavigationState))}><ChevronLeftIcon className="size-5" /> Home</Link>
+      <BackButton href="/" onClick={() => sessionStorage.setItem(CELLAR_STATE_KEY, JSON.stringify(emptyCellarNavigationState))} />
       <PremiumHeader icon={WineglassIcon} eyebrow="Your collection" title="My Cellar" subtitle="Every bottle, carefully kept." />
       <label className="cellar-search"><span className="sr-only">Search your cellar</span><PremiumInput suppressHydrationWarning value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, producer, region…" type="search" /></label>
       {error && <p className="error-message" role="alert">{error}</p>}

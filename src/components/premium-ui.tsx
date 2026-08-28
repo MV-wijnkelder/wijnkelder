@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentType, InputHTMLAttributes, ReactNode, SVGProps } from "react";
+import { ChevronLeftIcon } from "@/components/icons";
 
 type Atmosphere = "home" | "cellar" | "scan" | "recommendation" | "sommelier";
 
@@ -10,6 +11,10 @@ export function HeroBackground({ atmosphere = "home" }: { atmosphere?: Atmospher
 
 export function PremiumHeader({ eyebrow, title, subtitle, icon: Icon }: { eyebrow?: string; title: string; subtitle?: ReactNode; icon?: ComponentType<SVGProps<SVGSVGElement>> }) {
   return <header className="premium-header">{Icon && <span className="premium-mark"><Icon className="size-6" /></span>}{eyebrow && <p>{eyebrow}</p>}<h1>{title}</h1>{subtitle && <div className="premium-subtitle">{subtitle}</div>}</header>;
+}
+
+export function BackButton({ href, children = "Home", onClick }: { href: string; children?: ReactNode; onClick?: () => void }) {
+  return <Link className="action action-secondary premium-button back-button" href={href} onClick={onClick} aria-label={`Back to ${typeof children === "string" ? children : "previous page"}`}><ChevronLeftIcon />{children}</Link>;
 }
 
 export function GlassCard({ children, className = "", as: Element = "section" }: { children: ReactNode; className?: string; as?: "section" | "article" | "div" }) {
@@ -26,6 +31,14 @@ export function SectionTitle({ eyebrow, children }: { eyebrow?: string; children
 
 export function PremiumButton({ children, className = "", variant = "primary", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" }) {
   return <button className={`action action-${variant} premium-button ${className}`} {...props}>{children}</button>;
+}
+
+export function PremiumLink({ children, className = "", variant = "primary", href }: { children: ReactNode; className?: string; variant?: "primary" | "secondary"; href: string }) {
+  return <Link className={`action action-${variant} premium-button ${className}`} href={href}>{children}</Link>;
+}
+
+export function StatusMessage({ children, tone = "neutral", role = "status" }: { children: ReactNode; tone?: "neutral" | "error" | "success"; role?: "status" | "alert" }) {
+  return <p className={`status-message status-${tone}`} role={role}>{children}</p>;
 }
 
 export function PremiumInput(props: InputHTMLAttributes<HTMLInputElement>) {

@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
-import { CameraIcon, ChevronLeftIcon, PhotoIcon, SparklesIcon } from "@/components/icons";
-import { HeroBackground } from "@/components/premium-ui";
+import { CameraIcon, PhotoIcon, SparklesIcon } from "@/components/icons";
+import { BackButton, HeroBackground, PremiumButton, PremiumHeader } from "@/components/premium-ui";
 import { compressImage } from "@/lib/image-compression";
 import { clearRememberedImageSets, loadRememberedImageSets, saveRememberedImageSets, type RememberedImageSet } from "@/lib/sommelier-image-memory";
 import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "@/lib/sommelier-request";
@@ -97,9 +96,9 @@ export default function SommelierPage() {
     <HeroBackground atmosphere="sommelier" />
     <section className="sommelier-page page-enter relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
       <header className="sommelier-header">
-        <Link className="back-link" href="/"><ChevronLeftIcon className="size-5" /> Home</Link>
-        <div><span className="sommelier-mark"><SparklesIcon className="size-4" /></span><h1>Your Sommelier</h1><p>VINOCASTELLO · Private wine advice</p></div>
-        <button className="sommelier-new-chat" type="button" onClick={newConversation}>New chat</button>
+        <BackButton href="/" />
+        <PremiumHeader icon={SparklesIcon} eyebrow="VINOCASTELLO" title="Your Sommelier" subtitle="Private wine advice" />
+        <PremiumButton className="sommelier-new-chat" variant="secondary" type="button" onClick={newConversation}>New chat</PremiumButton>
       </header>
 
       <div className="sommelier-conversation" aria-live="polite">

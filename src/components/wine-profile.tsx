@@ -1,5 +1,6 @@
 import type { Wine } from "@/domain/wine";
 import { WineglassIcon } from "@/components/icons";
+import { PremiumHeader } from "@/components/premium-ui";
 
 export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: number }) {
   const { profile } = wine;
@@ -7,7 +8,7 @@ export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: n
     ? (["ready", "mature", "past peak"].includes(profile.drinking.currentMaturity) ? "Drink now" : "Hold")
     : null;
   return <article className="wine-profile">
-    <header className="profile-hero"><div className="app-icon app-icon-small"><WineglassIcon className="size-6" /></div><p>{wine.producer || "Unknown producer"}</p><h1>{wine.wineName || "Unnamed wine"}</h1><span>{[wine.vintage, wine.appellation, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"}</span>{wine.grapeVarieties.length > 0 && <div className="profile-tags">{wine.grapeVarieties.map((grape) => <span key={grape}>{grape}</span>)}</div>}</header>
+    <div className="profile-hero"><PremiumHeader icon={WineglassIcon} eyebrow={wine.producer || "Unknown producer"} title={wine.wineName || "Unnamed wine"} subtitle={[wine.vintage, wine.appellation, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"} />{wine.grapeVarieties.length > 0 && <div className="profile-tags">{wine.grapeVarieties.map((grape) => <span key={grape}>{grape}</span>)}</div>}</div>
     <ProfileSection title="Wine"><Details values={[["Producer", wine.producer], ["Wine", wine.wineName], ["Vintage", wine.vintage], ["Country", wine.country], ["Region", wine.region], ["Appellation", wine.appellation], ["Grape varieties", wine.grapeVarieties.join(", ") || null], ["Color", wine.wineColor], ["Bottle size", wine.bottleSize], ["Alcohol", wine.alcoholPercentage === null ? null : `${wine.alcoholPercentage}%`], ...(bottleCount === undefined ? [] : [["Bottles", String(bottleCount)] as [string, string]])]} /></ProfileSection>
     <ProfileSection title="Tasting profile">
       <Details emptyMessage="No reliable sensory guidance is currently available." values={[["Appearance", profile.tasting.appearance], ["Aromas", profile.tasting.aromas.join(", ") || null], ["Flavors", profile.tasting.flavors.join(", ") || null], ["Finish", profile.tasting.finish]]} />

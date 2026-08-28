@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { ChevronLeftIcon, SparklesIcon, WineglassIcon } from "@/components/icons";
-import { HeroBackground } from "@/components/premium-ui";
+import { SparklesIcon, WineglassIcon } from "@/components/icons";
+import { BackButton, HeroBackground, PremiumHeader } from "@/components/premium-ui";
 import type { WineRecommendation } from "@/server/recommendations/recommendation-service";
 
 const examples = ["Recommend an aperitif", "Steak tonight", "Sushi", "Surprise me", "Which wines are ready to drink?"];
@@ -51,8 +50,8 @@ export default function RecommendationPage() {
   return <main className="app-shell premium-page relative min-h-screen overflow-x-clip px-5 py-6 sm:px-6 sm:py-10">
     <HeroBackground atmosphere="recommendation" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-2xl">
-      <Link className="back-link" href="/"><ChevronLeftIcon className="size-5" /> Home</Link>
-      <header className="recommendation-heading"><div className="app-icon app-icon-small"><SparklesIcon className="size-6" /></div><p className="result-eyebrow">From your cellar</p><h1>What should I drink?</h1><p>A thoughtful bottle for tonight, chosen only from wines you own.</p></header>
+      <BackButton href="/" />
+      <PremiumHeader icon={SparklesIcon} eyebrow="From your cellar" title="What Should I Drink?" subtitle="A thoughtful bottle for tonight, chosen only from wines you own." />
 
       <form className="recommendation-form" onSubmit={recommend}>
         <label htmlFor="food">What would you like from your cellar?</label>
