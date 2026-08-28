@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
-import type { SommelierMessage } from "@/server/sommelier/sommelier";
+import { ChevronLeftIcon, PhotoIcon, SparklesIcon } from "@/components/icons";
+import { compressImage } from "@/lib/image-compression";
+import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "@/lib/sommelier-request";
+import type { SommelierImageSet, SommelierMessage } from "@/server/sommelier/sommelier";
 
 const suggestions = [
   "What should I drink tonight?",
@@ -19,7 +21,11 @@ export default function SommelierPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageSets, setImageSets] = useState<SommelierImageSet[]>([]);
+  const [pendingImages, setPendingImages] = useState<Array<{ name: string; dataUrl: string }>>([]);
+  const [preparingImages, setPreparingImages] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
@@ -32,17 +38,34 @@ export default function SommelierPage() {
   async function send(event: FormEvent) {
     event.preventDefault();
     const question = input.trim();
-    if (!question || loading) return;
-    const nextMessages: SommelierMessage[] = [...messages, { role: "user", content: question }];
+    if ((!question && pendingImages.length === 0) || loading || preparingImages) return;
+    const prompt = question || "What would you recommend from these images?";
+    const imageSetNumber = imageSets.length + 1;
+    const newSet = pendingImages.length ? { id: crypto.randomUUID(), messageIndex: messages.length, label: imageSetLabel(imageSetNumber, pendingImages.map((image) => image.name)), images: pendingImages } satisfies SommelierImageSet : null;
+    const nextImageSets = newSet ? [...imageSets, newSet] : imageSets;
+    const nextMessages: SommelierMessage[] = [...messages, { role: "user", content: newSet ? `${prompt}\n📷 ${newSet.label}` : prompt }];
     setMessages(nextMessages); setInput(""); setLoading(true); setError(null);
+    setImageSets(nextImageSets); setPendingImages([]);
     try {
-      const response = await fetch("/api/sommelier", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages }) });
-      const data = await response.json() as { reply?: string; error?: string };
-      if (!response.ok || !data.reply) throw new Error(data.error || "Your sommelier is temporarily unavailable.");
-      setMessages((current) => [...current, { role: "assistant", content: data.reply! }]);
+      const reply = await requestSommelier({ messages: nextMessages, imageSets: nextImageSets });
+      setMessages((current) => [...current, { role: "assistant", content: reply }]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Your sommelier is temporarily unavailable.");
+      setError(cause instanceof Error ? cause.message : FRIENDLY_SOMMELIER_ERROR);
     } finally { setLoading(false); }
+  }
+
+  async function chooseImages(files: FileList | null) {
+    if (!files?.length) return;
+    setPreparingImages(true); setError(null);
+    try {
+      const selected = Array.from(files).slice(0, 4);
+      const images = await Promise.all(selected.map(async (file) => {
+        const compressed = await compressImage(file);
+        return { name: file.name, dataUrl: await fileToDataUrl(compressed) };
+      }));
+      setPendingImages(images);
+    } catch { setError("I couldn't prepare those images. Please choose JPEG, PNG, or WebP files and try again."); }
+    finally { setPreparingImages(false); if (fileRef.current) fileRef.current.value = ""; }
   }
 
   return <main className="app-shell sommelier-shell relative h-dvh overflow-hidden">
@@ -72,12 +95,30 @@ export default function SommelierPage() {
 
       <footer className="sommelier-composer">
         {error && <p className="sommelier-error" role="alert">{error}</p>}
+        {pendingImages.length > 0 && <div className="sommelier-attachments"><span>New image set · {pendingImages.length} {pendingImages.length === 1 ? "image" : "images"}</span><button type="button" onClick={() => setPendingImages([])}>Remove</button></div>}
         <form onSubmit={send}>
+          <input ref={fileRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => void chooseImages(event.target.files)} />
+          <button className="sommelier-upload" type="button" onClick={() => fileRef.current?.click()} disabled={loading || preparingImages} aria-label="Add images"><PhotoIcon className="size-5" /></button>
           <label className="sr-only" htmlFor="sommelier-question">Ask your sommelier</label>
-          <input ref={inputRef} id="sommelier-question" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about wine…" autoComplete="off" disabled={loading} />
-          <button type="submit" disabled={loading || !input.trim()} aria-label="Send question">Send</button>
+          <input ref={inputRef} id="sommelier-question" value={input} onChange={(event) => setInput(event.target.value)} placeholder={preparingImages ? "Preparing images…" : "Ask about wine…"} autoComplete="off" disabled={loading || preparingImages} />
+          <button type="submit" disabled={loading || preparingImages || (!input.trim() && pendingImages.length === 0)} aria-label="Send question">Send</button>
         </form>
       </footer>
     </section>
   </main>;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Invalid image"));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageSetLabel(number: number, names: string[]): string {
+  const prefix = `Image Set ${number}`;
+  const namesLabel = names.join(" + ");
+  return namesLabel.length > 96 ? `${prefix} (${names.length} images)` : `${prefix} (${namesLabel})`;
 }

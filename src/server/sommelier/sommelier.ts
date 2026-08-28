@@ -19,17 +19,31 @@ export type SommelierContext = {
 };
 
 /** A transport-neutral placeholder for future image understanding integrations. */
-export type SommelierImageContext = {
-  kind: "wine_label" | "wine_list" | "menu" | "wine_shelf" | "tasting_list";
-  assetId: string;
-  extractedText?: string;
+export type SommelierImageSet = {
+  id: string;
+  /** Zero-based index of the user message that introduced this set. */
+  messageIndex: number;
+  label: string;
+  images: Array<{ name: string; dataUrl: string }>;
 };
 
 export type SommelierRequest = {
   messages: SommelierMessage[];
   context?: SommelierContext;
-  imageContext?: SommelierImageContext[];
+  imageSets?: SommelierImageSet[];
 };
+
+const IMAGE_DATA_URL = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+export function isValidSommelierImageSet(value: unknown, messageCount: number): value is SommelierImageSet {
+  if (!value || typeof value !== "object") return false;
+  const set = value as Partial<SommelierImageSet>;
+  return typeof set.id === "string" && set.id.length > 0 && set.id.length <= 100
+    && Number.isInteger(set.messageIndex) && set.messageIndex! >= 0 && set.messageIndex! < messageCount
+    && typeof set.label === "string" && set.label.trim().length > 0 && set.label.length <= 120
+    && Array.isArray(set.images) && set.images.length > 0 && set.images.length <= 4
+    && set.images.every((image) => typeof image?.name === "string" && image.name.length <= 150
+      && typeof image?.dataUrl === "string" && image.dataUrl.length <= 4_000_000 && IMAGE_DATA_URL.test(image.dataUrl));
+}
 
 export const MAX_SOMMELIER_MESSAGES = 30;
 

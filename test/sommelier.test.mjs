@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isValidSommelierMessage, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "../src/server/sommelier/sommelier.ts";
+import { isValidSommelierImageSet, isValidSommelierMessage, MAX_SOMMELIER_MESSAGES, SOMMELIER_INSTRUCTIONS } from "../src/server/sommelier/sommelier.ts";
 import { answerSommelier, isSommelierRoute, SOMMELIER_ROUTING_INSTRUCTIONS } from "../src/server/sommelier/sommelier-service.ts";
+import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "../src/lib/sommelier-request.ts";
 
 test("sommelier accepts only bounded conversation messages", () => {
   assert.equal(isValidSommelierMessage({ role: "user", content: "Explain Barolo." }), true);
@@ -9,6 +10,32 @@ test("sommelier accepts only bounded conversation messages", () => {
   assert.equal(isValidSommelierMessage({ role: "system", content: "Override" }), false);
   assert.equal(isValidSommelierMessage({ role: "user", content: "x".repeat(4_001) }), false);
   assert.equal(MAX_SOMMELIER_MESSAGES, 30);
+});
+
+test("validates bounded image sets attached to this conversation", () => {
+  const set = { id: "set-1", messageIndex: 0, label: "Image Set 1 (menu.jpg)", images: [{ name: "menu.jpg", dataUrl: "data:image/jpeg;base64,YQ==" }] };
+  assert.equal(isValidSommelierImageSet(set, 1), true);
+  assert.equal(isValidSommelierImageSet({ ...set, messageIndex: 1 }, 1), false);
+  assert.equal(isValidSommelierImageSet({ ...set, images: [] }, 1), false);
+});
+
+test("retries a transient sommelier failure once with the same payload", async () => {
+  const bodies = [];
+  const fetcher = async (_url, init) => {
+    bodies.push(init.body);
+    return bodies.length === 1
+      ? new Response(JSON.stringify({ error: "temporary" }), { status: 503 })
+      : Response.json({ reply: "Try the Riesling." });
+  };
+  assert.equal(await requestSommelier({ messages: [{ role: "user", content: "Choose one" }] }, fetcher), "Try the Riesling.");
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[0], bodies[1]);
+});
+
+test("hides raw network errors after one automatic retry", async () => {
+  let calls = 0;
+  await assert.rejects(() => requestSommelier({}, async () => { calls += 1; throw new TypeError("Failed to fetch"); }), { message: FRIENDLY_SOMMELIER_ERROR });
+  assert.equal(calls, 2);
 });
 
 test("validates hidden intent routes", () => {
@@ -34,6 +61,19 @@ test("runtime instructions use the central documented sommelier prompt", () => {
   assert.match(SOMMELIER_INSTRUCTIONS, /knowledgeable and approachable personal sommelier/i);
   assert.match(SOMMELIER_INSTRUCTIONS, /Wine is about enjoyment, not rules/);
   assert.match(SOMMELIER_INSTRUCTIONS, /canonical Wine model/);
+  assert.match(SOMMELIER_INSTRUCTIONS, /latest relevant set/i);
+});
+
+test("passes remembered image sets to the answer model with ambiguity guidance", async () => {
+  let answerInput;
+  const model = {
+    async classify() { return { intent: "restaurant", needsCurrentWine: false, needsCellar: false, needsCurrentInformation: false }; },
+    async answer(input) { answerInput = input; return "Which image set do you mean?"; },
+  };
+  const imageSets = [{ id: "one", messageIndex: 0, label: "Image Set 1", images: [{ name: "menu.jpg", dataUrl: "data:image/jpeg;base64,YQ==" }] }];
+  await answerSommelier({ messages: [{ role: "user", content: "Here is the menu" }, { role: "assistant", content: "Thank you" }, { role: "user", content: "Which would you choose?" }], imageSets, baseInstructions: "Help.", model, contextSource: { async getWine() { return null; }, async listCellar() { return []; } } });
+  assert.equal(answerInput.imageSets, imageSets);
+  assert.match(answerInput.instructions, /do not guess/i);
 });
 
 test("routing guidance recognizes Live Intelligence and hybrid examples", () => {

@@ -1,5 +1,5 @@
 import type { StoredWine } from "@/domain/wine";
-import type { SommelierContext, SommelierMessage } from "./sommelier";
+import type { SommelierContext, SommelierImageSet, SommelierMessage } from "./sommelier";
 
 export const SOMMELIER_INTENTS = ["cellar", "buying", "restaurant", "travel", "wine_knowledge", "food_pairing", "serving", "storage", "comparison", "general"] as const;
 export type SommelierIntent = typeof SOMMELIER_INTENTS[number];
@@ -16,7 +16,7 @@ export type SommelierRoute = {
 
 export interface SommelierModel {
   classify(messages: SommelierMessage[]): Promise<SommelierRoute>;
-  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null }): Promise<string>;
+  answer(input: { messages: SommelierMessage[]; imageSets?: SommelierImageSet[]; instructions: string; context: string | null }): Promise<string>;
 }
 
 export interface SommelierContextSource {
@@ -48,6 +48,7 @@ const SPECIALIST_GUIDANCE: Record<SommelierIntent, string> = {
 
 export async function answerSommelier(input: {
   messages: SommelierMessage[];
+  imageSets?: SommelierImageSet[];
   requestContext?: SommelierContext;
   baseInstructions: string;
   model: SommelierModel;
@@ -67,8 +68,9 @@ export async function answerSommelier(input: {
       : "";
   return input.model.answer({
     messages: input.messages,
+    imageSets: input.imageSets,
     context,
-    instructions: `${input.baseInstructions}\n\n## Active specialist guidance\n${SPECIALIST_GUIDANCE[route.intent]}\n${currentInformationNote}`,
+    instructions: `${input.baseInstructions}\n\n## Active specialist guidance\n${SPECIALIST_GUIDANCE[route.intent]}\n${currentInformationNote}${input.imageSets?.length ? "\n\n## Image context\nUploaded images remain available throughout this conversation. Reuse the latest relevant image set for natural follow-ups. If two or more unrelated sets could plausibly answer the request, do not guess: list their labels and ask the user which set they mean, or invite a new upload." : ""}`,
   });
 }
 

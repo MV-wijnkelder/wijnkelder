@@ -1,4 +1,4 @@
-import type { SommelierMessage } from "./sommelier";
+import type { SommelierImageSet, SommelierMessage } from "./sommelier";
 import { isSommelierRoute, SOMMELIER_ROUTING_INSTRUCTIONS, type SommelierModel, type SommelierRoute } from "./sommelier-service";
 
 const URL = "https://api.openai.com/v1/responses";
@@ -18,8 +18,9 @@ export class OpenAISommelierModel implements SommelierModel {
     return route;
   }
 
-  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null }): Promise<string> {
-    return this.request({ model: this.model, instructions: input.instructions, input: input.context ? [{ role: "developer", content: input.context }, ...input.messages] : input.messages });
+  answer(input: { messages: SommelierMessage[]; imageSets?: SommelierImageSet[]; instructions: string; context: string | null }): Promise<string> {
+    const messages = withImageSets(input.messages, input.imageSets ?? []);
+    return this.request({ model: this.model, instructions: input.instructions, input: input.context ? [{ role: "developer", content: input.context }, ...messages] : messages });
   }
 
   private async request(body: object): Promise<string> {
@@ -30,4 +31,18 @@ export class OpenAISommelierModel implements SommelierModel {
     if (!text) throw new Error("OpenAI returned no text");
     return text;
   }
+}
+
+function withImageSets(messages: SommelierMessage[], sets: SommelierImageSet[]): object[] {
+  return messages.map((message, index) => {
+    const attached = sets.filter((set) => set.messageIndex === index);
+    if (message.role !== "user" || attached.length === 0) return message;
+    return {
+      role: message.role,
+      content: [
+        { type: "input_text", text: `${message.content}\n\nAttached image ${attached.length === 1 ? "set" : "sets"}: ${attached.map((set) => set.label).join(", ")}` },
+        ...attached.flatMap((set) => set.images.map((image) => ({ type: "input_image", image_url: image.dataUrl, detail: "auto" }))),
+      ],
+    };
+  });
 }
