@@ -19,6 +19,8 @@ export interface Wine {
   /** Provider-neutral estimated current value of one bottle. Never a stored total. */
   marketValue: number | null;
   marketValueCurrency: string | null;
+  /** Internal cache/provenance for the market-data adapter. Never rendered to users. */
+  marketValueMetadata: MarketValueMetadata;
   /** Enrichment kept as one extensible document so new companion attributes do not require reshaping the wine identity. */
   profile: WineProfile;
   /** Lifecycle dates for AI enrichment; deliberately separate from user-owned wine data. */
@@ -95,11 +97,19 @@ export interface WineProfileMetadata {
   lastRefreshedAt: string | null;
 }
 
-/** Provider-independent enrichment result; valuation can later come from a dedicated provider. */
+export interface MarketValueMetadata {
+  provider: string | null;
+  retrievedAt: string | null;
+  sourceUrls: string[];
+}
+
+/** Provider-independent AI profile result. Market valuation has a dedicated provider boundary. */
 export interface WineEnrichment {
   profile: WineProfile;
-  marketValue: number | null;
-  marketValueCurrency: string | null;
+}
+
+export function emptyMarketValueMetadata(): MarketValueMetadata {
+  return { provider: null, retrievedAt: null, sourceUrls: [] };
 }
 
 export function emptyWineProfileMetadata(): WineProfileMetadata {

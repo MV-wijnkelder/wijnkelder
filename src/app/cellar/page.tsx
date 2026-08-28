@@ -30,6 +30,7 @@ export default function CellarPage() {
   const [editing, setEditing] = useState<StoredWine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshingValues, setRefreshingValues] = useState(false);
   const loadSequence = useRef(0);
   const restored = useRef(false);
   const rememberPosition = useCallback(
@@ -164,6 +165,9 @@ export default function CellarPage() {
           title="My Cellar"
           subtitle="Every bottle, carefully kept."
         />
+        <div className="profile-refresh">
+          <PremiumButton disabled={refreshingValues || isLoading} onClick={async () => { setRefreshingValues(true); setError(null); try { setWines(await WineService.refreshAllMarketValues()); } catch (cause) { setError(message(cause)); } finally { setRefreshingValues(false); } }}>{refreshingValues ? "Refreshing cellar values…" : "Refresh Estimated Market Values"}</PremiumButton>
+        </div>
         <label className="cellar-search">
           <span className="sr-only">Search your cellar</span>
           <PremiumInput

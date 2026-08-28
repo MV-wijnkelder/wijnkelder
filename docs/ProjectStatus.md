@@ -9,15 +9,15 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.1.0
+- **Current version:** 1.2.0
 - **Current development phase:** Cellar intelligence and personal companion;
   trust, reliability, and installable-app completion are next.
 - **Last updated:** 28 August 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 13A — Market Value Integration
-- **Release status:** Sprint 13A is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 13B — Automatic Market Value Provider
+- **Release status:** Sprint 13B is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -28,7 +28,7 @@
   management; AI-generated wine profiles; deterministic, explainable
   cellar-first recommendations; a routed, multimodal personal AI Sommelier with
   browser-local conversation and image context; live-information fallback;
-  collection insights with transparent market-value coverage; per-wine market valuation; and web-app manifest/icon metadata groundwork.
+  collection insights with transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and web-app manifest/icon metadata groundwork.
 
 # Completed Sprints
 
@@ -86,6 +86,14 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.1.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 13B — Automatic Market Value Provider
+
+- **Objective:** Automatically populate one honest Estimated Market Value for each canonical wine from reliable public market information, cache the result, and support safe single-wine and complete-cellar refresh.
+- **Key functionality delivered:** A replaceable `MarketValueProvider` contract; OpenAI web-search retrieval across official wineries, recognised merchants, reputable retailers, and recognised aggregators; strict matching across producer, wine name, vintage, bottle size, appellation, region, and country; deterministic median selection from validated exact-match EUR observations; stored valuation provenance/freshness; automatic first retrieval; cached unavailable results; isolated single and cellar refresh APIs; and simplified user-visible value states. AI profile generation no longer supplies or overwrites valuations.
+- **Completion date:** 28 August 2026
+- **Release version:** 1.2.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -108,7 +116,7 @@ styles rather than fabricating a cellar match when no bottle qualifies.
 
 ## Cellar Integration
 
-The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue` and its currency are stored on that entity; total values and valuation coverage are always calculated dynamically. AI enrichment currently supplies reliable estimates, while the UI and calculation helper remain independent of the valuation provider.
+The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve exact-match public EUR offers from official wineries, recognised merchants, reputable retailers, and recognised market aggregators. VinoCastello validates observations and deterministically selects one median value. AI profile enrichment is separate and cannot overwrite valuation data. Cached successful and unavailable lookups prevent research on every detail open.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
 profile and cellar JSON. List, detail, create, update, delete, recommendations,
 insights, and Sommelier retrieval all consume the same records. The historical
@@ -180,14 +188,15 @@ conversation memory is not stored as a second server-side cellar record.
   and retain visible conversation on failure.
 - Use current-information research when available, with graceful fallback.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
-- View current per-bottle market value, quantity, dynamically calculated total market value, or an honest awaiting-valuation state on Wine Details.
+- View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
 - Expose manifest and icon metadata groundwork for a future installable app.
 
 # Open Issues
 
 ## Known Bugs and Behavioral Risks
 
-- Market estimates currently depend on the configured AI enrichment provider and are EUR-only; existing wines require explicit profile refresh or a future backfill to receive a valuation.
+- Market retrieval requires the configured OpenAI provider and network access, is EUR-only, and cannot value wines without current exact-match public offers. Retailer availability and web-search results can change independently of the cache.
+- Complete-cellar refresh currently processes wines sequentially and may be slow for large cellars; individual failures are isolated, but progress is not streamed to the UI.
 
 - Image sets have generic names (`Image Set N`), which makes ambiguity harder to
   resolve in long conversations.
@@ -216,7 +225,6 @@ conversation memory is not stored as a second server-side cellar record.
 - Live research has no structured citation/freshness contract, cache policy, or
   sufficient observability.
 - Insights fetch the full cellar client-side and do not link into shared cellar filters/navigation state.
-- Market-value freshness and provenance timestamps are not yet modeled separately from the broader AI profile lifecycle.
 - There is no committed browser end-to-end suite for camera, IndexedDB,
   multipart images, mobile safe areas, database integration, or provider
   contracts.
@@ -248,31 +256,30 @@ conversation memory is not stored as a second server-side cellar record.
 
 # Current Backlog
 
-1. **Market-value trust and refresh:** Backfill existing wines, add valuation-specific provenance/freshness, and prepare a dedicated provider adapter without changing canonical calculations or UI.
-2. **Trust, provenance, and end-to-end reliability:** Mark data provenance; add
+1. **Trust, provenance, and end-to-end reliability:** Mark data provenance; add
    browser, database integration, and provider-contract coverage; add redacted
    observability; and finish/validate application icons and manifest behavior.
-3. **Contextual handoffs and scalable retrieval:** Connect existing screens to
+2. **Contextual handoffs and scalable retrieval:** Connect existing screens to
    the Sommelier with typed context and implement deterministic candidate
    retrieval plus compact canonical summaries.
-4. **Structured Restaurant and Wine Shop assistance:** Add progressive controls,
+3. **Structured Restaurant and Wine Shop assistance:** Add progressive controls,
    reviewable OCR results, party/dish/budget context, shortlists, and a safe
    selected-bottle handoff to Scan/Review/Add.
-5. **Personal preferences and tasting history:** Add canonical tasting and
+4. **Personal preferences and tasting history:** Add canonical tasting and
    consumption events, inspectable preference signals, correction/reset, and
    explanations.
-6. **Actionable insights and workbook interoperability:** Link insights to cellar
+5. **Actionable insights and workbook interoperability:** Link insights to cellar
    filters, add quality/profile coverage, and implement authoritative,
    previewable, duplicate-aware MCHRDV import and lossless export.
-7. **Longer-term cellar utility:** Add bottle locations, opening/quantity actions,
+6. **Longer-term cellar utility:** Add bottle locations, opening/quantity actions,
    drinking-window alerts, collection trends, offline inventory shell, and
    graceful queued AI actions.
 
 # Next Planned Sprint
 
-## Sprint 13B — Market Value Trust and Backfill
+## Sprint 14 — Trust, Provenance, and End-to-End Reliability
 
-**Recommended objective:** Backfill valuations for existing canonical wines, expose valuation provenance and freshness, define a replaceable dedicated market-data provider contract, and add safe refresh behavior while preserving honest unavailable states and EUR consistency.
+**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, visible provenance for AI/user-confirmed facts where appropriate, and complete installable-app identity validation without exposing market-source complexity in the valuation UI.
 
 # Architectural Decisions
 
@@ -291,7 +298,7 @@ conversation memory is not stored as a second server-side cellar record.
   recommendation filtering/scoring outside generative chat.
 - **User confirmation controls writes:** Recognition and enrichment propose
   data; they do not silently persist or overwrite the canonical record.
-- **Market value is per bottle:** Store one provider-neutral current estimate on canonical Wine; never store totals or use historical purchase price in valuation calculations.
+- **Market value is per bottle:** Store one provider-neutral current estimate plus internal cache/provenance metadata on canonical Wine; never store totals or use historical purchase price in valuation calculations. Public observations remain behind the provider boundary and are not exposed in the UI.
 - **Unknown remains unknown:** Missing scalar values are `null`, empty
   collections represent no known entries, and uncertainty must be explicit.
 - **Minimal, bounded AI context:** Route first, retrieve only necessary canonical

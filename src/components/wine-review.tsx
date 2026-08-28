@@ -21,6 +21,9 @@ type TextField = Exclude<
   | "confidence"
   | "profile"
   | "profileMetadata"
+  | "marketValue"
+  | "marketValueCurrency"
+  | "marketValueMetadata"
   | "cellar"
 >;
 

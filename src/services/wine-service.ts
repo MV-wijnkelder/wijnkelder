@@ -14,6 +14,12 @@ export const WineService = {
   refreshProfile(id: number) {
     return request<StoredWine>(`/api/wines/${id}/profile`, { method: "POST" });
   },
+  refreshMarketValue(id: number) {
+    return request<StoredWine>(`/api/wines/${id}/market-value`, { method: "POST" });
+  },
+  refreshAllMarketValues() {
+    return request<StoredWine[]>("/api/wines/market-values", { method: "POST" });
+  },
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
   },

@@ -7,13 +7,11 @@ export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: n
   const maturityAdvice = profile.drinking.currentMaturity
     ? (["ready", "mature", "past peak"].includes(profile.drinking.currentMaturity) ? "Drink now" : "Hold")
     : null;
-  const quantity = bottleCount ?? 0;
   const marketValue = wine.marketValue === null ? null : money(wine.marketValue, wine.marketValueCurrency ?? "EUR");
-  const totalMarketValue = wine.marketValue === null ? null : money(wine.marketValue * quantity, wine.marketValueCurrency ?? "EUR");
   return <article className="wine-profile">
     <div className="profile-hero"><PremiumHeader icon={WineglassIcon} eyebrow={wine.producer || "Unknown producer"} title={wine.wineName || "Unnamed wine"} subtitle={[wine.vintage, wine.appellation, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"} />{wine.grapeVarieties.length > 0 && <div className="profile-tags">{wine.grapeVarieties.map((grape) => <span key={grape}>{grape}</span>)}</div>}</div>
     <ProfileSection title="Wine"><Details values={[["Producer", wine.producer], ["Wine", wine.wineName], ["Vintage", wine.vintage], ["Country", wine.country], ["Region", wine.region], ["Appellation", wine.appellation], ["Grape varieties", wine.grapeVarieties.join(", ") || null], ["Color", wine.wineColor], ["Bottle size", wine.bottleSize], ["Alcohol", wine.alcoholPercentage === null ? null : `${wine.alcoholPercentage}%`], ...(bottleCount === undefined ? [] : [["Bottles", String(bottleCount)] as [string, string]])]} /></ProfileSection>
-    {bottleCount !== undefined && <ProfileSection title="Market valuation"><Details values={[["Current Market Value (per bottle)", marketValue ?? "Not available yet"], ["Quantity", `${quantity} ${quantity === 1 ? "bottle" : "bottles"}`], ["Total Market Value", totalMarketValue ?? "Not available yet"], ["Status", marketValue === null ? "Awaiting market valuation" : "Current estimate"]]} /></ProfileSection>}
+    {bottleCount !== undefined && <ProfileSection title="Estimated Market Value"><Details values={[["Estimated Market Value", marketValue ?? "Currently unavailable"]]} /></ProfileSection>}
     <ProfileSection title="Tasting profile">
       <Details emptyMessage="No reliable sensory guidance is currently available." values={[["Appearance", profile.tasting.appearance], ["Aromas", profile.tasting.aromas.join(", ") || null], ["Flavors", profile.tasting.flavors.join(", ") || null], ["Finish", profile.tasting.finish]]} />
     </ProfileSection>

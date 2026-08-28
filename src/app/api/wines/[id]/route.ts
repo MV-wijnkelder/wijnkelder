@@ -4,6 +4,7 @@ import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 import { AIService } from "@/server/ai/ai-service";
 import { OpenAIProvider } from "@/server/ai/providers/openai-provider";
 import { enrichWineProfile } from "@/server/wine-profile-enrichment";
+import { populateMarketValue } from "@/server/market-value/automatic-market-value";
 
 export const runtime = "nodejs";
 const storage = new NeonWineStorage();
@@ -17,12 +18,16 @@ export async function GET(_request: Request, context: Context) {
     const generator = apiKey
       ? new AIService(new OpenAIProvider(apiKey))
       : { generateWineProfile: async () => { throw new Error("OPENAI_API_KEY is not configured"); } };
-    return found(await enrichWineProfile(wine, generator, storage));
+    const enriched = await enrichWineProfile(wine, generator, storage);
+    return found(await populateMarketValue(enriched, storage));
   } catch (error) { return failure(error); }
 }
 
 export async function PUT(request: Request, context: Context) {
-  try { return found(await storage.update(await id(context), await request.json() as Wine & { bottleCount?: number })); } catch (error) { return failure(error); }
+  try {
+    const updated = await storage.update(await id(context), await request.json() as Wine & { bottleCount?: number });
+    return found(updated ? await populateMarketValue(updated, storage) : null);
+  } catch (error) { return failure(error); }
 }
 
 export async function PATCH(request: Request, context: Context) {
