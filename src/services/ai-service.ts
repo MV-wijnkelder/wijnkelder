@@ -154,6 +154,8 @@ function normalizeRecognitionResult(value: unknown): WineRecognitionResult {
       bottleSize: wine.bottleSize as string | null,
       alcoholPercentage: wine.alcoholPercentage as number | null,
       confidence: wine.confidence,
+      marketValue: null,
+      marketValueCurrency: null,
       profile: emptyWineProfile(),
       profileMetadata: emptyWineProfileMetadata(),
       cellar: emptyCellarDetails(),

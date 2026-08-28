@@ -1,7 +1,7 @@
-import type { StoredWine, WineProfile } from "@/domain/wine";
+import type { StoredWine, WineEnrichment, WineProfile } from "@/domain/wine";
 
-export interface ProfileGenerator { generateWineProfile(wine: StoredWine): Promise<WineProfile> }
-export interface ProfileStorage { updateProfile(id: number, profile: WineProfile, refreshed?: boolean): Promise<StoredWine | null> }
+export interface ProfileGenerator { generateWineProfile(wine: StoredWine): Promise<WineEnrichment> }
+export interface ProfileStorage { updateEnrichment(id: number, enrichment: WineEnrichment, refreshed?: boolean): Promise<StoredWine | null> }
 
 export function hasWineProfile(profile: WineProfile): boolean {
   return Boolean(profile.summary || profile.foodPairings.length ||
@@ -15,9 +15,9 @@ export function hasWineProfile(profile: WineProfile): boolean {
 
 /** Explicit refresh replaces enrichment only and reports failures to the caller so retry messaging is honest. */
 export async function refreshWineProfile(wine: StoredWine, generator: ProfileGenerator, storage: ProfileStorage): Promise<StoredWine> {
-  const profile = await generator.generateWineProfile(wine);
-  if (!hasWineProfile(profile)) throw new Error("AI returned an empty wine profile");
-  const saved = await storage.updateProfile(wine.id, profile, true);
+  const enrichment = await generator.generateWineProfile(wine);
+  if (!hasWineProfile(enrichment.profile)) throw new Error("AI returned an empty wine profile");
+  const saved = await storage.updateEnrichment(wine.id, enrichment, true);
   if (!saved) throw new Error("Wine no longer exists while saving its profile");
   return saved;
 }
@@ -27,9 +27,9 @@ export async function enrichWineProfile(wine: StoredWine, generator: ProfileGene
   if (hasWineProfile(wine.profile)) return wine;
   console.info("Wine profile enrichment started", { wineId: wine.id });
   try {
-    const profile = await generator.generateWineProfile(wine);
-    if (!hasWineProfile(profile)) throw new Error("AI returned an empty wine profile");
-    const saved = await storage.updateProfile(wine.id, profile);
+    const enrichment = await generator.generateWineProfile(wine);
+    if (!hasWineProfile(enrichment.profile)) throw new Error("AI returned an empty wine profile");
+    const saved = await storage.updateEnrichment(wine.id, enrichment);
     if (!saved) throw new Error("Wine no longer exists while saving its profile");
     console.info("Wine profile enrichment completed", { wineId: wine.id });
     return saved;

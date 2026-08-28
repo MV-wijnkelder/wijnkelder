@@ -16,6 +16,9 @@ export interface Wine {
   bottleSize: string | null;
   alcoholPercentage: number | null;
   confidence: number;
+  /** Provider-neutral estimated current value of one bottle. Never a stored total. */
+  marketValue: number | null;
+  marketValueCurrency: string | null;
   /** Enrichment kept as one extensible document so new companion attributes do not require reshaping the wine identity. */
   profile: WineProfile;
   /** Lifecycle dates for AI enrichment; deliberately separate from user-owned wine data. */
@@ -90,6 +93,13 @@ export interface WineProfile {
 export interface WineProfileMetadata {
   generatedAt: string | null;
   lastRefreshedAt: string | null;
+}
+
+/** Provider-independent enrichment result; valuation can later come from a dedicated provider. */
+export interface WineEnrichment {
+  profile: WineProfile;
+  marketValue: number | null;
+  marketValueCurrency: string | null;
 }
 
 export function emptyWineProfileMetadata(): WineProfileMetadata {

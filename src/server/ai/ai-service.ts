@@ -1,5 +1,5 @@
 import type { WineRecognitionResult } from "@/lib/wine-recognition";
-import type { Wine, WineProfile } from "@/domain/wine";
+import type { Wine, WineEnrichment } from "@/domain/wine";
 import type { AIProvider, RecognitionImage } from "./ai-provider";
 
 /** Provider-independent application service for AI capabilities. */
@@ -10,7 +10,7 @@ export class AIService {
     return this.provider.recognizeWine(frontImage, backImage);
   }
 
-  generateWineProfile(wine: Wine): Promise<WineProfile> {
+  generateWineProfile(wine: Wine): Promise<WineEnrichment> {
     return this.provider.generateWineProfile(wine);
   }
 }
