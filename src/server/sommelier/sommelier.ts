@@ -20,16 +20,16 @@ export type SommelierContext = {
 
 /** A transport-neutral placeholder for future image understanding integrations. */
 export type SommelierImageContext = {
-  kind: "wine_label" | "wine_list" | "menu" | "wine_shelf" | "tasting_list";
-  assetId: string;
-  extractedText?: string;
+  mediaType: "image/jpeg" | "image/png" | "image/webp";
+  bytes: Uint8Array;
 };
 
 export type SommelierRequest = {
   messages: SommelierMessage[];
   context?: SommelierContext;
-  imageContext?: SommelierImageContext[];
 };
+
+export const MAX_SOMMELIER_IMAGES = 6;
 
 export const MAX_SOMMELIER_MESSAGES = 30;
 

@@ -1,5 +1,5 @@
 import type { StoredWine } from "@/domain/wine";
-import type { SommelierContext, SommelierMessage } from "./sommelier";
+import type { SommelierContext, SommelierImageContext, SommelierMessage } from "./sommelier";
 
 export const SOMMELIER_INTENTS = ["cellar", "buying", "restaurant", "travel", "wine_knowledge", "food_pairing", "serving", "storage", "comparison", "general"] as const;
 export type SommelierIntent = typeof SOMMELIER_INTENTS[number];
@@ -16,7 +16,7 @@ export type SommelierRoute = {
 
 export interface SommelierModel {
   classify(messages: SommelierMessage[]): Promise<SommelierRoute>;
-  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null }): Promise<string>;
+  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null; images?: SommelierImageContext[] }): Promise<string>;
 }
 
 export interface SommelierContextSource {
@@ -53,6 +53,7 @@ export async function answerSommelier(input: {
   model: SommelierModel;
   contextSource: SommelierContextSource;
   liveIntelligence?: LiveIntelligenceSkill;
+  images?: SommelierImageContext[];
 }): Promise<string> {
   const route = await input.model.classify(input.messages);
   const applicationContext = await resolveContext(route, input.requestContext, input.contextSource);
@@ -68,6 +69,7 @@ export async function answerSommelier(input: {
   return input.model.answer({
     messages: input.messages,
     context,
+    images: input.images,
     instructions: `${input.baseInstructions}\n\n## Active specialist guidance\n${SPECIALIST_GUIDANCE[route.intent]}\n${currentInformationNote}`,
   });
 }
@@ -89,11 +91,12 @@ function combineContext(applicationContext: string | null, liveResult: LiveIntel
 }
 
 async function resolveContext(route: SommelierRoute, context: SommelierContext | undefined, source: SommelierContextSource): Promise<string | null> {
-  if (!context) return null;
   const records: { currentWine?: StoredWine; currentScannedWine?: StoredWine; cellar?: StoredWine[] } = {};
-  if (route.needsCurrentWine && context.currentWineId !== undefined) records.currentWine = await source.getWine(context.currentWineId) ?? undefined;
-  if (route.needsCurrentWine && context.currentScannedWineId !== undefined) records.currentScannedWine = await source.getWine(context.currentScannedWineId) ?? undefined;
-  if (route.needsCellar && context.cellarEnabled) records.cellar = await source.listCellar();
+  if (route.needsCurrentWine && context?.currentWineId !== undefined) records.currentWine = await source.getWine(context.currentWineId) ?? undefined;
+  if (route.needsCurrentWine && context?.currentScannedWineId !== undefined) records.currentScannedWine = await source.getWine(context.currentScannedWineId) ?? undefined;
+  // The cellar is intrinsic personal context, not an opt-in attachment. Routing
+  // controls when its potentially large payload is sent to the model.
+  if (route.needsCellar) records.cellar = await source.listCellar();
   return Object.keys(records).length ? `Confirmed application context (JSON):\n${JSON.stringify(records)}` : null;
 }
 

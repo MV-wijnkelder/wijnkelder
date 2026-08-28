@@ -1,4 +1,4 @@
-import type { SommelierMessage } from "./sommelier";
+import type { SommelierImageContext, SommelierMessage } from "./sommelier";
 import { isSommelierRoute, SOMMELIER_ROUTING_INSTRUCTIONS, type SommelierModel, type SommelierRoute } from "./sommelier-service";
 
 const URL = "https://api.openai.com/v1/responses";
@@ -18,8 +18,16 @@ export class OpenAISommelierModel implements SommelierModel {
     return route;
   }
 
-  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null }): Promise<string> {
-    return this.request({ model: this.model, instructions: input.instructions, input: input.context ? [{ role: "developer", content: input.context }, ...input.messages] : input.messages });
+  answer(input: { messages: SommelierMessage[]; instructions: string; context: string | null; images?: SommelierImageContext[] }): Promise<string> {
+    const messages: unknown[] = [...input.messages];
+    if (input.images?.length) {
+      const latest = input.messages.at(-1)!;
+      messages[messages.length - 1] = { role: "user", content: [
+        { type: "input_text", text: latest.content },
+        ...input.images.map((image) => ({ type: "input_image", image_url: `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}` })),
+      ] };
+    }
+    return this.request({ model: this.model, instructions: input.instructions, input: input.context ? [{ role: "developer", content: input.context }, ...messages] : messages });
   }
 
   private async request(body: object): Promise<string> {
