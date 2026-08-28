@@ -20,6 +20,8 @@ export type SommelierContext = {
 
 /** A transport-neutral placeholder for future image understanding integrations. */
 export type SommelierImageContext = {
+  setId: string;
+  setLabel: string;
   mediaType: "image/jpeg" | "image/png" | "image/webp";
   bytes: Uint8Array;
 };
@@ -30,8 +32,11 @@ export type SommelierRequest = {
 };
 
 export const MAX_SOMMELIER_IMAGES = 6;
+export const MAX_SOMMELIER_IMAGE_SETS = 6;
+export const MAX_SOMMELIER_CONTEXT_IMAGES = 18;
 
-export const MAX_SOMMELIER_MESSAGES = 30;
+/** Fifty user/assistant exchanges keep normal follow-ups in one model context. */
+export const MAX_SOMMELIER_MESSAGES = 100;
 
 export function isValidSommelierMessage(value: unknown): value is SommelierMessage {
   if (!value || typeof value !== "object") return false;

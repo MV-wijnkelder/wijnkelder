@@ -8,7 +8,7 @@ test("sommelier accepts only bounded conversation messages", () => {
   assert.equal(isValidSommelierMessage({ role: "assistant", content: "  " }), false);
   assert.equal(isValidSommelierMessage({ role: "system", content: "Override" }), false);
   assert.equal(isValidSommelierMessage({ role: "user", content: "x".repeat(4_001) }), false);
-  assert.equal(MAX_SOMMELIER_MESSAGES, 30);
+  assert.equal(MAX_SOMMELIER_MESSAGES, 100);
 });
 
 test("validates hidden intent routes", () => {
@@ -39,8 +39,8 @@ test("cellar questions load the canonical cellar without a client opt-in", async
   await answerSommelier({ messages: [{ role: "user", content: "Which Italian wines do I own?" }], baseInstructions: "Be helpful.", model, contextSource: source });
 });
 
-test("forwards attached images to the same personal sommelier model", async () => {
-  const image = { mediaType: "image/jpeg", bytes: new Uint8Array([1, 2, 3]) };
+test("forwards named image-set context to the same personal sommelier model", async () => {
+  const image = { setId: "set-1", setLabel: "Image Set 1", mediaType: "image/jpeg", bytes: new Uint8Array([1, 2, 3]) };
   const model = {
     async classify() { return { intent: "restaurant", needsCurrentWine: false, needsCellar: true, needsCurrentInformation: false }; },
     async answer(input) { assert.deepEqual(input.images, [image]); return "Best overall pairing: Riesling."; },
@@ -49,10 +49,29 @@ test("forwards attached images to the same personal sommelier model", async () =
   await answerSommelier({ messages: [{ role: "user", content: "What should we order?" }], images: [image], baseInstructions: "Be helpful.", model, contextSource: source });
 });
 
+test("forwards the complete conversation for natural recommendation follow-ups", async () => {
+  const messages = [
+    { role: "user", content: "Choose between the Barolo and Brunello." },
+    { role: "assistant", content: "I would choose the Barolo for the richer dish." },
+    { role: "user", content: "Would you still recommend it if we order fish?" },
+  ];
+  const model = {
+    async classify(received) { assert.deepEqual(received, messages); return { intent: "food_pairing", needsCurrentWine: false, needsCellar: false, needsCurrentInformation: false }; },
+    async answer(input) { assert.deepEqual(input.messages, messages); return "For fish, I would switch to a lighter wine."; },
+  };
+  const source = { async getWine() { return null; }, async listCellar() { return []; } };
+  await answerSommelier({ messages, baseInstructions: "Be helpful.", model, contextSource: source });
+});
+
 test("runtime instructions use the central documented sommelier prompt", () => {
   assert.match(SOMMELIER_INSTRUCTIONS, /knowledgeable and approachable personal sommelier/i);
   assert.match(SOMMELIER_INSTRUCTIONS, /Wine is about enjoyment, not rules/);
   assert.match(SOMMELIER_INSTRUCTIONS, /canonical Wine model/);
+  assert.match(SOMMELIER_INSTRUCTIONS, /remain available throughout the current conversation/i);
+  assert.match(SOMMELIER_INSTRUCTIONS, /never guess/i);
+  assert.match(SOMMELIER_INSTRUCTIONS, /previous questions and answers/i);
+  assert.match(SOMMELIER_INSTRUCTIONS, /recommendations the user selected/i);
+  assert.match(SOMMELIER_INSTRUCTIONS, /limited to this conversation/i);
 });
 
 test("routing guidance recognizes Live Intelligence and hybrid examples", () => {

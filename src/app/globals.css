@@ -320,6 +320,7 @@ a { color: inherit; text-decoration: none; }
 .sommelier-header h1 { margin: 0; font-size: 1rem; letter-spacing: -.02em; }
 .sommelier-header p { grid-column: 1 / -1; margin: .1rem 0 0; color: var(--muted); font-size: .68rem; }
 .sommelier-mark { display: flex; color: var(--wine); }
+.sommelier-new-chat { justify-self: end; border: 0; background: transparent; padding: .55rem .2rem; color: var(--wine); font-size: .78rem; font-weight: 700; cursor: pointer; }
 .header-spacer { justify-self: end; width: 4rem; }
 .sommelier-conversation { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem .1rem; scrollbar-width: thin; }
 .sommelier-welcome { display: flex; min-height: 100%; max-width: 37rem; margin: auto; flex-direction: column; align-items: center; justify-content: center; padding: 1rem 0 2rem; text-align: center; }
