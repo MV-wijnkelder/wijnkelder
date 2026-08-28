@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CameraIcon, SparklesIcon, WineglassIcon } from "@/components/icons";
 import { GlassCard, HeroBackground, PrimaryActionCard, SectionTitle } from "@/components/premium-ui";
@@ -27,10 +28,12 @@ export default function Home() {
     <section className="home-content page-enter">
       <header className="home-hero"><div className="brand-seal"><WineglassIcon className="size-7" /></div><p>Private wine collection</p><h1>VINOCASTELLO</h1><div>Your wine.<br />Your collection.<br />Your trusted sommelier.</div></header>
       <nav className="home-actions" aria-label="Primary actions">{actions.map((action) => <PrimaryActionCard key={action.href} {...action} />)}</nav>
-      <GlassCard className="cellar-summary">
-        <SectionTitle eyebrow="At a glance">Cellar Summary</SectionTitle>
-        <div className="summary-grid"><div className="bottle-total"><strong>{summary.bottles}</strong><span>Bottles protected</span></div><SummaryList title="Colours" values={summary.colours} /><SummaryList title="Regions" values={summary.regions} /></div>
-      </GlassCard>
+      <Link className="cellar-summary-link" href="/cellar/insights" aria-label="Open Cellar Insights">
+        <GlassCard className="cellar-summary">
+          <SectionTitle eyebrow="At a glance">Cellar Summary</SectionTitle>
+          <div className="summary-grid"><div className="bottle-total"><strong>{summary.bottles}</strong><span>Bottles protected</span></div><SummaryList title="Colours" values={summary.colours} /><SummaryList title="Regions" values={summary.regions} /></div>
+        </GlassCard>
+      </Link>
     </section>
   </main>;
 }
