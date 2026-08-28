@@ -308,6 +308,147 @@ a { color: inherit; text-decoration: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* VINOCASTELLO design contract: shared geometry and surface language. */
+:root {
+  --page-width: 72rem;
+  --content-width: 48rem;
+  --space-section: clamp(2rem, 6vw, 3.5rem);
+  --radius-card: 1.5rem;
+  --radius-control: 1rem;
+  --control-height: 3.5rem;
+  --control-padding: 0 1.25rem;
+  --premium-shadow: 0 1.25rem 3.5rem rgb(45 27 34 / 10%), inset 0 1px 0 rgb(255 255 255 / 70%);
+  --premium-transition: 180ms cubic-bezier(.2,.8,.2,1);
+}
+
+.premium-page { min-height: 100dvh; }
+.premium-page > section:not(.sommelier-page), .home-content {
+  width: min(100%, var(--content-width));
+  margin-inline: auto;
+}
+
+.premium-header {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  margin: var(--space-section) auto 2rem;
+  text-align: center;
+}
+.premium-mark, .sommelier-mark, .action-card-icon, .label-add-icon, .sommelier-avatar {
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 1.1rem;
+  background: linear-gradient(145deg, #84304b, var(--wine-deep));
+  color: white;
+  box-shadow: 0 .8rem 2rem rgb(91 25 45 / 20%), inset 0 1px 0 rgb(255 255 255 / 24%);
+}
+.premium-header > p, .section-title > p {
+  margin: 1rem 0 .45rem;
+  color: var(--gold);
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.premium-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -.05em;
+}
+.premium-subtitle {
+  max-width: 34rem;
+  margin-top: .75rem;
+  color: var(--muted);
+  font-size: .95rem;
+  line-height: 1.6;
+}
+
+.glass-card, .wine-card, .review-card, .label-empty-card, .label-preview-card,
+.label-warning, .recommendation-form, .recommendation-card, .no-match,
+.precision-panel, .profile-section, .edit-dialog, .selection-dialog, .duplicate-dialog,
+.sommelier-composer, .chat-message-assistant {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--glass);
+  box-shadow: var(--premium-shadow);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+}
+
+.action, .premium-button, .capture-button, .library-button,
+.recommendation-form > button, .recommendation-card > button, .profile-refresh > button,
+.sommelier-composer form > button, .sommelier-photo-actions > button {
+  min-height: var(--control-height);
+  border-radius: var(--radius-control);
+  padding: var(--control-padding);
+  font-size: .9rem;
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: -.01em;
+  transition: transform var(--premium-transition), box-shadow var(--premium-transition), background var(--premium-transition), opacity var(--premium-transition);
+}
+.back-button { width: fit-content; min-height: var(--control-height); margin: 0; }
+.action svg, .premium-button svg, .primary-action-card svg { width: 1.25rem; height: 1.25rem; stroke-width: 1.8; }
+
+.premium-input, .review-field input, .recommendation-form input,
+.precision-panel input, .sommelier-composer form input {
+  min-height: var(--control-height);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--field);
+  padding: .85rem 1rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color var(--premium-transition), box-shadow var(--premium-transition), background var(--premium-transition);
+}
+.premium-input:focus, .review-field input:focus, .recommendation-form input:focus,
+.precision-panel input:focus, .sommelier-composer form input:focus {
+  border-color: rgb(114 36 61 / 52%);
+  background: var(--glass-strong);
+  box-shadow: 0 0 0 4px rgb(114 36 61 / 9%);
+}
+
+.status-message, .error-message, .success-message, .release-message,
+.cellar-status, .sommelier-error {
+  margin: 1rem 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--glass);
+  padding: 1rem 1.1rem;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.5;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
+  backdrop-filter: blur(16px);
+}
+.error-message, .status-error, .sommelier-error { border-color: rgb(178 45 45 / 18%); background: rgb(255 241 241 / 88%); color: #8d2525; }
+.success-message, .status-success { border-color: rgb(47 126 76 / 18%); background: rgb(235 248 239 / 88%); color: #286940; }
+.dialog-backdrop { background: rgb(24 13 17 / 55%); backdrop-filter: blur(8px); }
+.edit-dialog, .selection-dialog, .duplicate-dialog { width: min(100%, 30rem); }
+
+.profile-hero .premium-header { margin-bottom: 1rem; }
+.profile-hero > .profile-tags { justify-content: center; margin-bottom: var(--space-section); }
+.profile-section { margin-top: 1rem; padding: 1.25rem; }
+.sommelier-header .premium-header { flex: 1; margin: 0; }
+.sommelier-header .premium-header h1 { font-size: 1.15rem; }
+.sommelier-header .premium-header .premium-mark, .sommelier-header .premium-header > p { display: none; }
+.sommelier-header .premium-subtitle { margin-top: .2rem; font-size: .7rem; }
+.sommelier-header .back-button, .sommelier-header .sommelier-new-chat { min-height: 2.75rem; padding-inline: .75rem; }
+
+@media (max-width: 420px) {
+  .premium-page { padding-inline: 1rem; }
+  .sommelier-header { gap: .45rem; }
+  .sommelier-header .premium-header h1 { font-size: 1rem; }
+  .sommelier-header .premium-subtitle { display: none; }
+  .sommelier-header .back-button, .sommelier-header .sommelier-new-chat { min-width: 0; font-size: .75rem; }
+}
+
 .action-copy { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
 .action-copy strong { font: inherit; }
 .action-copy small { margin-top: .18rem; font-size: .7rem; font-weight: 500; color: var(--muted); }
@@ -414,3 +555,21 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .sommelier-welcome { justify-content: center; }
 .cellar-search { display: block; }.cellar-search input,.recommendation-form input,.precision-panel input,.review-field input { background: var(--field); color: var(--ink); }.wine-card-main h2,.recommendation-card-title h2 { font-family: var(--font-serif); }.app-icon { border-color: rgb(216 177 104 / 36%); background: linear-gradient(145deg,#73223c,#3f0d1d); color: var(--gold); }
 @media (min-width: 700px) { .home-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }.cellar-summary { padding: 1.7rem; }.summary-grid { grid-template-columns: 1.1fr 1fr 1fr; }.bottle-total { border-right: 1px solid var(--line); border-bottom: 0; padding: .3rem 1.2rem .3rem 0; flex-direction: column; }.summary-list { padding-inline: .5rem; } }
+
+/* Final shared component rules intentionally win over legacy screen selectors. */
+.premium-page .premium-header { display: flex; align-items: center; flex-direction: column; margin: 2.5rem auto 2rem; text-align: center; }
+.premium-page .premium-header .premium-mark { display: inline-flex; width: 3.75rem; height: 3.75rem; align-items: center; justify-content: center; border: 1px solid rgb(216 177 104 / 36%); border-radius: 1.2rem; background: linear-gradient(145deg,#73223c,#3f0d1d); color: var(--gold); box-shadow: inset 0 1px rgb(255 255 255 / 10%),0 1rem 2.5rem rgb(0 0 0 / 28%); }
+.premium-page .premium-header > p { margin: 1rem 0 .35rem; color: var(--gold); font: 700 .68rem var(--font-system); letter-spacing: .13em; text-transform: uppercase; }
+.premium-page .premium-header h1 { margin: 0; font-size: clamp(2.35rem,10vw,4rem); line-height: 1; letter-spacing: -.04em; }
+.premium-page .premium-subtitle { max-width: 32rem; margin: .7rem auto 0; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+.premium-page .action, .premium-page .premium-button { min-height: var(--premium-control-height); border-radius: 1.1rem; padding: 0 1.25rem; font: 680 .9rem var(--font-system); }
+.premium-page .back-button { width: fit-content; }
+.premium-page :is(.glass-card,.wine-card,.review-card,.recommendation-form,.recommendation-card,.profile-section,.label-empty-card,.label-add-card,.label-preview-card,.label-warning,.no-match,.precision-panel,.edit-dialog,.selection-dialog,.duplicate-dialog) { border: 1px solid var(--line); border-radius: var(--premium-radius); background: var(--glass); box-shadow: inset 0 1px rgb(255 255 255 / 7%),0 1rem 2.5rem rgb(0 0 0 / 20%); backdrop-filter: blur(22px) saturate(135%); }
+.profile-hero .premium-header { margin-bottom: 1rem; }
+.profile-hero > .profile-tags { justify-content: center; margin-bottom: 2rem; }
+.sommelier-header .premium-header { flex: 1; margin: 0; }
+.sommelier-header .premium-header .premium-mark, .sommelier-header .premium-header > p { display: none; }
+.sommelier-header .premium-header h1 { font-size: 1.15rem; }
+.sommelier-header .premium-subtitle { margin-top: .2rem; font-size: .7rem; }
+.sommelier-header .back-button, .sommelier-header .sommelier-new-chat { min-height: 2.75rem; padding-inline: .7rem; }
+@media (max-width: 420px) { .sommelier-header { gap: .4rem; }.sommelier-header .premium-header h1 { font-size: 1rem; }.sommelier-header .premium-subtitle { display: none; }.sommelier-header .back-button,.sommelier-header .sommelier-new-chat { font-size: .72rem; } }

@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon } from "@/components/icons";
 import { WineProfile } from "@/components/wine-profile";
-import { HeroBackground } from "@/components/premium-ui";
+import { BackButton, HeroBackground, PremiumButton } from "@/components/premium-ui";
 import type { StoredWine } from "@/services/wine-service";
 import { WineService } from "@/services/wine-service";
 
@@ -17,11 +15,11 @@ export default function WineProfilePage({ params }: { params: Promise<{ id: stri
   return <main className="app-shell premium-page relative min-h-screen overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <HeroBackground atmosphere="cellar" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-2xl">
-      <Link className="back-link" href="/cellar"><ChevronLeftIcon className="size-5" /> My Cellar</Link>
+      <BackButton href="/cellar">My Cellar</BackButton>
       {error ? <p className="error-message mt-8" role="alert">{error}</p> : !wine ? <p className="cellar-status" role="status">Opening wine…</p> : <>
         <WineProfile wine={wine} bottleCount={wine.bottleCount} />
         <div className="profile-refresh">
-          <button disabled={refreshing} onClick={async () => { setRefreshing(true); setRefreshMessage(null); try { setWine(await WineService.refreshProfile(wine.id)); setRefreshMessage("Wine profile refreshed."); } catch (cause) { setRefreshMessage(cause instanceof Error ? cause.message : "The wine profile could not be refreshed. Please try again."); } finally { setRefreshing(false); } }}>{refreshing ? "Refreshing profile…" : "Refresh Wine Profile"}</button>
+          <PremiumButton disabled={refreshing} onClick={async () => { setRefreshing(true); setRefreshMessage(null); try { setWine(await WineService.refreshProfile(wine.id)); setRefreshMessage("Wine profile refreshed."); } catch (cause) { setRefreshMessage(cause instanceof Error ? cause.message : "The wine profile could not be refreshed. Please try again."); } finally { setRefreshing(false); } }}>{refreshing ? "Refreshing profile…" : "Refresh Wine Profile"}</PremiumButton>
           {refreshMessage && <p role="status">{refreshMessage}</p>}
         </div>
       </>}
