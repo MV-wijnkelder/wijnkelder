@@ -308,7 +308,7 @@ a { color: inherit; text-decoration: none; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* VINOCASTELLO design contract: shared geometry and surface language. */
+/* VinoCastello design contract: shared geometry and surface language. */
 :root {
   --page-width: 72rem;
   --content-width: 48rem;
@@ -498,7 +498,7 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 640px) { .sommelier-suggestions { grid-template-columns: 1fr 1fr; } .sommelier-conversation { padding-inline: 1rem; } }
 @keyframes typing-dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 
-/* VINOCASTELLO premium layer. */
+/* VinoCastello premium layer. */
 :root {
   --canvas: #171012; --ink: #f7f0df; --muted: #c5b9ad; --wine: #a64b63;
   --wine-deep: #4b1022; --gold: #d7b36a; --glass: rgb(37 24 28 / 72%);

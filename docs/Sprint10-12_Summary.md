@@ -23,9 +23,9 @@
 - The documented prompt in `docs/SommelierPrompt.md` is loaded as the runtime prompt, preventing documentation and behavior from silently diverging.
 - Time-sensitive research is isolated behind a `LiveIntelligenceSkill` and degrades to an honest “unavailable” state.
 
-### Sprint 11 — Personal multimodal Sommelier and VINOCASTELLO experience
+### Sprint 11 — Personal multimodal Sommelier and VinoCastello experience
 
-**Objective.** Make the Sommelier genuinely personal and usable in real-world wine moments by adding images, camera access, conversation continuity, resilient requests, and a coherent mobile-first VINOCASTELLO interface.
+**Objective.** Make the Sommelier genuinely personal and usable in real-world wine moments by adding images, camera access, conversation continuity, resilient requests, and a coherent mobile-first VinoCastello interface.
 
 **Business value.** Users can photograph or upload menus, wine lists, shop shelves, and bottles and discuss them naturally over multiple turns. Text and image history survive navigation or reload in the same browser, temporary service failures receive an automatic retry, and users can deliberately reset the session. The wider application was unified into a premium, recognizable brand rather than a collection of separately styled feature screens.
 
@@ -176,7 +176,7 @@ Bring the Sommelier into restaurant, shop, and bottle-in-hand situations, preser
    - Keeps the optimistic user message and exposes a stable “conversation is safe” retry message.
    - Validates multipart structure, file count, set count, supported type, and an 8 MiB per-file server limit.
 
-5. **VINOCASTELLO rebrand and shared premium design**
+5. **VinoCastello rebrand and shared premium design**
    - Renamed and repositioned the product as a private collection with a trusted sommelier.
    - Added reusable premium UI primitives, shared tokens, hero atmospheres/artwork, consistent cards/actions/headers, mobile safe-area handling, and a unified visual pass across Home, Cellar, Wine Details, Scan, Recommendations, and Sommelier.
 
@@ -220,11 +220,11 @@ Sprint 11 added tests for named image-set forwarding, prompt memory rules, 100-m
 
 - **#54** — Cellar-aware personal multimodal AI Sommelier
 - **#56** — Conversation reliability, named image sets, memory, and hardened requests
-- **#57** — VINOCASTELLO redesign
+- **#57** — VinoCastello redesign
 - **#58** — Premium hero artwork integration
 - **#60** — Premium UI polish and unknown-dish validation
 - **#61** — Shared visual system audit and components
-- **#62** — Canonical VINOCASTELLO premium design system
+- **#62** — Canonical VinoCastello premium design system
 
 ## Sprint 12 — Cellar Insights and App Identity Infrastructure
 
@@ -258,7 +258,7 @@ The page loads wines through the existing `/api/wines` boundary and passes them 
 
 - Users can understand collection size, breadth, maturity, and gaps from one dashboard.
 - The dashboard is reachable from Home and follows the shared premium/mobile system.
-- Browser and future installed-app metadata identify the product consistently as VINOCASTELLO.
+- Browser and future installed-app metadata identify the product consistently as VinoCastello.
 
 ### Known limitations at sprint close
 

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "VINOCASTELLO",
-    short_name: "VINOCASTELLO",
+    name: "VinoCastello",
+    short_name: "VinoCastello",
     description: "Your private collection and trusted personal sommelier.",
     start_url: "/",
     display: "standalone",

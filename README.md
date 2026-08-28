@@ -1,4 +1,4 @@
-# VINOCASTELLO
+# VinoCastello
 
 A clean, mobile-first wine cellar experience built with Next.js, TypeScript, and Tailwind CSS.
 

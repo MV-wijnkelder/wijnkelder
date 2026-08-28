@@ -26,7 +26,7 @@ export default function Home() {
   return <main className="app-shell home-shell premium-page">
     <HeroBackground atmosphere="home" />
     <section className="home-content page-enter">
-      <header className="home-hero"><div className="brand-seal"><WineglassIcon className="size-7" /></div><p>Private wine collection</p><h1>VINOCASTELLO</h1><div>Your wine.<br />Your collection.<br />Your trusted sommelier.</div></header>
+      <header className="home-hero"><div className="brand-seal"><WineglassIcon className="size-7" /></div><p>Private wine collection</p><h1>VinoCastello</h1><div>Your wine.<br />Your collection.<br />Your trusted sommelier.</div></header>
       <nav className="home-actions" aria-label="Primary actions">{actions.map((action) => <PrimaryActionCard key={action.href} {...action} />)}</nav>
       <Link className="cellar-summary-link" href="/cellar/insights" aria-label="Open Cellar Insights">
         <GlassCard className="cellar-summary">

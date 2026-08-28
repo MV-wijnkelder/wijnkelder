@@ -195,7 +195,7 @@ export default function SommelierPage() {
           <BackButton href="/" />
           <PremiumHeader
             icon={SparklesIcon}
-            eyebrow="VINOCASTELLO"
+            eyebrow="VinoCastello"
             title="Your Sommelier"
             subtitle="Private wine advice"
           />
