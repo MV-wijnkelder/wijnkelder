@@ -574,6 +574,39 @@ h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
 .sommelier-header .back-button, .sommelier-header .sommelier-new-chat { min-height: 2.75rem; padding-inline: .7rem; }
 @media (max-width: 420px) { .sommelier-header { gap: .4rem; }.sommelier-header .premium-header h1 { font-size: 1rem; }.sommelier-header .premium-subtitle { display: none; }.sommelier-header .back-button,.sommelier-header .sommelier-new-chat { font-size: .72rem; } }
 
+/* Sprint 12A: Cellar Insights. */
+.cellar-summary-link { display: block; border-radius: var(--premium-radius); }
+.cellar-summary-link:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.cellar-summary-link .cellar-summary { transition: transform var(--premium-transition), border-color var(--premium-transition); }
+.cellar-summary-link:hover .cellar-summary { border-color: rgb(210 174 105 / 48%); transform: translateY(-2px); }
+.insights-page { overflow-x: clip; }
+.insights-content { padding-bottom: 3rem; }
+.insights-sections { display: grid; gap: 1rem; }
+.insight-section { padding: 1.25rem; }
+.insight-section .section-title { padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.insight-section .section-title > p { margin-bottom: .3rem; }
+.insight-section .section-title h2 { font-size: 1.55rem; }
+.section-intro { margin: 1rem 0; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.insights-status { margin: 4rem 0; color: var(--muted); text-align: center; }
+.insights-empty { padding: 2.5rem 1.5rem; text-align: center; }
+.insights-empty > svg { width: 2rem; color: var(--gold); }.insights-empty h2 { margin: 1rem 0 .4rem; }.insights-empty p { margin: 0; color: var(--muted); }
+.insights-kpis { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin-top: 1rem; }
+.insight-kpi { min-width: 0; border: 1px solid var(--line); border-radius: 1.1rem; background: rgb(14 9 10 / 24%); padding: 1rem; }
+.insight-kpi strong { display: block; overflow-wrap: anywhere; color: var(--gold-soft); font: 500 clamp(1.45rem,7vw,2.15rem)/1 var(--font-serif); }
+.insight-kpi span { display: block; margin-top: .45rem; color: var(--muted); font-size: .7rem; line-height: 1.3; }
+.readiness-list { display: grid; gap: .15rem; }
+.readiness-row { display: grid; grid-template-columns: 7.8rem 1fr; align-items: center; gap: .75rem; border-bottom: 1px solid rgb(210 174 105 / 12%); padding: .85rem 0; }
+.readiness-row:last-child { border-bottom: 0; }.stars { color: var(--gold); font-size: 1.08rem; letter-spacing: .08em; white-space: nowrap; }.stars i { color: rgb(198 161 93 / 22%); font-style: normal; }
+.readiness-row strong,.readiness-row small { display: block; }.readiness-row strong { font-size: .78rem; font-weight: 650; line-height: 1.35; }.readiness-row small { margin-top: .2rem; color: var(--muted); font-size: .68rem; }
+.horizon-chart { display: grid; gap: .85rem; margin-top: 1.2rem; }.horizon-row { display: grid; grid-template-columns: 3rem 1fr 1.5rem; align-items: center; gap: .7rem; font-size: .75rem; }.horizon-row > span { color: var(--gold-soft); font-weight: 700; }.horizon-row > div { height: .55rem; overflow: hidden; border-radius: 999px; background: rgb(198 161 93 / 12%); }.horizon-row i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--wine),var(--gold)); }.horizon-row strong { text-align: right; }
+.mix-grid { display: grid; gap: 1.25rem; margin-top: 1.2rem; }.mix-chart { min-width: 0; }.mix-chart h3 { margin: 0 0 .85rem; color: var(--gold-soft); font: 700 .7rem var(--font-system); letter-spacing: .12em; text-transform: uppercase; }.mix-chart > small { color: var(--muted); }.mix-item { margin-top: .65rem; }.mix-item > div { display: flex; justify-content: space-between; gap: 1rem; font-size: .72rem; }.mix-item span { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }.mix-item i { display: block; height: .3rem; margin-top: .35rem; overflow: hidden; border-radius: 999px; background: rgb(198 161 93 / 12%); }.mix-item b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--wine),var(--gold)); }
+.value-feature { margin-top: 1rem; padding: 1rem 0 .4rem; text-align: center; }.value-feature > span,.value-feature > small { display: block; color: var(--muted); font-size: .7rem; }.value-feature strong { display: block; margin: .35rem 0; color: var(--gold-soft); font: 500 clamp(2.2rem,10vw,3.5rem)/1 var(--font-serif); }.value-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin-top: 1rem; }
+.highlights { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0; margin: 1rem 0 0; }.highlights > div { border-bottom: 1px solid rgb(210 174 105 / 12%); padding: .8rem .4rem .8rem 0; }.highlights dt { color: var(--muted); font-size: .68rem; }.highlights dd { margin: .3rem 0 0; font-family: var(--font-serif); font-size: 1rem; overflow-wrap: anywhere; }
+.executive-insights { position: relative; overflow: hidden; }.insight-spark { position: absolute; top: 1.2rem; right: 1.2rem; color: var(--gold); }.insight-spark svg { width: 1.4rem; }.executive-insights ul { display: grid; gap: .8rem; margin: 1rem 0 0; padding: 0; list-style: none; }.executive-insights li { border-left: 1px solid var(--gold); padding-left: .85rem; font-family: var(--font-serif); font-size: .95rem; line-height: 1.5; }
+.health-card { text-align: center; }.health-card .section-title { text-align: left; }.health-score { display: flex; justify-content: center; align-items: baseline; margin: 1.4rem 0 .5rem; color: var(--gold-soft); }.health-score strong { font: 500 4.5rem/1 var(--font-serif); }.health-score span { color: var(--muted); font-size: 1rem; }.health-card > p { margin: 0 auto; max-width: 25rem; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.insights-no-data { margin: 1rem 0 0; color: var(--muted); font-size: .8rem; font-style: italic; }
+@media (min-width: 600px) { .insight-section { padding: 1.6rem; }.insights-kpis { grid-template-columns: repeat(4,minmax(0,1fr)); }.mix-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.highlights { grid-template-columns: repeat(3,minmax(0,1fr)); }.readiness-row { grid-template-columns: 9rem 1fr; }.stars { font-size: 1.25rem; } }
+
 /* Sprint 11D: canonical premium design system. These tokens and shared primitives
    are the single visual contract for every screen and state. */
 :root {
