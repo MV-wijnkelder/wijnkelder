@@ -9,14 +9,6 @@ import { clearRememberedImageSets, loadRememberedImageSets, saveRememberedImageS
 import { FRIENDLY_SOMMELIER_ERROR, requestSommelier } from "@/lib/sommelier-request";
 import type { SommelierMessage } from "@/server/sommelier/sommelier";
 
-const suggestions = [
-  "What should I drink tonight?",
-  "Should I buy this wine?",
-  "Explain Barolo.",
-  "How long can I keep this bottle?",
-  "Which wine goes with duck?",
-  "Tell me about Brunello.",
-];
 const HISTORY_KEY = "personal-sommelier-conversation";
 type AttachedImage = { file: File; url: string };
 
@@ -45,11 +37,6 @@ export default function SommelierPage() {
   }, []);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => { if (messages.length) localStorage.setItem(HISTORY_KEY, JSON.stringify(messages)); }, [messages]);
-
-  function chooseSuggestion(question: string) {
-    setInput(question);
-    inputRef.current?.focus();
-  }
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -118,12 +105,8 @@ export default function SommelierPage() {
       <div className="sommelier-conversation" aria-live="polite">
         {messages.length === 0 ? <section className="sommelier-welcome">
           <span className="sommelier-avatar"><SparklesIcon className="size-7" /></span>
-          <h2>Hello.</h2>
-          <p>I&apos;m your personal sommelier.</p>
-          <p>Ask me anything about wine, food pairing, your cellar, wineries, restaurants or buying wine.</p>
-          <div className="sommelier-suggestions" aria-label="Suggested questions">
-            {suggestions.map((question) => <button key={question} type="button" onClick={() => chooseSuggestion(question)}>{question}</button>)}
-          </div>
+          <h2>Your Sommelier</h2>
+          <p>Personal wine advice, whenever you need it.</p>
         </section> : <div className="message-list">
           {messages.map((message, index) => <article className={`chat-message chat-message-${message.role}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? "You" : "Sommelier"}</span><p>{message.content}</p></article>)}
           {loading && <article className="chat-message chat-message-assistant"><span>Sommelier</span><p className="typing" aria-label="Sommelier is thinking"><i /><i /><i /></p></article>}

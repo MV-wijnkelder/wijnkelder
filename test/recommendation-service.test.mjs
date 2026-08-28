@@ -125,6 +125,15 @@ test("converts focused natural language into structured cellar intent", () => {
   assert.deepEqual(detectRecommendationIntent("Which wines are ready to drink?"), { kind: "ready", source: "cellar" });
   assert.deepEqual(detectRecommendationIntent("Compare Badarina and Siepi"), { kind: "compare", names: ["Badarina", "Siepi"], source: "cellar" });
   assert.deepEqual(detectRecommendationIntent("What Italian wines do I own?"), { kind: "inventory", country: "Italy", source: "cellar" });
+  assert.deepEqual(detectRecommendationIntent("Strak tonight"), { kind: "unknown", source: "cellar" });
+});
+
+test("does not fabricate recommendations for unknown or meaningless dishes", () => {
+  const cellar = [profiledWine(1, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" })];
+  const service = new RecommendationService();
+  for (const food of ["Strak tonight", "blorple", "random words here", "quantum spreadsheet"]) {
+    assert.deepEqual(service.recommend(cellar, { food }), []);
+  }
 });
 
 test("structured occasions make Firmina the top aperitif recommendation", () => {
