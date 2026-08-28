@@ -1,8 +1,8 @@
-# VINOCASTELLO — Product Vision
+# VinoCastello — Product Vision
 
 ## Product vision
 
-VINOCASTELLO is a dependable, personal record of a real wine collection. It should make adding, finding, understanding, and enjoying a bottle easier without turning cellar management into administration. The application database is the single source of truth. The existing MCHRDV Wine Cellar Excel workbook remains an important interchange format: imports must retain its information and future exports should reproduce its structure without loss.
+VinoCastello is a dependable, personal record of a real wine collection. It should make adding, finding, understanding, and enjoying a bottle easier without turning cellar management into administration. The application database is the single source of truth. The existing MCHRDV Wine Cellar Excel workbook remains an important interchange format: imports must retain its information and future exports should reproduce its structure without loss.
 
 The product should evolve from a useful catalogue into a trusted cellar companion. It may help identify labels, explain a wine, surface bottles at the right moment, and suggest pairings, while always leaving ownership and final judgment with the user.
 

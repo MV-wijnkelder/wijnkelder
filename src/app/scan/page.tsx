@@ -161,7 +161,7 @@ export default function ScanPage() {
             icon={CameraIcon}
             eyebrow="Add to your collection"
             title="Scan a Wine"
-            subtitle="Capture a label and let VINOCASTELLO identify the bottle."
+            subtitle="Capture a label and let VinoCastello identify the bottle."
           />
         )}
         <div className="mt-8 flex flex-col gap-4">

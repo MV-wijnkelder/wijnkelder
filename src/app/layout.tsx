@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  applicationName: "VINOCASTELLO",
-  title: "VINOCASTELLO",
+  applicationName: "VinoCastello",
+  title: "VinoCastello",
   description: "Your private collection and trusted personal sommelier.",
   manifest: "/manifest.webmanifest",
   icons: {
