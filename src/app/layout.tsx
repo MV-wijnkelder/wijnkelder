@@ -7,13 +7,8 @@ export const metadata: Metadata = {
   description: "Your private collection and trusted personal sommelier.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [
-      { url: "/favicon.ico", type: "image/x-icon" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/images/icon-hero.webp", sizes: "1254x1254", type: "image/webp" }],
+    shortcut: [{ url: "/images/icon-hero.webp", type: "image/webp" }],
   },
 };
 

@@ -9,15 +9,15 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.2.0
+- **Current version:** 1.2.1
 - **Current development phase:** Cellar intelligence and personal companion;
-  trust, reliability, and installable-app completion are next.
+  trust and reliability are next following installable-app identity completion.
 - **Last updated:** 28 August 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 13B — Automatic Market Value Provider
-- **Release status:** Sprint 13B is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 13C — Official VinoCastello Mobile/App Icon
+- **Release status:** Sprint 13C is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -28,7 +28,7 @@
   management; AI-generated wine profiles; deterministic, explainable
   cellar-first recommendations; a routed, multimodal personal AI Sommelier with
   browser-local conversation and image context; live-information fallback;
-  collection insights with transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and web-app manifest/icon metadata groundwork.
+  collection insights with transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and installable-app metadata using the official VinoCastello artwork.
 
 # Completed Sprints
 
@@ -94,6 +94,14 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.2.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 13C — Official VinoCastello Mobile/App Icon
+
+- **Objective:** Replace the broken placeholder icon configuration with the manually supplied official VinoCastello artwork without generating or modifying binary assets.
+- **Key functionality delivered:** Next.js application, shortcut, and web-app manifest icon metadata now share `public/images/icon-hero.webp` as the canonical icon; nonexistent generic favicon, PNG, and Apple Touch Icon references were removed; and automated checks protect the canonical branding configuration and WebP asset contract.
+- **Completion date:** 28 August 2026
+- **Release version:** 1.2.1
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -147,6 +155,14 @@ the session and aborts in-flight work. Cellar, current-wine, image, and live
 context are included only when routing indicates they are needed. Personal
 conversation memory is not stored as a second server-side cellar record.
 
+## Installable App Identity
+
+Next.js metadata and the generated web-app manifest use the existing
+`public/images/icon-hero.webp` artwork as the single canonical VinoCastello
+icon. Modern browsers that support WebP application icons use that asset for
+favicon, shortcut, and installable-app presentation. No generated icon
+derivatives are maintained.
+
 ## AI Prompt Flow
 
 1. Validate and bound the latest text, history, context, and images.
@@ -189,7 +205,7 @@ conversation memory is not stored as a second server-side cellar record.
 - Use current-information research when available, with graceful fallback.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
 - View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
-- Expose manifest and icon metadata groundwork for a future installable app.
+- Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
 # Open Issues
 
@@ -197,6 +213,7 @@ conversation memory is not stored as a second server-side cellar record.
 
 - Market retrieval requires the configured OpenAI provider and network access, is EUR-only, and cannot value wines without current exact-match public offers. Retailer availability and web-search results can change independently of the cache.
 - Complete-cellar refresh currently processes wines sequentially and may be slow for large cellars; individual failures are isolated, but progress is not streamed to the UI.
+- Apple Touch Icons require a supported dedicated raster format in Apple environments that do not accept WebP. VinoCastello intentionally has no generated PNG fallback, so those environments may use their own fallback until a suitable official, manually supplied compatible asset exists.
 
 - Image sets have generic names (`Image Set N`), which makes ambiguity harder to
   resolve in long conversations.
@@ -208,7 +225,6 @@ conversation memory is not stored as a second server-side cellar record.
   IndexedDB load failure currently becomes silent loss of image context.
 - Drinking-window decisions use the current UTC year and cannot account for
   storage, bottle condition, month, or maturity preference.
-- Final installable-app icon artwork is not present.
 
 ## Technical Debt
 
@@ -257,8 +273,8 @@ conversation memory is not stored as a second server-side cellar record.
 # Current Backlog
 
 1. **Trust, provenance, and end-to-end reliability:** Mark data provenance; add
-   browser, database integration, and provider-contract coverage; add redacted
-   observability; and finish/validate application icons and manifest behavior.
+   browser, database integration, and provider-contract coverage; and add
+   redacted observability.
 2. **Contextual handoffs and scalable retrieval:** Connect existing screens to
    the Sommelier with typed context and implement deterministic candidate
    retrieval plus compact canonical summaries.
@@ -279,7 +295,7 @@ conversation memory is not stored as a second server-side cellar record.
 
 ## Sprint 14 — Trust, Provenance, and End-to-End Reliability
 
-**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, visible provenance for AI/user-confirmed facts where appropriate, and complete installable-app identity validation without exposing market-source complexity in the valuation UI.
+**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, and visible provenance for AI/user-confirmed facts where appropriate without exposing market-source complexity in the valuation UI.
 
 # Architectural Decisions
 
@@ -310,6 +326,10 @@ conversation memory is not stored as a second server-side cellar record.
 - **Mobile-first, simple, and premium:** Preserve one obvious next action,
   accessible touch behavior, consistent language, calm progressive disclosure,
   and shared visual primitives.
+- **One manually supplied application icon:** `public/images/icon-hero.webp` is
+  the canonical VinoCastello icon. Codex must not generate, convert, modify, or
+  commit binary image assets; platform gaps remain documented until the user
+  supplies a compatible official asset.
 - **Additive evolution:** Schema changes must be backward compatible and
   normalize historical records without fabricating facts.
 
