@@ -11,6 +11,7 @@ export interface RecommendationRequest {
 
 export type RecommendationIntent =
   | { kind: "recommendation"; occasion: string; source: "cellar" }
+  | { kind: "unknown"; source: "cellar" }
   | { kind: "ready"; source: "cellar" }
   | { kind: "compare"; names: string[]; source: "cellar" }
   | { kind: "inventory"; country: string | null; source: "cellar" };
@@ -36,6 +37,7 @@ export class RecommendationService {
     // Occasion is additional meal precision, not merely a style preference. Combining
     // it here means "creamy", "grilled", and similar details affect every food score.
     const intent = detectRecommendationIntent(request.query ?? request.food ?? "");
+    if (intent.kind === "unknown") return [];
     const subject = request.query && intent.kind === "recommendation" ? intent.occasion : request.food ?? request.query ?? "drink tonight";
     const meal = understandMeal(subject, request.occasion);
 
@@ -80,8 +82,13 @@ export function detectRecommendationIntent(input: string): RecommendationIntent 
   if (/\bsurprise me\b/.test(lower)) return { kind: "recommendation", occasion: "Surprise", source: "cellar" };
   if (/\baperitif\b|\bapéritif\b|\baperitief\b/.test(lower)) return { kind: "recommendation", occasion: "Aperitif", source: "cellar" };
   if (/\b(?:open|drink)\b.*\btonight\b|\btonight\b.*\b(?:open|drink)\b/.test(lower)) return { kind: "recommendation", occasion: "Drink Tonight", source: "cellar" };
-  for (const term of ["steak", "sushi", "salmon", "turkey", "chicken", "cod", "barbecue", "mushroom", "pizza", "cheese"]) if (new RegExp(`\\b${term}\\b`, "i").test(query)) return { kind: "recommendation", occasion: capitalize(term), source: "cellar" };
-  return { kind: "recommendation", occasion: query || "Drink Tonight", source: "cellar" };
+  const mealWords = words(query);
+  const mealFamilies = classify(mealWords);
+  if (mealFamilies.size > 0) {
+    const recognised = [...mealWords].find((word) => Object.values(FAMILIES).some((terms) => terms.includes(word)));
+    return { kind: "recommendation", occasion: capitalize(recognised ?? query), source: "cellar" };
+  }
+  return { kind: "unknown", source: "cellar" };
 }
 
 function scoreWine(wine: StoredWine, meal: Meal, request: RecommendationRequest): ScoreParts {
