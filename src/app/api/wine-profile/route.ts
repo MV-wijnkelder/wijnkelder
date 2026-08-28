@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     const wine = await request.json() as Wine;
-    const profile = hasWineProfile(wine.profile)
-      ? wine.profile
+    const enrichment = hasWineProfile(wine.profile)
+      ? { profile: wine.profile, marketValue: wine.marketValue, marketValueCurrency: wine.marketValueCurrency }
       : await wineProfileGenerator().generateWineProfile(wine);
-    if (!hasWineProfile(profile)) throw new Error("AI returned an empty wine profile");
-    return NextResponse.json({ ...wine, profile });
+    if (!hasWineProfile(enrichment.profile)) throw new Error("AI returned an empty wine profile");
+    return NextResponse.json({ ...wine, ...enrichment });
   } catch (error) {
     console.error("Wine profile preview failed", error);
     return NextResponse.json({ error: "The wine profile could not be created. Please try again." }, { status: 500 });

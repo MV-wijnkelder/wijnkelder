@@ -15,7 +15,7 @@ export type CellarInsights = {
     regions: DistributionItem[];
     grapes: DistributionItem[];
   };
-  value: { currency: string; total: number; average: number; highest: number; pricedBottles: number } | null;
+  value: { currency: string; total: number; average: number; highest: number; valuedBottles: number; unvaluedBottles: number; totalBottles: number; coveragePercentage: number };
   highlights: { oldest: string | null; youngest: string | null; producer: string | null; country: string | null; region: string | null };
   insights: string[];
   health: number;
@@ -116,14 +116,14 @@ function largest(wines: StoredWine[], select: (wine: StoredWine) => string | nul
   return distribution(wines, (wine) => values(select(wine)))[0]?.label ?? null;
 }
 function collectionValue(wines: StoredWine[]): CellarInsights["value"] {
-  const currencyCounts = new Map<string, number>();
-  wines.forEach((wine) => { if (wine.cellar.purchasePrice !== null) currencyCounts.set(wine.cellar.purchaseCurrency ?? "EUR", (currencyCounts.get(wine.cellar.purchaseCurrency ?? "EUR") ?? 0) + wine.bottleCount); });
-  const currency = [...currencyCounts].sort((a, b) => b[1] - a[1])[0]?.[0];
-  if (!currency) return null;
-  const priced = wines.filter((wine) => wine.cellar.purchasePrice !== null && (wine.cellar.purchaseCurrency ?? "EUR") === currency);
-  const pricedBottles = priced.reduce((sum, wine) => sum + wine.bottleCount, 0);
-  const total = priced.reduce((sum, wine) => sum + (wine.cellar.purchasePrice ?? 0) * wine.bottleCount, 0);
-  return { currency, total, average: total / pricedBottles, highest: Math.max(...priced.map((wine) => wine.cellar.purchasePrice ?? 0)), pricedBottles };
+  const valued = wines.filter((wine) => wine.marketValue !== null);
+  const totalBottles = wines.reduce((sum, wine) => sum + wine.bottleCount, 0);
+  const valuedBottles = valued.reduce((sum, wine) => sum + wine.bottleCount, 0);
+  const total = valued.reduce((sum, wine) => sum + (wine.marketValue ?? 0) * wine.bottleCount, 0);
+  return { currency: valued.find((wine) => wine.marketValueCurrency)?.marketValueCurrency ?? "EUR", total,
+    average: valuedBottles ? total / valuedBottles : 0, highest: valued.length ? Math.max(...valued.map((wine) => wine.marketValue ?? 0)) : 0,
+    valuedBottles, unvaluedBottles: totalBottles - valuedBottles, totalBottles,
+    coveragePercentage: totalBottles ? Math.round(valuedBottles / totalBottles * 100) : 0 };
 }
 function balance(items: DistributionItem[]): number {
   if (!items.length) return 0;

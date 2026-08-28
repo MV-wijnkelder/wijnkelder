@@ -42,8 +42,9 @@ export default function CellarInsightsPage() {
           <div className="mix-grid"><MixChart title="Colour" items={report.mix.colours} /><MixChart title="Country" items={report.mix.countries} /><MixChart title="Region" items={report.mix.regions} /><MixChart title="Grape variety" items={report.mix.grapes} /></div>
         </InsightSection>
 
-        <InsightSection eyebrow="Section 05" title="Collection Value">
-          {report.value ? <><div className="value-feature"><span>Estimated collection value</span><strong>{money(report.value.total, report.value.currency)}</strong><small>Based on recorded purchase prices for {report.value.pricedBottles} bottles</small></div><div className="value-pair"><Kpi value={money(report.value.average, report.value.currency)} label="Average bottle value" /><Kpi value={money(report.value.highest, report.value.currency)} label="Highest value bottle" /></div></> : <EmptyData>Add purchase prices to see collection value.</EmptyData>}
+        <InsightSection eyebrow="Section 05" title="Estimated Collection Value">
+          <div className="value-feature"><span>Estimated Collection Value</span><strong>{money(report.value.total, report.value.currency)}</strong><small>Based on current estimated market prices.</small><small>{report.value.valuedBottles} of {report.value.totalBottles} bottles valued ({report.value.coveragePercentage}%)</small>{report.value.unvaluedBottles > 0 && <small>{report.value.unvaluedBottles} {report.value.unvaluedBottles === 1 ? "bottle" : "bottles"} awaiting market valuation</small>}</div>
+          {report.value.valuedBottles > 0 && <div className="value-pair"><Kpi value={money(report.value.average, report.value.currency)} label="Average market value" /><Kpi value={money(report.value.highest, report.value.currency)} label="Highest market value" /></div>}
         </InsightSection>
 
         <InsightSection eyebrow="Section 06" title="Collection Highlights">
