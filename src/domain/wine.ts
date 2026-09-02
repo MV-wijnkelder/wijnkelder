@@ -81,7 +81,14 @@ export interface WineProfile {
     finish: string | null;
   };
   serving: { temperature: string | null; decantAdvice: string | null };
-  drinking: { drinkFrom: string | null; drinkUntil: string | null; currentMaturity: Maturity | null };
+  drinking: {
+    drinkFrom: string | null;
+    /** Start and end of the best period, distinct from earliest drinkability. */
+    peakFrom: string | null;
+    peakUntil: string | null;
+    drinkUntil: string | null;
+    currentMaturity: Maturity | null;
+  };
   style: {
     body: Intensity | null; acidity: Intensity | null; tannin: Intensity | null;
     sweetness: Intensity | null; alcohol: Intensity | null; wineStyle: string | null;
@@ -121,7 +128,7 @@ export function emptyWineProfile(): WineProfile {
     sommelier: { occasions: [], pairings: { excellent: [], good: [], avoid: [] }, wineStyle: null, ageingPotential: null, drinkingStage: null, servingPersonality: null },
     tasting: { appearance: null, aromas: [], flavors: [], finish: null },
     serving: { temperature: null, decantAdvice: null },
-    drinking: { drinkFrom: null, drinkUntil: null, currentMaturity: null },
+    drinking: { drinkFrom: null, peakFrom: null, peakUntil: null, drinkUntil: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },
     foodPairings: [], summary: null, wineryInformation: null, vintageRemarks: null,
   };

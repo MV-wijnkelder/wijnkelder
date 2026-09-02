@@ -1,5 +1,6 @@
 import type { StoredWine } from "@/domain/wine";
 import type { SommelierContext, SommelierImageContext, SommelierMessage } from "./sommelier";
+import { getDrinkingLifecycle } from "../../lib/drinking-lifecycle.ts";
 
 export const SOMMELIER_INTENTS = ["cellar", "buying", "restaurant", "travel", "wine_knowledge", "food_pairing", "serving", "storage", "comparison", "general"] as const;
 export type SommelierIntent = typeof SOMMELIER_INTENTS[number];
@@ -34,7 +35,7 @@ export interface LiveIntelligenceSkill {
 }
 
 const SPECIALIST_GUIDANCE: Record<SommelierIntent, string> = {
-  cellar: "Act as a cellar advisor. Prefer suitable confirmed bottles, respect maturity and quantity, and explain the choice briefly.",
+  cellar: "Act as a cellar advisor. Prefer the suitable bottle that should be opened now, not merely one that can be. Protect a materially developing bottle when an equally suitable peak or near-peak alternative exists; quantity is secondary. Explain that trade-off briefly and naturally.",
   buying: "Act as a buying advisor. Clarify budget or location only when essential. Be candid when live prices or availability are unavailable.",
   restaurant: "Act as a restaurant wine advisor. Balance the food, group, budget, and value on the list; ask for the list only when essential.",
   travel: "Act as a wine travel advisor. Give practical region and winery guidance, and distinguish stable knowledge from live travel facts.",
@@ -97,7 +98,13 @@ async function resolveContext(route: SommelierRoute, context: SommelierContext |
   // The cellar is intrinsic personal context, not an opt-in attachment. Routing
   // controls when its potentially large payload is sent to the model.
   if (route.needsCellar) records.cellar = await source.listCellar();
-  return Object.keys(records).length ? `Confirmed application context (JSON):\n${JSON.stringify(records)}` : null;
+  const withLifecycle = (wine: StoredWine) => ({ ...wine, drinkingLifecycle: getDrinkingLifecycle(wine) });
+  const modelRecords = {
+    ...(records.currentWine ? { currentWine: withLifecycle(records.currentWine) } : {}),
+    ...(records.currentScannedWine ? { currentScannedWine: withLifecycle(records.currentScannedWine) } : {}),
+    ...(records.cellar ? { cellar: records.cellar.map(withLifecycle) } : {}),
+  };
+  return Object.keys(modelRecords).length ? `Confirmed application context (JSON):\n${JSON.stringify(modelRecords)}` : null;
 }
 
 export function isSommelierRoute(value: unknown): value is SommelierRoute {

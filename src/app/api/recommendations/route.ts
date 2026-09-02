@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { detectRecommendationIntent, idealWineStyles, RecommendationService } from "@/server/recommendations/recommendation-service";
 import type { RecommendationRequest } from "@/server/recommendations/recommendation-service";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
+import { getDrinkingLifecycle } from "@/lib/drinking-lifecycle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,8 +37,8 @@ export async function POST(request: Request) {
 
 function answerCellarQuestion(wines: Awaited<ReturnType<NeonWineStorage["list"]>>, intent: ReturnType<typeof detectRecommendationIntent>): string {
   if (intent.kind === "ready") {
-    const ready = wines.filter((wine) => ["ready", "mature"].includes(wine.profile.sommelier.drinkingStage ?? wine.profile.drinking.currentMaturity ?? ""));
-    return ready.length ? `Ready to drink: ${ready.map(wineLabel).join("; ")}.` : "No wines in your cellar are explicitly marked ready to drink.";
+    const ready = wines.filter((wine) => ["drinkNow", "pastPeak"].includes(getDrinkingLifecycle(wine)?.outlook ?? ""));
+    return ready.length ? `Best considered now: ${ready.map(wineLabel).join("; ")}.` : "No wines in your cellar are currently prioritised for drinking.";
   }
   if (intent.kind === "inventory") {
     const owned = intent.country ? wines.filter((wine) => wine.country?.toLowerCase() === intent.country?.toLowerCase()) : wines;

@@ -34,6 +34,18 @@ test("uses drinking readiness and bottle availability without returning empty in
   assert.match(result[0].bullets[1], /drinking beautifully now/i);
 });
 
+test("protects an equally suitable developing bottle when another is at peak", () => {
+  const developing = profiledWine(1, { pairings: ["steak"], color: "red", style: "Barolo", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
+  developing.wineName = "Young Barolo";
+  developing.profile.drinking = { drinkFrom: "2025", peakFrom: "2030", peakUntil: "2038", drinkUntil: "2042", currentMaturity: "ready" };
+  const peak = profiledWine(2, { pairings: ["steak"], color: "red", style: "Mature Bordeaux", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
+  peak.wineName = "Mature Bordeaux";
+  peak.profile.drinking = { drinkFrom: "2015", peakFrom: "2024", peakUntil: "2028", drinkUntil: "2032", currentMaturity: "mature" };
+  const result = new RecommendationService().recommend([developing, peak], { food: "steak" });
+  assert.equal(result[0].wine.id, 2);
+  assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /worth keeping/i);
+});
+
 test("meal families produce materially different rankings across a varied cellar", () => {
   const cellar = [
     profiledWine(1, { pairings: ["grilled steak", "beef"], color: "red", style: "bold Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" }),
