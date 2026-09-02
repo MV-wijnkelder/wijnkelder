@@ -13,6 +13,7 @@ import {
 } from "@/components/premium-ui";
 import type { StoredWine } from "@/services/wine-service";
 import { WineService } from "@/services/wine-service";
+import { downloadCellarWorkbook } from "@/lib/cellar-export";
 import {
   CELLAR_STATE_KEY,
   emptyCellarNavigationState,
@@ -28,6 +29,8 @@ export default function CellarPage() {
           .search,
   );
   const [editing, setEditing] = useState<StoredWine | null>(null);
+  const [editingOriginal, setEditingOriginal] = useState<StoredWine | null>(null);
+  const [confirmingEdit, setConfirmingEdit] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshingValues, setRefreshingValues] = useState(false);
@@ -104,21 +107,16 @@ export default function CellarPage() {
     });
   }, [isLoading]);
 
-  async function changeCount(wine: StoredWine, change: number) {
-    try {
-      const updated = await WineService.changeBottleCount(wine.id, change);
-      setWines((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
-    } catch (changeError) {
-      setError(message(changeError));
-    }
+  function changeCount(wine: StoredWine, change: number) {
+    setEditingOriginal(wine);
+    setEditing({ ...wine, bottleCount: Math.max(0, wine.bottleCount + change) });
+    setConfirmingEdit(true);
   }
 
   async function remove(wine: StoredWine) {
     if (
       !window.confirm(
-        `Delete ${wine.wineName ?? "this wine"} from your cellar?`,
+        `Delete this wine?\n\nThis will remove ${wine.wineName ?? "this wine"} and all ${wine.bottleCount} ${wine.bottleCount === 1 ? "bottle" : "bottles"} from your cellar.`,
       )
     )
       return;
@@ -134,6 +132,11 @@ export default function CellarPage() {
 
   async function saveEdit(event: React.FormEvent) {
     event.preventDefault();
+    if (!editing || !editingOriginal) return;
+    setConfirmingEdit(true);
+  }
+
+  async function confirmEdit() {
     if (!editing) return;
     try {
       const updated = await WineService.update(editing);
@@ -141,6 +144,8 @@ export default function CellarPage() {
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
       setEditing(null);
+      setEditingOriginal(null);
+      setConfirmingEdit(false);
     } catch (editError) {
       setError(message(editError));
     }
@@ -168,6 +173,7 @@ export default function CellarPage() {
         <div className="profile-refresh">
           <PremiumButton disabled={refreshingValues || isLoading} onClick={async () => { setRefreshingValues(true); setError(null); try { setWines(await WineService.refreshAllMarketValues()); } catch (cause) { setError(message(cause)); } finally { setRefreshingValues(false); } }}>{refreshingValues ? "Refreshing cellar values…" : "Refresh Estimated Market Values"}</PremiumButton>
         </div>
+        {!isLoading && <PremiumButton className="export-action" variant="secondary" onClick={() => downloadCellarWorkbook(wines)}>Export to Excel</PremiumButton>}
         <label className="cellar-search">
           <span className="sr-only">Search your cellar</span>
           <PremiumInput
@@ -236,7 +242,7 @@ export default function CellarPage() {
                   <div className="count-actions">
                     <button
                       type="button"
-                      onClick={() => void changeCount(wine, -1)}
+                      onClick={() => changeCount(wine, -1)}
                       disabled={wine.bottleCount === 0}
                       aria-label="One fewer bottle"
                     >
@@ -245,13 +251,13 @@ export default function CellarPage() {
                     <span>{wine.bottleCount}</span>
                     <button
                       type="button"
-                      onClick={() => void changeCount(wine, 1)}
+                      onClick={() => changeCount(wine, 1)}
                       aria-label="One more bottle"
                     >
                       +
                     </button>
                   </div>
-                  <button type="button" onClick={() => setEditing(wine)}>
+                  <button type="button" onClick={() => { setEditingOriginal(wine); setEditing({ ...wine }); setConfirmingEdit(false); }}>
                     Edit
                   </button>
                   <button
@@ -274,7 +280,14 @@ export default function CellarPage() {
             className="edit-dialog"
             onSubmit={(event) => void saveEdit(event)}
           >
-            <h2>Edit wine</h2>
+            <h2>{confirmingEdit ? "Confirm changes" : "Edit wine"}</h2>
+            {confirmingEdit && editingOriginal ? <>
+              <dl className="change-list">{wineChanges(editingOriginal, editing).map((change) => <div key={change.label}><dt>{change.label}</dt><dd>{change.before}</dd><dd className="change-new">→ {change.after}</dd></div>)}</dl>
+              <div className="edit-actions">
+                <PremiumButton variant="secondary" type="button" onClick={() => setConfirmingEdit(false)}>Cancel</PremiumButton>
+                <PremiumButton type="button" onClick={() => void confirmEdit()}>Confirm</PremiumButton>
+              </div>
+            </> : <>
             <EditField
               label="Producer"
               value={editing.producer}
@@ -349,21 +362,35 @@ export default function CellarPage() {
                 }
               />
             </label>
+            <label className="review-field"><span>Quantity</span><input type="number" min="0" step="1" value={editing.bottleCount} onChange={(event) => setEditing({ ...editing, bottleCount: Math.max(0, Number(event.target.value)) })} /></label>
             <div className="edit-actions">
               <PremiumButton
                 variant="secondary"
                 type="button"
-                onClick={() => setEditing(null)}
+                onClick={() => { setEditing(null); setEditingOriginal(null); }}
               >
                 Cancel
               </PremiumButton>
               <PremiumButton type="submit">Save</PremiumButton>
             </div>
+            </>}
           </form>
         </div>
       )}
     </main>
   );
+}
+
+function wineChanges(original: StoredWine, edited: StoredWine) {
+  const fields: [string, unknown, unknown][] = [
+    ["Producer", original.producer, edited.producer], ["Wine name", original.wineName, edited.wineName],
+    ["Vintage", original.vintage, edited.vintage], ["Country", original.country, edited.country],
+    ["Region", original.region, edited.region], ["Appellation", original.appellation, edited.appellation],
+    ["Grape varieties", original.grapeVarieties.join(", "), edited.grapeVarieties.join(", ")],
+    ["Wine color", original.wineColor, edited.wineColor], ["Bottle size", original.bottleSize, edited.bottleSize],
+    ["Alcohol percentage", original.alcoholPercentage, edited.alcoholPercentage], ["Quantity", original.bottleCount, edited.bottleCount],
+  ];
+  return fields.filter(([, before, after]) => String(before ?? "") !== String(after ?? "")).map(([label, before, after]) => ({ label, before: String(before ?? "Not recorded"), after: String(after ?? "Not recorded") }));
 }
 
 function EditField({

@@ -91,6 +91,9 @@ a { color: inherit; text-decoration: none; }
   transition: background-color 180ms ease, transform 180ms ease;
 }
 .back-link:hover { background: rgb(114 36 61 / 7%); transform: translateX(-2px); }
+.persistent-navigation { position: sticky; z-index: 40; top: 0; display: flex; min-height: 2.8rem; align-items: center; justify-content: space-between; margin-inline: -.25rem; border: 1px solid var(--line); border-radius: .95rem; background: var(--glass-strong); padding: .35rem .65rem; box-shadow: 0 .65rem 1.7rem rgb(0 0 0 / 16%); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.persistent-navigation-link { display: inline-flex; min-height: 2rem; align-items: center; gap: .2rem; padding: .25rem .35rem; color: var(--gold-soft); font-size: .82rem; font-weight: 700; }
+.persistent-navigation-link svg { width: 1rem; height: 1rem; }
 
 .preview-frame, .review-card {
   border: 1px solid var(--line); background: var(--glass);
@@ -191,6 +194,12 @@ a { color: inherit; text-decoration: none; }
 .duplicate-dialog small { display: block; margin-bottom: 1.2rem; color: var(--muted); }
 .duplicate-actions { display: grid; gap: .65rem; }
 .duplicate-actions .action { min-height: 3rem; padding: .65rem 1rem; }
+.change-list { display: grid; gap: .7rem; margin: 1rem 0 1.25rem; }
+.change-list div { display: grid; grid-template-columns: 1fr auto auto; gap: .7rem; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: .65rem; }
+.change-list dt { font-weight: 700; }.change-list dd { margin: 0; color: var(--muted); }.change-list .change-new { color: var(--gold-soft); }
+.export-action { width: 100%; margin-bottom: 1rem; }
+.cellar-selection-count { margin: 0 0 .4rem; color: var(--muted); font-size: .85rem; }
+.insight-inline-link { display: inline-block; color: var(--gold-soft); text-decoration: underline; text-decoration-color: rgb(198 161 93 / 35%); text-underline-offset: .2rem; }
 .review-actions { display: grid; gap: .75rem; margin-top: 1.4rem; }
 .review-actions-three .continue-link { order: 3; }
 .explore-actions { position: sticky; bottom: 1rem; display: grid; gap: .7rem; margin-top: 1rem; border: 1px solid var(--line); border-radius: 1.4rem; background: var(--glass-strong); padding: 1rem; box-shadow: 0 18px 50px rgb(45 27 34 / 15%); backdrop-filter: blur(18px); }

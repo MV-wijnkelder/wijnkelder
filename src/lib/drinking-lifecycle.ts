@@ -3,6 +3,14 @@ import type { StoredWine, Wine } from "@/domain/wine";
 export type DrinkingStage = "wellBeyondPeak" | "beyondPeak" | "pastPeak" | "young" | "ready" | "excellent" | "nearPeak" | "peak";
 export type DrinkingOutlook = "pastPeak" | "drinkNow" | "nextTwoYears" | "threeToFiveYears" | "longTerm";
 
+export function drinkingStageLabel(stage: DrinkingStage): string {
+  return ({ wellBeyondPeak: "Well Beyond Peak", beyondPeak: "Beyond Peak", pastPeak: "Past Peak", young: "Young", ready: "Ready", excellent: "Excellent", nearPeak: "Near Peak", peak: "Peak Drinking" })[stage];
+}
+
+export function drinkingOutlookLabel(outlook: DrinkingOutlook): string {
+  return ({ pastPeak: "Past Peak", drinkNow: "Drink Now", nextTwoYears: "Next 1–2 Years", threeToFiveYears: "3–5 Years", longTerm: "5+ Years" })[outlook];
+}
+
 export type DrinkingLifecycle = {
   drinkFrom: number;
   peakFrom: number;

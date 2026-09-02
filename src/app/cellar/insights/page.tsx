@@ -25,7 +25,7 @@ export default function CellarInsightsPage() {
       {error && <p className="error-message" role="alert">{error}</p>}
       {isLoading ? <p className="insights-status" role="status">Preparing your cellar view…</p> : report.bottles === 0 ? <GlassCard className="insights-empty"><WineglassIcon /><h2>Your story starts with a bottle.</h2><p>Add wines to reveal collection insights.</p></GlassCard> : <div className="insights-sections">
         <InsightSection eyebrow="Section 01" title="Collection">
-          <div className="insights-kpis"><Kpi value={report.bottles} label="Total bottles" /><Kpi value={report.wines} label="Different wines" /><Kpi value={report.countries} label="Countries" /><Kpi value={report.regions} label="Regions" /></div>
+          <div className="insights-kpis"><Kpi value={report.bottles} label="Total bottles" kind="all" filterValue="bottles" /><Kpi value={report.wines} label="Different wines" kind="all" filterValue="wines" /><Kpi value={report.countries} label="Countries" /><Kpi value={report.regions} label="Regions" /></div>
         </InsightSection>
 
         <InsightSection eyebrow="Section 02" title="Drink Readiness">
@@ -44,11 +44,11 @@ export default function CellarInsightsPage() {
         </InsightSection>
 
         <InsightSection eyebrow="Section 05" title="Estimated Collection Value">
-          <div className="value-feature"><span>Estimated Collection Value</span><strong>{money(report.value.total, report.value.currency)}</strong><small>Based on current estimated market prices.</small><small>{report.value.valuedBottles} of {report.value.totalBottles} bottles valued ({report.value.coveragePercentage}%)</small>{report.value.unvaluedBottles > 0 && <small>{report.value.unvaluedBottles} {report.value.unvaluedBottles === 1 ? "bottle" : "bottles"} awaiting market valuation</small>}</div>
+          <div className="value-feature"><span>Estimated Collection Value</span><strong>{money(report.value.total, report.value.currency)}</strong><small>Based on current estimated market prices.</small><InsightLink className="insight-inline-link" kind="valuation" value="valued"><small>{report.value.valuedBottles} of {report.value.totalBottles} bottles valued ({report.value.coveragePercentage}%)</small></InsightLink>{report.value.unvaluedBottles > 0 && <InsightLink className="insight-inline-link" kind="valuation" value="missing"><small>{report.value.unvaluedBottles} {report.value.unvaluedBottles === 1 ? "bottle" : "bottles"} awaiting market valuation</small></InsightLink>}</div>
         </InsightSection>
 
         <InsightSection eyebrow="Section 06" title="Collection Highlights">
-          <dl className="highlights"><Highlight label="Oldest vintage" value={report.highlights.oldest} /><Highlight label="Youngest vintage" value={report.highlights.youngest} /><Highlight label="Largest producer" value={report.highlights.producer} /><Highlight label="Largest country" value={report.highlights.country} /><Highlight label="Largest region" value={report.highlights.region} /></dl>
+          <dl className="highlights"><Highlight label="Oldest vintage" value={report.highlights.oldest} kind="vintage" /><Highlight label="Youngest vintage" value={report.highlights.youngest} kind="vintage" /><Highlight label="Largest producer" value={report.highlights.producer} kind="producer" /><Highlight label="Largest country" value={report.highlights.country} kind="country" /><Highlight label="Largest region" value={report.highlights.region} kind="region" /></dl>
         </InsightSection>
 
         <InsightSection eyebrow="Section 07" title="AI Insights" className="executive-insights">
@@ -68,7 +68,7 @@ export default function CellarInsightsPage() {
 function InsightSection({ eyebrow, title, className = "", children }: { eyebrow: string; title: string; className?: string; children: React.ReactNode }) {
   return <GlassCard className={`insight-section ${className}`}><SectionTitle eyebrow={eyebrow}>{title}</SectionTitle>{children}</GlassCard>;
 }
-function Kpi({ value, label }: { value: React.ReactNode; label: string }) { return <div className="insight-kpi"><strong>{value}</strong><span>{label}</span></div>; }
+function Kpi({ value, label, kind, filterValue }: { value: React.ReactNode; label: string; kind?: string; filterValue?: string }) { const content = <><strong>{value}</strong><span>{label}</span></>; return kind && filterValue ? <InsightLink className="insight-kpi" kind={kind} value={filterValue}>{content}</InsightLink> : <div className="insight-kpi">{content}</div>; }
 function InsightLink({ kind, value, className, children }: { kind: string; value: string; className: string; children: React.ReactNode }) {
   return <Link className={className} href={`/cellar/insights/selection?kind=${kind}&value=${encodeURIComponent(value)}`}>{children}</Link>;
 }
@@ -76,7 +76,7 @@ function MixChart({ title, kind, items }: { title: string; kind: string; items: 
   const shown = items.slice(0, 5);
   return <div className="mix-chart"><h3>{title}</h3>{shown.length ? shown.map((item) => <InsightLink className="mix-item" kind={kind} value={item.label} key={item.label}><div><span>{item.label}</span><strong>{item.percentage}%</strong></div><i><b style={{ width: `${item.percentage}%` }} /></i></InsightLink>) : <small>No data recorded</small>}</div>;
 }
-function Highlight({ label, value }: { label: string; value: string | null }) { return <div><dt>{label}</dt><dd>{value ?? "Not recorded"}</dd></div>; }
+function Highlight({ label, value, kind }: { label: string; value: string | null; kind: string }) { return <div><dt>{label}</dt><dd>{value ? <InsightLink className="insight-inline-link" kind={kind} value={value}>{value}</InsightLink> : "Not recorded"}</dd></div>; }
 function EmptyData({ children }: { children: React.ReactNode }) { return <p className="insights-no-data">{children}</p>; }
 function ReadinessScale({ position }: { position: number }) {
   const past = position <= 3;

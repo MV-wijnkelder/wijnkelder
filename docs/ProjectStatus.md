@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.5.0
-- **Current development phase:** Cellar-aware drinking intelligence now protects developing bottles and prioritises the best bottle to open.
+- **Current version:** 1.6.0
+- **Current development phase:** Safe live-cellar editing, persistent navigation, fully explorable insights, and export-only Excel snapshots are available.
 - **Last updated:** 2 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14C — Cellar-Aware Drinking Intelligence & Peak Protection
-- **Release status:** Sprint 14C is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14D — Safe Cellar Editing, Persistent Navigation, Interactive Insights & Excel Export
+- **Release status:** Sprint 14D is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -145,6 +145,17 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.5.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14D — Safe Cellar Editing, Persistent Navigation, Interactive Insights & Excel Export
+
+- **Objective:** Make VinoCastello safe and convenient enough to act as the live cellar inventory while keeping every insight and export tied to canonical wines.
+- **Root cause addressed:** Inventory quantity controls wrote immediately, general edits had no review boundary, navigation controls scrolled out of reach, several collection/value/highlight indicators did not expose their wines, and no device-local spreadsheet snapshot was available.
+- **Key functionality delivered:** Existing-record edits—including every quantity change—are staged and show a field-by-field confirmation before the single canonical update. Cancel leaves storage unchanged. Full-record deletion retains a separate, stronger bottle-aware warning, while Scan/Add remains unchanged. A compact safe-area-aware Back/Home control remains sticky on non-Home screens. All meaningful insight groups now route through centralized cellar filters, including collection totals, valuation coverage/missing values, vintage and leading producer/origin highlights, all mix categories, all eight readiness stages, and every outlook range. Filtered lists reuse My Cellar cards, selection identity/count, Wine Details routing, and stored scroll context. My Cellar and insight selections explicitly generate a professional, filtered `.xlsx` snapshot with one row per wine, numeric quantities and known market values, canonical lifecycle labels, filters and sensible widths.
+- **Architectural decision:** Excel is export-only. VinoCastello does not support Excel import, upload, synchronization, editing, or restore; an exported workbook cannot modify the authoritative cellar.
+- **Current limitations:** Browser/device download presentation varies by PWA platform. Export is generated client-side from the currently loaded selection, so very large cellars may eventually need a streamed server export. Workbook output is intentionally a clean VinoCastello snapshot rather than lossless MCHRDV round-trip interoperability.
+- **Completion date:** 2 September 2026
+- **Release version:** 1.6.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -172,7 +183,7 @@ The canonical `Wine`/`StoredWine` model is the single source of truth. A provide
 profile and cellar JSON. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
 data migration; recognition uses that same boundary before review. List, detail, create, update, delete, recommendations,
-insights, centralized insight filtering, and Sommelier retrieval all consume the same records. The historical
+insights, centralized insight filtering, Excel row mapping, and Sommelier retrieval all consume the same records. Excel workbook generation consumes exactly the currently displayed canonical list and never writes to storage. The historical
 MCHRDV workbook remains an interchange target, not a competing live store.
 
 ## Wine Recognition
@@ -222,14 +233,14 @@ derivatives are maintained.
 
 # Current User Features
 
-- Mobile-first home and navigation experience with premium shared styling.
+- Mobile-first home and navigation experience with premium shared styling and compact sticky Back/Home controls that respect device safe areas.
 - Scan a front label with the camera or photo library and optionally add a back
   label.
 - Client-side image compression, label consistency warnings, and resilient
   recognition handling.
 - Review and edit recognized wine details before saving.
 - Preview Explore this Wine enrichment without silently adding a bottle.
-- Add, browse, search, inspect, edit, and delete canonical cellar records.
+- Add, browse, search, inspect, edit, and delete canonical cellar records; existing-record and quantity edits require a change review and explicit confirmation, while complete deletion keeps a stronger bottle-aware warning.
 - Track bottle quantities and canonical workbook-oriented cellar fields.
 - Preserve My Cellar search, navigation, and scroll context when viewing a wine.
 - View structured Wine Profiles with tasting, style, food, serving, maturity,
@@ -251,8 +262,9 @@ derivatives are maintained.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
 - Read the eight-position Drink Readiness lifecycle, including distinct wine-red past-peak positions and the preserved gold positive scale.
 - Use Drinking Outlook bottle counts based on ideal peak timing—not mere earliest drinkability—and its concise priority observation to plan drinking from the current year onwards.
-- Tap Collection Mix, Drink Readiness, or Drinking Outlook categories to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection.
+- Tap every meaningful Cellar Insights wine group—including collection totals, valuation gaps/coverage, highlights, Collection Mix, Drink Readiness, and Drinking Outlook—to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection or scroll context.
 - View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
+- Explicitly export the complete cellar or the exact current insight selection as a filtered `.xlsx` snapshot; Excel import and write-back are not supported.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
 # Open Issues
@@ -290,7 +302,7 @@ derivatives are maintained.
   shapes; their intended boundary needs continued documentation.
 - Live research has no structured citation/freshness contract, cache policy, or
   sufficient observability.
-- Insights and filtered insight selections fetch the full cellar client-side; very large collections will eventually need server-side retrieval or pagination.
+- Insights, filtered insight selections, and Excel export load/process the cellar client-side; very large collections will eventually need server-side retrieval, pagination, and streamed export.
 - There is no committed browser end-to-end suite for camera, IndexedDB,
   multipart images, mobile safe areas, database integration, or provider
   contracts.
@@ -333,17 +345,16 @@ derivatives are maintained.
 4. **Personal preferences and tasting history:** Add canonical tasting and
    consumption events, inspectable preference signals, correction/reset, and
    explanations.
-5. **Workbook interoperability and insight scale:** Add quality/profile coverage and server-side insight paging, and implement authoritative,
-   previewable, duplicate-aware MCHRDV import and lossless export.
+5. **Workbook interoperability and insight scale:** Add quality/profile coverage and server-side insight paging. Excel remains export-only unless a separately approved future sprint revises that safety decision; the current workbook snapshot is not an import or synchronization channel.
 6. **Longer-term cellar utility:** Add bottle locations, opening/quantity actions,
    drinking-window alerts, collection trends, offline inventory shell, and
    graceful queued AI actions.
 
 # Next Planned Sprint
 
-## Sprint 14D — Trust, Provenance, and End-to-End Reliability
+## Sprint 14E — Trust, Provenance, and End-to-End Reliability
 
-**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, and visible provenance for AI/user-confirmed facts where appropriate without exposing market-source complexity in the valuation UI.
+**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh/export progress, and visible provenance for AI/user-confirmed facts without weakening the confirmed-write or export-only boundaries.
 
 # Architectural Decisions
 
@@ -368,8 +379,7 @@ derivatives are maintained.
   data, bound messages/images, isolate live facts, and degrade gracefully.
 - **Browser-local conversation by default:** Text and image context is scoped to
   the current browser session and is not a second durable cellar.
-- **Workbook compatibility without dual authority:** Preserve the MCHRDV workbook
-  as a lossless import/export format while keeping the database authoritative.
+- **Export without dual authority:** Runtime-generated `.xlsx` files are explicit, read-only snapshots of the complete or centrally filtered canonical cellar. Excel import, synchronization, editing and restore are not supported; the database remains authoritative. Longer-term MCHRDV interoperability requires a separately approved safety design.
 - **Mobile-first, simple, and premium:** Preserve one obvious next action,
   accessible touch behavior, consistent language, calm progressive disclosure,
   and shared visual primitives.

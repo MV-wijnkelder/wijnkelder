@@ -65,15 +65,13 @@ export function BackButton({
   onClick?: () => void;
 }) {
   return (
-    <Link
-      className="action action-secondary premium-button back-button"
-      href={href}
-      onClick={onClick}
-      aria-label={`Back to ${typeof children === "string" ? children : "previous page"}`}
-    >
-      <ChevronLeftIcon />
-      {children}
-    </Link>
+    <nav className="persistent-navigation" aria-label="Page navigation">
+      <Link className="persistent-navigation-link" href={href} onClick={onClick}
+        aria-label={`Back to ${typeof children === "string" ? children : "previous page"}`}>
+        <ChevronLeftIcon /> Back
+      </Link>
+      <Link className="persistent-navigation-link" href="/">Home</Link>
+    </nav>
   );
 }
 
