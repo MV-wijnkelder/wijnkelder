@@ -15,7 +15,6 @@ export default function CellarInsightsPage() {
     void WineService.list().then(setWines).catch(() => setError("Cellar insights could not be loaded.")).finally(() => setIsLoading(false));
   }, []);
   const report = useMemo(() => buildCellarInsights(wines), [wines]);
-  const maxHorizon = Math.max(1, ...report.horizon.map((item) => item.wines));
 
   return <main className="app-shell premium-page insights-page">
     <HeroBackground atmosphere="cellar" />
@@ -30,12 +29,13 @@ export default function CellarInsightsPage() {
 
         <InsightSection eyebrow="Section 02" title="Drink Readiness">
           <p className="section-intro">Each wine rises towards its drinking peak, then gently recedes.</p>
-          <div className="readiness-list">{report.readiness.map((item) => <div className="readiness-row" key={item.stars}><span className="stars" aria-label={`${item.stars} out of 5 stars`}>{"★".repeat(item.stars)}<i>{"★".repeat(5 - item.stars)}</i></span><span><strong>{item.label}</strong><small>{item.bottles} {item.bottles === 1 ? "bottle" : "bottles"}</small></span></div>)}</div>
+          <div className="readiness-list">{report.readiness.map((item) => <div className="readiness-row" key={item.position}><ReadinessScale position={item.position} /><span><strong>{item.label}</strong><small>{item.bottles} {item.bottles === 1 ? "bottle" : "bottles"}</small></span></div>)}</div>
         </InsightSection>
 
-        <InsightSection eyebrow="Section 03" title="Drink Horizon">
-          <p className="section-intro">Wines reaching the start of their optimal drinking window.</p>
-          {report.horizon.length ? <div className="horizon-chart">{report.horizon.map((item) => <div className="horizon-row" key={item.year}><span>{item.year}</span><div><i style={{ width: `${Math.max(5, item.wines / maxHorizon * 100)}%` }} /></div><strong>{item.wines}</strong></div>)}</div> : <EmptyData>Drinking windows have not been recorded yet.</EmptyData>}
+        <InsightSection eyebrow="Section 03" title="Drinking Outlook">
+          <p className="section-intro">How your cellar is positioned for drinking from today onwards.</p>
+          <div className="outlook-list">{report.outlook.map((item) => <div className="outlook-row" key={item.key}><strong>{item.bottles}</strong><span>{item.bottles === 1 ? item.label.replace("bottles", "bottle") : item.label}</span></div>)}</div>
+          {report.outlookInsight && <p className="outlook-insight">{report.outlookInsight}</p>}
         </InsightSection>
 
         <InsightSection eyebrow="Section 04" title="Collection Mix">
@@ -57,7 +57,7 @@ export default function CellarInsightsPage() {
 
         <InsightSection eyebrow="Section 08" title="Collection Health" className="health-card">
           <div className="health-score" aria-label={`Collection health ${report.health} out of 100`}><strong>{report.health}</strong><span>/100</span></div>
-          <p>An advisory view of readiness, balance, variety, horizon and duplicates.</p>
+          <p>An advisory view of readiness, balance, variety, outlook and duplicates.</p>
         </InsightSection>
       </div>}
     </section>
@@ -74,4 +74,13 @@ function MixChart({ title, items }: { title: string; items: DistributionItem[] }
 }
 function Highlight({ label, value }: { label: string; value: string | null }) { return <div><dt>{label}</dt><dd>{value ?? "Not recorded"}</dd></div>; }
 function EmptyData({ children }: { children: React.ReactNode }) { return <p className="insights-no-data">{children}</p>; }
+function ReadinessScale({ position }: { position: number }) {
+  const past = position <= 3;
+  const positiveLevel = past ? 0 : position - 3;
+  return <span className="stars readiness-scale" aria-label={`Drinking lifecycle position ${position} out of 8`}>
+    <span className="past-stars">{past ? "★".repeat(position) : ""}<i>{"★".repeat(past ? 3 - position : 3)}</i></span>
+    <b aria-hidden="true">/</b>
+    <span>{"★".repeat(positiveLevel)}<i>{"★".repeat(5 - positiveLevel)}</i></span>
+  </span>;
+}
 function money(value: number, currency: string) { try { return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); } catch { return `${currency} ${Math.round(value).toLocaleString("en")}`; } }

@@ -9,15 +9,15 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.2.1
-- **Current development phase:** Cellar intelligence and personal companion;
-  trust and reliability are next following installable-app identity completion.
-- **Last updated:** 28 August 2026
+- **Current version:** 1.3.0
+- **Current development phase:** Cellar intelligence accuracy and live-cellar
+  readiness; normalized analytics and actionable drinking guidance are complete.
+- **Last updated:** 2 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 13C — Official VinoCastello Mobile/App Icon
-- **Release status:** Sprint 13C is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14A — Drink Readiness, Data Consistency & Drinking Outlook
+- **Release status:** Sprint 14A is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -28,7 +28,7 @@
   management; AI-generated wine profiles; deterministic, explainable
   cellar-first recommendations; a routed, multimodal personal AI Sommelier with
   browser-local conversation and image context; live-information fallback;
-  collection insights with transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and installable-app metadata using the official VinoCastello artwork.
+  collection insights with normalized categories, an eight-position drinking lifecycle and current Drinking Outlook; transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and installable-app metadata using the official VinoCastello artwork.
 
 # Completed Sprints
 
@@ -102,6 +102,30 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.2.1
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14A — Drink Readiness, Data Consistency & Drinking Outlook
+
+- **Objective:** Improve Cellar Summary and Cellar Insights accuracy and make
+  drinking guidance actionable before VinoCastello is frozen for live cellar use.
+- **Root cause addressed:** Category values previously flowed from recognition
+  and historical rows with source spelling intact, while insight grouping used
+  exact strings. The five-star readiness calculation also measured symmetric
+  distance from a midpoint, so it could not distinguish a young wine from one
+  already beyond its recorded drinking window. Drink Horizon counted wines by
+  start year rather than explaining bottle-level action from the current year.
+- **Key functionality delivered:** One centralized, non-migrating category
+  normalization boundary canonicalizes capitalization and the clear
+  `Toscana`/`Tuscany` alias for existing and newly scanned wines. Analytics and
+  Collection Health use the same normalized values. Drink Readiness now spans
+  positions 1–8: wine-red positions 1–3 communicate increasing time beyond
+  peak, a slash separates them from positions 4–8, and the existing gold
+  five-position positive treatment remains the useful-lifecycle side. Drinking
+  Outlook replaces Drink Horizon with bottle counts for past peak, ready now,
+  the next 1–2 years, 3–5 years and 5+ years, plus one concise priority insight.
+  All lifecycle calculations derive the current UTC year dynamically.
+- **Completion date:** 2 September 2026
+- **Release version:** 1.3.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -126,7 +150,9 @@ styles rather than fabricating a cellar match when no bottle qualifies.
 
 The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve exact-match public EUR offers from official wineries, recognised merchants, reputable retailers, and recognised market aggregators. VinoCastello validates observations and deterministically selects one median value. AI profile enrichment is separate and cannot overwrite valuation data. Cached successful and unavailable lookups prevent research on every detail open.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
-profile and cellar JSON. List, detail, create, update, delete, recommendations,
+profile and cellar JSON. Its shared category boundary presents canonical colour,
+country, region and grape spelling without requiring a destructive historical
+data migration; recognition uses that same boundary before review. List, detail, create, update, delete, recommendations,
 insights, and Sommelier retrieval all consume the same records. The historical
 MCHRDV workbook remains an interchange target, not a competing live store.
 
@@ -204,6 +230,8 @@ derivatives are maintained.
   and retain visible conversation on failure.
 - Use current-information research when available, with graceful fallback.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
+- Read the eight-position Drink Readiness lifecycle, including distinct wine-red past-peak positions and the preserved gold positive scale.
+- Use Drinking Outlook bottle counts and its concise priority observation to plan drinking from the current year onwards.
 - View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
@@ -225,6 +253,9 @@ derivatives are maintained.
   IndexedDB load failure currently becomes silent loss of image context.
 - Drinking-window decisions use the current UTC year and cannot account for
   storage, bottle condition, month, or maturity preference.
+- Category normalization intentionally covers capitalization plus clear aliases
+  such as Tuscany/Toscana; ambiguous translations and appellation synonyms are
+  left unchanged rather than risking incorrect aggregation.
 
 ## Technical Debt
 
@@ -240,7 +271,8 @@ derivatives are maintained.
   shapes; their intended boundary needs continued documentation.
 - Live research has no structured citation/freshness contract, cache policy, or
   sufficient observability.
-- Insights fetch the full cellar client-side and do not link into shared cellar filters/navigation state.
+- Insights fetch the full cellar client-side and Drinking Outlook categories do
+  not yet link into shared cellar filters/navigation state.
 - There is no committed browser end-to-end suite for camera, IndexedDB,
   multipart images, mobile safe areas, database integration, or provider
   contracts.
@@ -284,8 +316,8 @@ derivatives are maintained.
 4. **Personal preferences and tasting history:** Add canonical tasting and
    consumption events, inspectable preference signals, correction/reset, and
    explanations.
-5. **Actionable insights and workbook interoperability:** Link insights to cellar
-   filters, add quality/profile coverage, and implement authoritative,
+5. **Actionable insights and workbook interoperability:** Link Drinking Outlook
+   and other insights to cellar filters, add quality/profile coverage, and implement authoritative,
    previewable, duplicate-aware MCHRDV import and lossless export.
 6. **Longer-term cellar utility:** Add bottle locations, opening/quantity actions,
    drinking-window alerts, collection trends, offline inventory shell, and
@@ -293,7 +325,7 @@ derivatives are maintained.
 
 # Next Planned Sprint
 
-## Sprint 14 — Trust, Provenance, and End-to-End Reliability
+## Sprint 14B — Trust, Provenance, and End-to-End Reliability
 
 **Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, and visible provenance for AI/user-confirmed facts where appropriate without exposing market-source complexity in the valuation UI.
 
@@ -310,6 +342,9 @@ derivatives are maintained.
 - **Reuse services; never duplicate business logic:** Recommendation scoring,
   normalization, storage, recognition, and image preparation remain centralized
   behind existing domain/service boundaries.
+- **Canonical category presentation:** Existing storage rows remain source-faithful,
+  while one shared normalization boundary supplies canonical categorical values
+  to recognition, application reads, analytics and Collection Health.
 - **Separate deterministic decisions from generation:** Keep reproducible
   recommendation filtering/scoring outside generative chat.
 - **User confirmation controls writes:** Recognition and enrichment propose

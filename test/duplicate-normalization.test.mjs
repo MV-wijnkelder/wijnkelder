@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { duplicateKey } from "../src/lib/wine-normalization.ts";
+import { duplicateKey, normalizeCategory, normalizeWineCategories } from "../src/lib/wine-normalization.ts";
 
 const wine = (producer, wineName, vintage) => ({
   producer, wineName, vintage, country: null, region: null, appellation: null,
   grapeVarieties: [], wineColor: null, bottleSize: null,
   alcoholPercentage: null, confidence: 90,
+});
+
+test("canonical categories normalize capitalization and regional aliases", () => {
+  assert.equal(normalizeCategory(" RED "), "Red");
+  assert.equal(normalizeCategory("Toscana"), "Tuscany");
+  assert.equal(normalizeCategory("tuscany"), "Tuscany");
+  const normalized = normalizeWineCategories({ ...wine("Estate", "Reserve", "2022"), country: "ITALY", region: "toscana", wineColor: "red", grapeVarieties: ["sangiovese", "SANGIOVESE"] });
+  assert.deepEqual({ country: normalized.country, region: normalized.region, colour: normalized.wineColor, grapes: normalized.grapeVarieties }, { country: "Italy", region: "Tuscany", colour: "Red", grapes: ["Sangiovese"] });
 });
 
 test("duplicate keys ignore case, whitespace, and punctuation", () => {
