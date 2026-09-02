@@ -9,15 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.3.0
-- **Current development phase:** Cellar intelligence accuracy and live-cellar
-  readiness; normalized analytics and actionable drinking guidance are complete.
+- **Current version:** 1.4.0
+- **Current development phase:** Interactive cellar intelligence; normalized analytics now link directly to the canonical wines behind every insight.
 - **Last updated:** 2 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14A — Drink Readiness, Data Consistency & Drinking Outlook
-- **Release status:** Sprint 14A is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14B — Interactive Cellar Insights & Wine Classification
+- **Release status:** Sprint 14B is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -126,6 +125,16 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.3.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14B — Interactive Cellar Insights & Wine Classification
+
+- **Objective:** Turn Cellar Insights into a direct, mobile-first path to the canonical cellar wines behind every displayed category.
+- **Root cause addressed:** Colour normalization previously title-cased arbitrary source values, allowing accent variants such as `Rosé` and `Rosè` to split analytics and leaving sparkling semantics mixed into free-text colour/style data. Insight rows also had no shared filter/navigation contract.
+- **Key functionality delivered:** Exactly three canonical colours (`Red`, `White`, and `Rosé`) now normalize existing reads and new scans without a data migration. A separate derived `Still`/`Sparkling` type prefers explicit structured style metadata and safely falls back to recognized sparkling identity terms. Collection Mix now displays Type, and all colour, type, country, region, grape, eight-position readiness, and Drinking Outlook rows navigate to centralized filtered cellar results. Blend filtering matches every structured grape. Filtered results reuse the My Cellar card presentation, preserve their route through Wine Details, return to Cellar Insights, and provide an explicit empty state.
+- **Current limitations:** Wine records do not yet store a dedicated persisted wine-type field; type is derived from existing structured style metadata, with appellation/name fallback for historical records. Filtered lists intentionally provide browsing and Wine Details navigation rather than inline inventory editing.
+- **Completion date:** 2 September 2026
+- **Release version:** 1.4.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -153,7 +162,7 @@ The canonical `Wine`/`StoredWine` model is the single source of truth. A provide
 profile and cellar JSON. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
 data migration; recognition uses that same boundary before review. List, detail, create, update, delete, recommendations,
-insights, and Sommelier retrieval all consume the same records. The historical
+insights, centralized insight filtering, and Sommelier retrieval all consume the same records. The historical
 MCHRDV workbook remains an interchange target, not a competing live store.
 
 ## Wine Recognition
@@ -232,6 +241,7 @@ derivatives are maintained.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
 - Read the eight-position Drink Readiness lifecycle, including distinct wine-red past-peak positions and the preserved gold positive scale.
 - Use Drinking Outlook bottle counts and its concise priority observation to plan drinking from the current year onwards.
+- Tap Collection Mix, Drink Readiness, or Drinking Outlook categories to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection.
 - View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
@@ -271,8 +281,7 @@ derivatives are maintained.
   shapes; their intended boundary needs continued documentation.
 - Live research has no structured citation/freshness contract, cache policy, or
   sufficient observability.
-- Insights fetch the full cellar client-side and Drinking Outlook categories do
-  not yet link into shared cellar filters/navigation state.
+- Insights and filtered insight selections fetch the full cellar client-side; very large collections will eventually need server-side retrieval or pagination.
 - There is no committed browser end-to-end suite for camera, IndexedDB,
   multipart images, mobile safe areas, database integration, or provider
   contracts.
@@ -286,8 +295,7 @@ derivatives are maintained.
 - Add accessible OCR review/correction for menus, lists, vintages, and prices.
 - Add semantic image-set names, history/thumbnails, deletion, and explicit prior
   set selection.
-- Link recommendations and insights to filtered cellar/detail views while
-  preserving context.
+- Link recommendations to filtered cellar/detail views while preserving context; insight handoffs are complete.
 - Add typed Sommelier handoffs from Wine Details, Scan review,
   recommendations, and Insights.
 - Explain precisely which cellar and image context an intentional AI request
@@ -316,8 +324,7 @@ derivatives are maintained.
 4. **Personal preferences and tasting history:** Add canonical tasting and
    consumption events, inspectable preference signals, correction/reset, and
    explanations.
-5. **Actionable insights and workbook interoperability:** Link Drinking Outlook
-   and other insights to cellar filters, add quality/profile coverage, and implement authoritative,
+5. **Workbook interoperability and insight scale:** Add quality/profile coverage and server-side insight paging, and implement authoritative,
    previewable, duplicate-aware MCHRDV import and lossless export.
 6. **Longer-term cellar utility:** Add bottle locations, opening/quantity actions,
    drinking-window alerts, collection trends, offline inventory shell, and
@@ -325,7 +332,7 @@ derivatives are maintained.
 
 # Next Planned Sprint
 
-## Sprint 14B — Trust, Provenance, and End-to-End Reliability
+## Sprint 14C — Trust, Provenance, and End-to-End Reliability
 
 **Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, and visible provenance for AI/user-confirmed facts where appropriate without exposing market-source complexity in the valuation UI.
 
@@ -342,9 +349,7 @@ derivatives are maintained.
 - **Reuse services; never duplicate business logic:** Recommendation scoring,
   normalization, storage, recognition, and image preparation remain centralized
   behind existing domain/service boundaries.
-- **Canonical category presentation:** Existing storage rows remain source-faithful,
-  while one shared normalization boundary supplies canonical categorical values
-  to recognition, application reads, analytics and Collection Health.
+- **Canonical category presentation:** Existing storage rows remain source-faithful, while one shared normalization boundary restricts colour to Red, White, or Rosé and supplies canonical categorical values to recognition, application reads, analytics, filtering, and Collection Health. Still/Sparkling is a separate derived type that prefers structured style metadata.
 - **Separate deterministic decisions from generation:** Keep reproducible
   recommendation filtering/scoring outside generative chat.
 - **User confirmation controls writes:** Recognition and enrichment propose

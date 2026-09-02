@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { WineProfile } from "@/components/wine-profile";
 import { BackButton, HeroBackground, PremiumButton } from "@/components/premium-ui";
 import type { StoredWine } from "@/services/wine-service";
@@ -12,11 +13,13 @@ export default function WineProfilePage({ params }: { params: Promise<{ id: stri
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [refreshingValue, setRefreshingValue] = useState(false);
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   useEffect(() => { void params.then(({ id }) => WineService.get(Number(id))).then(setWine).catch((cause) => setError(cause instanceof Error ? cause.message : "The wine could not be loaded.")); }, [params]);
   return <main className="app-shell premium-page relative min-h-screen overflow-hidden px-5 py-6 sm:px-6 sm:py-10">
     <HeroBackground atmosphere="cellar" />
     <section className="page-enter relative z-10 mx-auto w-full max-w-2xl">
-      <BackButton href="/cellar">My Cellar</BackButton>
+      <BackButton href={returnTo?.startsWith("/cellar/insights/selection?") ? returnTo : "/cellar"}>{returnTo ? "Selection" : "My Cellar"}</BackButton>
       {error ? <p className="error-message mt-8" role="alert">{error}</p> : !wine ? <p className="cellar-status" role="status">Opening wine…</p> : <>
         <WineProfile wine={wine} bottleCount={wine.bottleCount} />
         <div className="profile-refresh">

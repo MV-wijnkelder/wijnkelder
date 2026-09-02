@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { SparklesIcon, WineglassIcon } from "@/components/icons";
 import { BackButton, GlassCard, HeroBackground, PremiumHeader, SectionTitle } from "@/components/premium-ui";
 import { buildCellarInsights, type DistributionItem } from "@/lib/cellar-insights";
@@ -29,17 +30,17 @@ export default function CellarInsightsPage() {
 
         <InsightSection eyebrow="Section 02" title="Drink Readiness">
           <p className="section-intro">Each wine rises towards its drinking peak, then gently recedes.</p>
-          <div className="readiness-list">{report.readiness.map((item) => <div className="readiness-row" key={item.position}><ReadinessScale position={item.position} /><span><strong>{item.label}</strong><small>{item.bottles} {item.bottles === 1 ? "bottle" : "bottles"}</small></span></div>)}</div>
+          <div className="readiness-list">{report.readiness.map((item) => <InsightLink className="readiness-row" kind="readiness" value={String(item.position)} key={item.position}><ReadinessScale position={item.position} /><span><strong>{item.label}</strong><small>{item.bottles} {item.bottles === 1 ? "bottle" : "bottles"}</small></span></InsightLink>)}</div>
         </InsightSection>
 
         <InsightSection eyebrow="Section 03" title="Drinking Outlook">
           <p className="section-intro">How your cellar is positioned for drinking from today onwards.</p>
-          <div className="outlook-list">{report.outlook.map((item) => <div className="outlook-row" key={item.key}><strong>{item.bottles}</strong><span>{item.bottles === 1 ? item.label.replace("bottles", "bottle") : item.label}</span></div>)}</div>
+          <div className="outlook-list">{report.outlook.map((item) => <InsightLink className="outlook-row" kind="outlook" value={item.key} key={item.key}><strong>{item.bottles}</strong><span>{item.bottles === 1 ? item.label.replace("bottles", "bottle") : item.label}</span></InsightLink>)}</div>
           {report.outlookInsight && <p className="outlook-insight">{report.outlookInsight}</p>}
         </InsightSection>
 
         <InsightSection eyebrow="Section 04" title="Collection Mix">
-          <div className="mix-grid"><MixChart title="Colour" items={report.mix.colours} /><MixChart title="Country" items={report.mix.countries} /><MixChart title="Region" items={report.mix.regions} /><MixChart title="Grape variety" items={report.mix.grapes} /></div>
+          <div className="mix-grid"><MixChart title="Colour" kind="colour" items={report.mix.colours} /><MixChart title="Type" kind="type" items={report.mix.types} /><MixChart title="Country" kind="country" items={report.mix.countries} /><MixChart title="Region" kind="region" items={report.mix.regions} /><MixChart title="Grape variety" kind="grape" items={report.mix.grapes} /></div>
         </InsightSection>
 
         <InsightSection eyebrow="Section 05" title="Estimated Collection Value">
@@ -68,9 +69,12 @@ function InsightSection({ eyebrow, title, className = "", children }: { eyebrow:
   return <GlassCard className={`insight-section ${className}`}><SectionTitle eyebrow={eyebrow}>{title}</SectionTitle>{children}</GlassCard>;
 }
 function Kpi({ value, label }: { value: React.ReactNode; label: string }) { return <div className="insight-kpi"><strong>{value}</strong><span>{label}</span></div>; }
-function MixChart({ title, items }: { title: string; items: DistributionItem[] }) {
+function InsightLink({ kind, value, className, children }: { kind: string; value: string; className: string; children: React.ReactNode }) {
+  return <Link className={className} href={`/cellar/insights/selection?kind=${kind}&value=${encodeURIComponent(value)}`}>{children}</Link>;
+}
+function MixChart({ title, kind, items }: { title: string; kind: string; items: DistributionItem[] }) {
   const shown = items.slice(0, 5);
-  return <div className="mix-chart"><h3>{title}</h3>{shown.length ? shown.map((item) => <div className="mix-item" key={item.label}><div><span>{item.label}</span><strong>{item.percentage}%</strong></div><i><b style={{ width: `${item.percentage}%` }} /></i></div>) : <small>No data recorded</small>}</div>;
+  return <div className="mix-chart"><h3>{title}</h3>{shown.length ? shown.map((item) => <InsightLink className="mix-item" kind={kind} value={item.label} key={item.label}><div><span>{item.label}</span><strong>{item.percentage}%</strong></div><i><b style={{ width: `${item.percentage}%` }} /></i></InsightLink>) : <small>No data recorded</small>}</div>;
 }
 function Highlight({ label, value }: { label: string; value: string | null }) { return <div><dt>{label}</dt><dd>{value ?? "Not recorded"}</dd></div>; }
 function EmptyData({ children }: { children: React.ReactNode }) { return <p className="insights-no-data">{children}</p>; }
