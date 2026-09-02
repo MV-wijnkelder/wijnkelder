@@ -1,5 +1,6 @@
 import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "../domain/wine.ts";
 import type { Wine } from "@/domain/wine";
+import { normalizeWineCategories } from "./wine-normalization.ts";
 
 /** Raw, provider-independent data returned by wine-label recognition. */
 export type WineRecognition = {
@@ -40,7 +41,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
   const appellation = knownValue(recognition.appellation);
   const canonical = canonicalIdentity(appellation);
   const recognizedGrapes = recognition.grapeVarieties.map(knownValue).filter((grape): grape is string => grape !== null);
-  return {
+  return normalizeWineCategories({
     producer: knownValue(recognition.producer),
     wineName: knownValue(recognition.wineName),
     vintage: knownValue(recognition.vintage),
@@ -58,7 +59,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
     profile: emptyWineProfile(),
     profileMetadata: emptyWineProfileMetadata(),
     cellar: emptyCellarDetails(),
-  };
+  });
 }
 
 /** Only legally fixed appellation facts belong here; broad regional conventions are not safe defaults. */

@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "@/domain/wine";
 import type { CellarDetails, MarketValueMetadata, StoredWine, Wine, WineEnrichment, WineProfile, WineProfileMetadata } from "@/domain/wine";
-import { duplicateKey } from "@/lib/wine-normalization";
+import { duplicateKey, normalizeWineCategories } from "@/lib/wine-normalization";
 
 type WineInput = Wine & { bottleCount?: number };
 type WineRow = {
@@ -78,7 +78,7 @@ async function initialize(): Promise<void> {
 }
 
 function rowToWine(row: WineRow): StoredWine {
-  return {
+  return normalizeWineCategories({
     id: Number(row.id), producer: row.producer, wineName: row.wine_name,
     vintage: row.vintage, country: row.country, region: row.region,
     appellation: row.appellation, grapeVarieties: row.grape_varieties,
@@ -86,7 +86,7 @@ function rowToWine(row: WineRow): StoredWine {
     alcoholPercentage: row.alcohol_percentage === null ? null : Number(row.alcohol_percentage),
     confidence: row.confidence, marketValue: normalizeMarketValue(row.market_value), marketValueCurrency: normalizeCurrency(row.market_value_currency), marketValueMetadata: normalizeMarketValueMetadata(row.market_value_metadata), profile: normalizeProfile(row.profile, row.wine_name), profileMetadata: normalizeProfileMetadata(row.profile_metadata), cellar: normalizeCellar(row.cellar), bottleCount: row.bottle_count,
     createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString(),
-  };
+  });
 }
 
 export class NeonWineStorage {
