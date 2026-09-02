@@ -27,3 +27,9 @@ test("different producer, wine, or vintage remains distinct", () => {
   assert.notEqual(canonical, duplicateKey(wine("Estate", "Grand Reserve", "2022")));
   assert.notEqual(canonical, duplicateKey(wine("Estate", "Reserve", "2021")));
 });
+
+test("wine colour is restricted to the three canonical values", () => {
+  for (const [source, expected] of [["RED", "Red"], ["white", "White"], ["rose", "Rosé"], ["Rosè", "Rosé"], ["Rosé", "Rosé"], ["sparkling", null]]) {
+    assert.equal(normalizeWineCategories({ ...wine("Estate", "Reserve", "2022"), wineColor: source }).wineColor, expected);
+  }
+});

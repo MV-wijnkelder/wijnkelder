@@ -13,5 +13,5 @@ test("legally canonical appellation facts fill missing core identity", () => {
 test("recognized label facts always take precedence over canonical enrichment", () => {
   const wine = mapRecognitionToWine({ ...recognition, grapeVarieties: ["Label grape"], wineColor: "Label color" });
   assert.deepEqual(wine.grapeVarieties, ["Label Grape"]);
-  assert.equal(wine.wineColor, "Label Color");
+  assert.equal(wine.wineColor, null);
 });

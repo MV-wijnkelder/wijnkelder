@@ -76,3 +76,14 @@ test("market totals update dynamically with quantity and exclude unavailable val
   assert.equal(changed.value.total, 471);
   assert.deepEqual({ valued: changed.value.valuedBottles, total: changed.value.totalBottles, unvalued: changed.value.unvaluedBottles }, { valued: 6, total: 9, unvalued: 3 });
 });
+
+test("canonicalizes rosé spellings and separates sparkling type from colour", () => {
+  const sparklingRose = wine({ id: 1, bottleCount: 2, wineColor: "Rosè" });
+  sparklingRose.profile.style.wineStyle = "Sparkling rosé";
+  const report = buildCellarInsights([sparklingRose, wine({ id: 2, wineColor: "rose" })], 2026);
+  assert.deepEqual(report.mix.colours, [{ label: "Rosé", bottles: 3, percentage: 100 }]);
+  assert.deepEqual(report.mix.types, [
+    { label: "Sparkling", bottles: 2, percentage: 67 },
+    { label: "Still", bottles: 1, percentage: 33 },
+  ]);
+});
