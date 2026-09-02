@@ -1,5 +1,6 @@
 import type { StoredWine } from "@/domain/wine";
 import { getWineType, normalizeCategory, normalizeWineColour } from "./wine-normalization.ts";
+import { getDrinkingLifecycle, yearOf } from "./drinking-lifecycle.ts";
 
 export type DistributionItem = { label: string; bottles: number; percentage: number };
 export type OutlookKey = "pastPeak" | "drinkNow" | "nextTwoYears" | "threeToFiveYears" | "longTerm";
@@ -23,18 +24,7 @@ const outlookLabels: Record<OutlookKey, string> = {
 
 /** One dynamic, continuous lifecycle: 1–3 are past peak; 4–8 retain the former five positive levels. */
 export function getReadinessPosition(wine: StoredWine, currentYear = new Date().getUTCFullYear()): number | null {
-  const from = yearOf(wine.profile.drinking.drinkFrom);
-  const until = yearOf(wine.profile.drinking.drinkUntil);
-  if (from === null || until === null || until < from) return null;
-  if (currentYear > until) {
-    const yearsPast = currentYear - until;
-    return yearsPast === 1 ? 3 : yearsPast <= 3 ? 2 : 1;
-  }
-  const midpoint = (from + until) / 2;
-  const halfWindow = Math.max((until - from) / 2, 1);
-  const distance = Math.abs(currentYear - midpoint);
-  const formerLevel = distance <= halfWindow * .35 ? 5 : distance <= halfWindow ? 4 : distance <= halfWindow + 1 ? 3 : distance <= halfWindow + 3 ? 2 : 1;
-  return formerLevel + 3;
+  return getDrinkingLifecycle(wine, currentYear)?.readinessPosition ?? null;
 }
 
 /** Backward-compatible name for callers of the former five-star helper. */
@@ -71,9 +61,8 @@ export function buildCellarInsights(wines: StoredWine[], currentYear = new Date(
   return { bottles, wines: active.length, countries: countries.length, regions: regions.length, readiness, outlook, outlookInsight, mix: { colours, types, countries, regions, grapes }, value, highlights, insights: insights.slice(0, 4), health };
 }
 
-export function getOutlookKey(wine: StoredWine, currentYear = new Date().getUTCFullYear()): OutlookKey | null { const from = yearOf(wine.profile.drinking.drinkFrom); const until = yearOf(wine.profile.drinking.drinkUntil); if (from === null || until === null || until < from) return null; if (until < currentYear) return "pastPeak"; if (from <= currentYear) return "drinkNow"; const wait = from - currentYear; return wait <= 2 ? "nextTwoYears" : wait <= 5 ? "threeToFiveYears" : "longTerm"; }
+export function getOutlookKey(wine: StoredWine, currentYear = new Date().getUTCFullYear()): OutlookKey | null { return getDrinkingLifecycle(wine, currentYear)?.outlook ?? null; }
 function values(value: string | null): string[] { const normalized = normalizeCategory(value); return normalized ? [normalized] : []; }
-function yearOf(value: string | null): number | null { if (!value) return null; const match = value.match(/\b(19|20|21)\d{2}\b/); return match ? Number(match[0]) : null; }
 function distribution(wines: StoredWine[], select: (wine: StoredWine) => string[]): DistributionItem[] { const counts = new Map<string, number>(); wines.forEach((wine) => select(wine).forEach((raw) => { const label = normalizeCategory(raw); if (label) counts.set(label, (counts.get(label) ?? 0) + wine.bottleCount); })); const total = [...counts.values()].reduce((sum, count) => sum + count, 0); return [...counts].sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, bottles: count, percentage: total ? Math.round(count / total * 100) : 0 })); }
 function largest(wines: StoredWine[], select: (wine: StoredWine) => string | null): string | null { return distribution(wines, (wine) => values(select(wine)))[0]?.label ?? null; }
 function collectionValue(wines: StoredWine[]): CellarInsights["value"] { const valued = wines.filter((wine) => wine.marketValue !== null); const totalBottles = wines.reduce((sum, wine) => sum + wine.bottleCount, 0); const valuedBottles = valued.reduce((sum, wine) => sum + wine.bottleCount, 0); const total = valued.reduce((sum, wine) => sum + (wine.marketValue ?? 0) * wine.bottleCount, 0); return { currency: valued.find((wine) => wine.marketValueCurrency)?.marketValueCurrency ?? "EUR", total, average: valuedBottles ? total / valuedBottles : 0, highest: valued.length ? Math.max(...valued.map((wine) => wine.marketValue ?? 0)) : 0, valuedBottles, unvaluedBottles: totalBottles - valuedBottles, totalBottles, coveragePercentage: totalBottles ? Math.round(valuedBottles / totalBottles * 100) : 0 }; }

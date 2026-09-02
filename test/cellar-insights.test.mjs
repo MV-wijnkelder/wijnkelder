@@ -20,7 +20,7 @@ function wine(overrides = {}) {
 
 test("readiness uses positive positions before the end and deterioration positions after it", () => {
   const subject = wine({ drinking: { drinkFrom: "2026", drinkUntil: "2030", currentMaturity: null } });
-  assert.equal(getReadinessStars(subject, 2023), 5);
+  assert.equal(getReadinessStars(subject, 2023), 4);
   assert.equal(getReadinessStars(subject, 2028), 8);
   assert.equal(getReadinessStars(subject, 2031), 3);
   assert.equal(getReadinessStars(subject, 2033), 2);
@@ -36,7 +36,7 @@ test("insights derive collection, outlook, mix and market value and coverage fro
   assert.deepEqual({ bottles: report.bottles, wines: report.wines, countries: report.countries, regions: report.regions }, { bottles: 5, wines: 3, countries: 2, regions: 2 });
   assert.deepEqual(report.outlook.map(({ key, bottles }) => ({ key, bottles })), [
     { key: "pastPeak", bottles: 0 }, { key: "drinkNow", bottles: 0 },
-    { key: "nextTwoYears", bottles: 4 }, { key: "threeToFiveYears", bottles: 0 },
+    { key: "nextTwoYears", bottles: 1 }, { key: "threeToFiveYears", bottles: 3 },
     { key: "longTerm", bottles: 0 },
   ]);
   assert.equal(report.value.currency, "EUR");
@@ -64,7 +64,7 @@ test("drinking outlook counts bottles in mutually exclusive current and future r
     wine({ id: 4, bottleCount: 5, drinking: { drinkFrom: "2030", drinkUntil: "2036", currentMaturity: null } }),
     wine({ id: 5, bottleCount: 6, drinking: { drinkFrom: "2032", drinkUntil: "2040", currentMaturity: null } }),
   ], 2026);
-  assert.deepEqual(report.outlook.map((item) => item.bottles), [4, 3, 2, 5, 6]);
+  assert.deepEqual(report.outlook.map((item) => item.bottles), [4, 3, 0, 2, 11]);
   assert.equal(report.outlookInsight, "4 bottles are past peak and should be prioritised.");
 });
 

@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.4.0
-- **Current development phase:** Interactive cellar intelligence; normalized analytics now link directly to the canonical wines behind every insight.
+- **Current version:** 1.5.0
+- **Current development phase:** Cellar-aware drinking intelligence now protects developing bottles and prioritises the best bottle to open.
 - **Last updated:** 2 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14B — Interactive Cellar Insights & Wine Classification
-- **Release status:** Sprint 14B is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14C — Cellar-Aware Drinking Intelligence & Peak Protection
+- **Release status:** Sprint 14C is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -135,6 +135,16 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.4.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14C — Cellar-Aware Drinking Intelligence & Peak Protection
+
+- **Objective:** Make VinoCastello distinguish a bottle that can be enjoyed now from the bottle that should ideally be opened now.
+- **Root cause addressed:** The former calculation treated the stored drinking-window midpoint as peak and classified every wine after Drink From as ready now. Earliest drinkability, best period, and Drink By were therefore conflated; recommendations used a separate coarse maturity score and excluded wines outside the window instead of considering ageing opportunity cost.
+- **Key functionality delivered:** The canonical profile now supports distinct Drink From, Peak From, Peak Until, and Drink Until dates. One dynamic lifecycle service maps explicit peak dates—or a conservative best-period inference for existing profiles—onto all eight unchanged readiness positions, ideal Drinking Outlook timing, material ageing upside, and a quantity-softened preservation factor. RecommendationService keeps food and occasion fit primary while preferring comparable peak/near-peak bottles and explains when a developing wine is worth keeping. Personal AI Sommelier context includes the same computed lifecycle and follows the same preservation policy. AI enrichment requests producer/cuvée/vintage-specific lifecycle evidence before broader appellation, grape, region, and style fallbacks. Existing wines work immediately without rescanning or destructive backfill.
+- **Current limitations:** Existing profiles without explicit peak dates use a deterministic inference within their stored window until explicitly refreshed. Guidance cannot account for storage history, bottle condition, closure variation, or personal maturity preference. Quantity is record-level rather than bottle-condition-specific.
+- **Completion date:** 2 September 2026
+- **Release version:** 1.5.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -150,14 +160,14 @@ runtime base prompt as well as the documented policy.
 ## Recommendation Engine
 
 `RecommendationService` is the one deterministic source for meal
-interpretation, exclusions, scoring, quality thresholds, and explanations. It
+interpretation, exclusions, scoring, quality thresholds, cellar-preservation ranking, and explanations. It
 consumes canonical `StoredWine[]` data, filters unavailable or unsuitable
 bottles, and returns no more than three explainable matches. It returns suitable
 styles rather than fabricating a cellar match when no bottle qualifies.
 
 ## Cellar Integration
 
-The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve exact-match public EUR offers from official wineries, recognised merchants, reputable retailers, and recognised market aggregators. VinoCastello validates observations and deterministically selects one median value. AI profile enrichment is separate and cannot overwrite valuation data. Cached successful and unavailable lookups prevent research on every detail open.
+The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve exact-match public EUR offers from official wineries, recognised merchants, reputable retailers, and recognised market aggregators. VinoCastello validates observations and deterministically selects one median value. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service derives readiness, best opening horizon, ageing upside, and preservation cost from the canonical profile for insights, filters, recommendations, and Sommelier context. Cached successful and unavailable lookups prevent research on every detail open.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
 profile and cellar JSON. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
@@ -226,7 +236,7 @@ derivatives are maintained.
   winery, vintage, and drinking-window guidance.
 - Generate, backfill, retry, and explicitly refresh AI profiles.
 - Ask What Should I Drink? in natural language and receive up to three
-  explainable, cellar-first matches or honest alternative styles.
+  explainable, cellar-first matches that protect materially developing bottles when comparable peak alternatives exist, or honest alternative styles.
 - Ask focused questions about ready-to-drink bottles, country inventory, and
   comparisons.
 - Chat with one personal AI Sommelier across cellar, pairing, serving, storage,
@@ -240,7 +250,7 @@ derivatives are maintained.
 - Use current-information research when available, with graceful fallback.
 - View Cellar Insights for wine count, bottle count, regions, diversity, readiness, notable collection patterns, estimated collection market value, and bottle-level valuation coverage.
 - Read the eight-position Drink Readiness lifecycle, including distinct wine-red past-peak positions and the preserved gold positive scale.
-- Use Drinking Outlook bottle counts and its concise priority observation to plan drinking from the current year onwards.
+- Use Drinking Outlook bottle counts based on ideal peak timing—not mere earliest drinkability—and its concise priority observation to plan drinking from the current year onwards.
 - Tap Collection Mix, Drink Readiness, or Drinking Outlook categories to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection.
 - View one clean Estimated Market Value per bottle or the exact `Currently unavailable` state on Wine Details, and refresh one wine or the complete cellar without changing other wine data.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
@@ -261,8 +271,7 @@ derivatives are maintained.
   configured provider/network access; core inventory remains usable without it.
 - `localStorage` and IndexedDB can diverge or be evicted independently, and an
   IndexedDB load failure currently becomes silent loss of image context.
-- Drinking-window decisions use the current UTC year and cannot account for
-  storage, bottle condition, month, or maturity preference.
+- Drinking-lifecycle decisions use the current UTC year and cannot account for storage history, bottle condition, closure variation, month, or personal maturity preference. Historical profiles without explicit peak dates use a conservative inferred best period until refreshed.
 - Category normalization intentionally covers capitalization plus clear aliases
   such as Tuscany/Toscana; ambiguous translations and appellation synonyms are
   left unchanged rather than risking incorrect aggregation.
@@ -332,7 +341,7 @@ derivatives are maintained.
 
 # Next Planned Sprint
 
-## Sprint 14C — Trust, Provenance, and End-to-End Reliability
+## Sprint 14D — Trust, Provenance, and End-to-End Reliability
 
 **Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh progress, and visible provenance for AI/user-confirmed facts where appropriate without exposing market-source complexity in the valuation UI.
 
@@ -343,9 +352,7 @@ derivatives are maintained.
 - **Canonical Wine is authoritative:** The application database and shared Wine
   domain model are the source of truth. AI context, browser memory, analytics,
   and future workbook exchange must not become parallel records.
-- **Cellar-first recommendations:** Recommend suitable available owned bottles
-  first, explain evidence, and return an honest no-match rather than forcing or
-  inventing a result.
+- **Cellar-first recommendations:** Recommend suitable available owned bottles first, keep food and occasion fit primary, and use canonical lifecycle opportunity cost to protect materially developing bottles when comparable peak choices exist. Explain evidence and return an honest no-match rather than forcing or inventing a result.
 - **Reuse services; never duplicate business logic:** Recommendation scoring,
   normalization, storage, recognition, and image preparation remain centralized
   behind existing domain/service boundaries.
