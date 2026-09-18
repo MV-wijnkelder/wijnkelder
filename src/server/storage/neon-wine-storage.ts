@@ -199,6 +199,9 @@ function normalizeMarketValueMetadata(value: MarketValueMetadata | null | undefi
     observationCount: Number.isSafeInteger(value.observationCount) && value.observationCount >= 0 ? value.observationCount : 0,
     confidence: ["unavailable", "low", "medium", "high"].includes(value.confidence) ? value.confidence : "unavailable",
     failureCategory: typeof value.failureCategory === "string" ? value.failureCategory : null,
+    lastAttemptedAt: typeof value.lastAttemptedAt === "string" ? value.lastAttemptedAt : null,
+    lastAttemptFailure: typeof value.lastAttemptFailure === "string" ? value.lastAttemptFailure : null,
+    evidenceTier: ["exact", "nearby", "unknown"].includes(value.evidenceTier ?? "") ? value.evidenceTier : null,
   };
 }
 

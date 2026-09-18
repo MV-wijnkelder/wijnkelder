@@ -36,3 +36,11 @@ test("generated workbook is a valid filtered XLSX zip with the expected filename
   assert.match(entries, /xl\/worksheets\/sheet1.xml/);
   assert.equal(exportFilename(new Date("2026-09-02T12:00:00Z")), "VinoCastello_Cellar_2026-09-02.xlsx");
 });
+
+
+test("a retained estimate remains numeric after a failed refresh attempt", () => {
+  const retained = wine({ marketValueMetadata: { ...emptyMarketValueMetadata(), retrievedAt: "2026-07-01T00:00:00Z", lastAttemptedAt: "2026-09-18T00:00:00Z", lastAttemptFailure: "provider" } });
+  const [row] = cellarExportRows([retained], 2026);
+  assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Estimated Market Value per Bottle")], 50);
+  assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Total Estimated Market Value")], 300);
+});

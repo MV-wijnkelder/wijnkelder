@@ -111,6 +111,10 @@ export interface MarketValueMetadata {
   observationCount: number;
   confidence: "unavailable" | "low" | "medium" | "high";
   failureCategory: string | null;
+  /** Latest attempt is separate from retrievedAt, which only dates a successful valuation. */
+  lastAttemptedAt: string | null;
+  lastAttemptFailure: string | null;
+  evidenceTier: "exact" | "nearby" | "unknown" | null;
 }
 
 /** Provider-independent AI profile result. Market valuation has a dedicated provider boundary. */
@@ -119,7 +123,7 @@ export interface WineEnrichment {
 }
 
 export function emptyMarketValueMetadata(): MarketValueMetadata {
-  return { provider: null, retrievedAt: null, sourceUrls: [], observationCount: 0, confidence: "unavailable", failureCategory: null };
+  return { provider: null, retrievedAt: null, sourceUrls: [], observationCount: 0, confidence: "unavailable", failureCategory: null, lastAttemptedAt: null, lastAttemptFailure: null, evidenceTier: null };
 }
 
 export function emptyWineProfileMetadata(): WineProfileMetadata {

@@ -2,7 +2,7 @@ import type { StoredWine, Wine } from "@/domain/wine";
 export type { StoredWine } from "@/domain/wine";
 
 type SaveResult = { wine: StoredWine; duplicate: boolean };
-export type MarketRefreshBatch = { total: number; initiallyFresh: number; checkedIds: number[]; updatedIds: number[]; failedIds: number[]; hasMore: boolean };
+export type MarketRefreshBatch = { total: number; initiallyFresh: number; checkedIds: number[]; updatedIds: number[]; retainedIds: number[]; unavailableIds: number[]; failedIds: number[]; hasMore: boolean };
 
 export const WineService = {
   list(search = "") {

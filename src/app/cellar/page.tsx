@@ -155,17 +155,17 @@ export default function CellarPage() {
   async function refreshAllMarketValues() {
     if (refreshingValues) return;
     setRefreshingValues(true); setError(null); setRefreshProgress("Refreshing market values…");
-    let checkedIds: number[] = []; let updated = 0; let failed = 0; let fresh = 0; let total = wines.length;
+    let checkedIds: number[] = []; let updated = 0; let retained = 0; let unavailable = 0; let fresh = 0; let total = wines.length;
     try {
       do {
         const batch = await WineService.refreshMarketValueBatch(checkedIds);
-        checkedIds = batch.checkedIds; updated += batch.updatedIds.length; failed += batch.failedIds.length;
+        checkedIds = batch.checkedIds; updated += batch.updatedIds.length; retained += batch.retainedIds.length; unavailable += batch.unavailableIds.length;
         fresh = batch.initiallyFresh; total = batch.total;
         setRefreshProgress(`Refreshing market values… ${Math.min(fresh + checkedIds.length, total)} of ${total} wines checked`);
         if (!batch.hasMore) break;
       } while (true);
       setWines(await WineService.list(search));
-      setRefreshProgress(`Market values updated · ${updated} updated · ${fresh} already current · ${failed} could not be valued`);
+      setRefreshProgress(`Market values refreshed · ${updated} updated · ${fresh} already current · ${retained} previous estimates retained · ${unavailable} unavailable`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Market valuation is temporarily unavailable.");
       setRefreshProgress(updated ? `Some market values could not be updated. ${updated} updates were preserved.` : null);
