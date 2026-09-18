@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildCellarInsights, getReadinessStars } from "../src/lib/cellar-insights.ts";
-import { emptyCellarDetails, emptyWineProfile, emptyWineProfileMetadata } from "../src/domain/wine.ts";
+import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "../src/domain/wine.ts";
 
 function wine(overrides = {}) {
   const profile = emptyWineProfile();
@@ -86,4 +86,13 @@ test("canonicalizes rosé spellings and separates sparkling type from colour", (
     { label: "Sparkling", bottles: 2, percentage: 67 },
     { label: "Still", bottles: 1, percentage: 33 },
   ]);
+});
+
+
+test("a previous estimate retained after failure still contributes to collection value", () => {
+  const retained = wine({ marketValue: 25, bottleCount: 2, marketValueMetadata: { ...emptyMarketValueMetadata(), retrievedAt: "2026-07-01T00:00:00Z", lastAttemptedAt: "2026-09-18T00:00:00Z", lastAttemptFailure: "provider" } });
+  const report = buildCellarInsights([retained], 2026);
+  assert.equal(report.value.total, 50);
+  assert.equal(report.value.valuedBottles, 2);
+  assert.equal(report.value.unvaluedBottles, 0);
 });
