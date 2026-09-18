@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.6.0
-- **Current development phase:** Safe live-cellar editing, persistent navigation, fully explorable insights, and export-only Excel snapshots are available.
-- **Last updated:** 2 September 2026
+- **Current version:** 1.7.0
+- **Current development phase:** Reliable evidence-based market valuation and bounded, resumable cellar refresh are available alongside safe live-cellar editing and export-only Excel snapshots.
+- **Last updated:** 17 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14D — Safe Cellar Editing, Persistent Navigation, Interactive Insights & Excel Export
-- **Release status:** Sprint 14D is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14E — Reliable Market Valuation & Safe Cellar Refresh
+- **Release status:** Sprint 14E is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -156,6 +156,15 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.6.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14E — Reliable Market Valuation & Safe Cellar Refresh
+
+- **Objective:** Make Estimated Market Price evidence reliable and whole-cellar refresh safe, resumable, and cost-conscious.
+- **Root cause addressed:** Retrieval previously constrained the model to EUR and accepted any positive EUR number with an HTTPS URL, so observed foreign currencies could be relabelled and product/package evidence was not independently validated. The cellar endpoint also valued every wine sequentially in one request.
+- **Key functionality delivered:** One canonical deterministic valuation service now validates actual source currency, merchant independence, producer, exact cuvée, vintage, bottle size, single-bottle package, availability, offer type, and evidence quality. Only EUR observations are currently supported; foreign currencies are safely excluded rather than guessed. A median with a 35%/€5 cluster rule rejects isolated outliers. One high-quality exact offer can produce a low-confidence estimate; weak or absent evidence remains unavailable. Provenance retains accepted URLs, observation count, confidence, provider, and retrieval time. Values remain fresh for 30 days; unavailable automatic attempts have a one-day retry cooldown. Cellar refresh uses client-driven batches of three with a 12-second timeout per provider call, skips fresh/completed wines, reports progress and partial failures, and safely resumes without repeating successful calls.
+- **Completion date:** 17 September 2026
+- **Release version:** 1.7.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -271,8 +280,7 @@ derivatives are maintained.
 
 ## Known Bugs and Behavioral Risks
 
-- Market retrieval requires the configured OpenAI provider and network access, is EUR-only, and cannot value wines without current exact-match public offers. Retailer availability and web-search results can change independently of the cache.
-- Complete-cellar refresh currently processes wines sequentially and may be slow for large cellars; individual failures are isolated, but progress is not streamed to the UI.
+- Market retrieval requires the configured OpenAI provider and network access. Conversion is intentionally not attempted: non-EUR offers are excluded until a reliable exchange-rate mechanism is approved. Exact identity/package evidence may be unavailable, and retailer listings can change independently of the 30-day cache.
 - Apple Touch Icons require a supported dedicated raster format in Apple environments that do not accept WebP. VinoCastello intentionally has no generated PNG fallback, so those environments may use their own fallback until a suitable official, manually supplied compatible asset exists.
 
 - Image sets have generic names (`Image Set N`), which makes ambiguity harder to
@@ -352,9 +360,9 @@ derivatives are maintained.
 
 # Next Planned Sprint
 
-## Sprint 14E — Trust, Provenance, and End-to-End Reliability
+## Sprint 15 — Trust, Provenance, and End-to-End Reliability
 
-**Recommended objective:** Add provider-contract and database integration coverage, redacted valuation observability and scalable cellar-refresh/export progress, and visible provenance for AI/user-confirmed facts without weakening the confirmed-write or export-only boundaries.
+**Recommended objective:** Extend provider-contract and database integration coverage and visible provenance for AI/user-confirmed facts without weakening the confirmed-write or export-only boundaries.
 
 # Architectural Decisions
 

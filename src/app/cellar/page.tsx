@@ -34,6 +34,7 @@ export default function CellarPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshingValues, setRefreshingValues] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<string | null>(null);
   const loadSequence = useRef(0);
   const restored = useRef(false);
   const rememberPosition = useCallback(
@@ -151,6 +152,26 @@ export default function CellarPage() {
     }
   }
 
+  async function refreshAllMarketValues() {
+    if (refreshingValues) return;
+    setRefreshingValues(true); setError(null); setRefreshProgress("Refreshing market values…");
+    let checkedIds: number[] = []; let updated = 0; let failed = 0; let fresh = 0; let total = wines.length;
+    try {
+      do {
+        const batch = await WineService.refreshMarketValueBatch(checkedIds);
+        checkedIds = batch.checkedIds; updated += batch.updatedIds.length; failed += batch.failedIds.length;
+        fresh = batch.initiallyFresh; total = batch.total;
+        setRefreshProgress(`Refreshing market values… ${Math.min(fresh + checkedIds.length, total)} of ${total} wines checked`);
+        if (!batch.hasMore) break;
+      } while (true);
+      setWines(await WineService.list(search));
+      setRefreshProgress(`Market values updated · ${updated} updated · ${fresh} already current · ${failed} could not be valued`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Market valuation is temporarily unavailable.");
+      setRefreshProgress(updated ? `Some market values could not be updated. ${updated} updates were preserved.` : null);
+    } finally { setRefreshingValues(false); }
+  }
+
   return (
     <main className="app-shell premium-page relative min-h-screen overflow-x-clip px-5 py-6 sm:px-6 sm:py-10">
       <HeroBackground atmosphere="cellar" />
@@ -171,7 +192,8 @@ export default function CellarPage() {
           subtitle="Every bottle, carefully kept."
         />
         <div className="profile-refresh">
-          <PremiumButton disabled={refreshingValues || isLoading} onClick={async () => { setRefreshingValues(true); setError(null); try { setWines(await WineService.refreshAllMarketValues()); } catch (cause) { setError(message(cause)); } finally { setRefreshingValues(false); } }}>{refreshingValues ? "Refreshing cellar values…" : "Refresh Estimated Market Values"}</PremiumButton>
+          <PremiumButton disabled={refreshingValues || isLoading} onClick={refreshAllMarketValues}>{refreshingValues ? "Refreshing market values…" : "Refresh Estimated Market Values"}</PremiumButton>
+          {refreshProgress && <p role="status" aria-live="polite">{refreshProgress}</p>}
         </div>
         {!isLoading && <PremiumButton className="export-action" variant="secondary" onClick={() => downloadCellarWorkbook(wines)}>Export to Excel</PremiumButton>}
         <label className="cellar-search">

@@ -2,6 +2,7 @@ import type { StoredWine, Wine } from "@/domain/wine";
 export type { StoredWine } from "@/domain/wine";
 
 type SaveResult = { wine: StoredWine; duplicate: boolean };
+export type MarketRefreshBatch = { total: number; initiallyFresh: number; checkedIds: number[]; updatedIds: number[]; failedIds: number[]; hasMore: boolean };
 
 export const WineService = {
   list(search = "") {
@@ -17,8 +18,8 @@ export const WineService = {
   refreshMarketValue(id: number) {
     return request<StoredWine>(`/api/wines/${id}/market-value`, { method: "POST" });
   },
-  refreshAllMarketValues() {
-    return request<StoredWine[]>("/api/wines/market-values", { method: "POST" });
+  refreshMarketValueBatch(completedIds: number[]) {
+    return request<MarketRefreshBatch>("/api/wines/market-values", { method: "POST", body: JSON.stringify({ completedIds }) });
   },
   add(wine: Wine) {
     return request<SaveResult>("/api/wines", { method: "POST", body: JSON.stringify(wine) });
