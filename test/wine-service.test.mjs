@@ -52,15 +52,15 @@ test("refreshes only the stored wine profile endpoint", async () => {
   }, async () => assert.deepEqual(await WineService.refreshProfile(4), stored));
 });
 
-test("refreshes Estimated Market Value for one wine or the complete cellar", async () => {
+test("refreshes one Estimated Market Value or one resumable cellar batch", async () => {
   await withFetch(async (url, init) => {
     assert.equal(init.method, "POST");
     if (url === "/api/wines/4/market-value") return Response.json(stored);
-    assert.equal(url, "/api/wines/market-values");
-    return Response.json([stored]);
+    assert.equal(url, "/api/wines/market-values"); assert.deepEqual(JSON.parse(init.body), { completedIds: [1, 2] });
+    return Response.json({ total: 3, initiallyFresh: 1, checkedIds: [1, 2, 4], updatedIds: [4], failedIds: [], hasMore: false });
   }, async () => {
     assert.deepEqual(await WineService.refreshMarketValue(4), stored);
-    assert.deepEqual(await WineService.refreshAllMarketValues(), [stored]);
+    assert.deepEqual((await WineService.refreshMarketValueBatch([1, 2])).updatedIds, [4]);
   });
 });
 
