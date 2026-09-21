@@ -3,6 +3,8 @@ import type { Wine } from "@/domain/wine";
 import { NeonWineStorage } from "@/server/storage/neon-wine-storage";
 import { enrichWineProfile } from "@/server/wine-profile-enrichment";
 import { wineProfileGenerator } from "@/server/wine-profile-generator";
+import { marketValueProvider } from "@/server/market-value/market-value-provider-factory";
+import { refreshMarketValueWithOutcome } from "@/server/market-value/market-value-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +25,20 @@ export async function POST(request: Request) {
   try {
     const wine = await request.json() as Wine & { bottleCount?: number };
     const result = await storage.add(wine);
+    // A duplicate means this request only added bottles. Its canonical profile
+    // and stored market value must be reused without another AI/web request.
+    if (result.duplicate) return NextResponse.json(result, { status: 200 });
     const enriched = await enrichWineProfile(result.wine, wineProfileGenerator(), storage);
-    return NextResponse.json({ ...result, wine: enriched }, { status: result.duplicate ? 200 : 201 });
+    let valued = enriched;
+    try {
+      valued = (await refreshMarketValueWithOutcome(enriched, marketValueProvider(), storage)).wine;
+    } catch {
+      // The wine and its profile are already safely stored. Valuation failures
+      // are recorded by the service and must not turn a successful scan into an
+      // apparent failure (or encourage the user to add the bottle twice).
+      valued = await storage.get(enriched.id) ?? enriched;
+    }
+    return NextResponse.json({ ...result, wine: valued }, { status: 201 });
   } catch (error) { return failure(error); }
 }
 

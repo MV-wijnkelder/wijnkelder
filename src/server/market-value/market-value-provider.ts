@@ -41,7 +41,9 @@ export async function determineMarketValue(wine: Wine, provider: MarketValueProv
   const unknown = independent.filter(({ tier }) => tier === "unknown");
   // Better evidence cannot be outvoted by a larger set of lower-tier listings.
   const selected = exact.length ? exact : nearby.length ? nearby : unknown;
-  const eligible = selected.length > 1 ? selected : selected.filter(({ observation }) => observation.evidenceQuality === "high");
+  // One independently validated current retail offer is useful evidence. Low
+  // quality sources have already been rejected by classifyObservation.
+  const eligible = selected;
   if (!eligible.length) return unavailableQuote(rejectionReasons);
 
   const sorted = eligible.map(({ observation }) => observation).toSorted((a, b) => a.price - b.price);
