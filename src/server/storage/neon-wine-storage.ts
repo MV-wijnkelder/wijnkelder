@@ -26,6 +26,7 @@ type WineRow = {
   bottle_count: number;
   created_at: Date | string;
   updated_at: Date | string;
+  inserted?: boolean;
 };
 
 let initialization: Promise<void> | undefined;
@@ -127,8 +128,11 @@ export class NeonWineStorage {
       INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, market_value, market_value_currency, market_value_metadata, profile, profile_metadata, cellar, bottle_count, duplicate_key)
       VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${normalizeMarketValue(wine.marketValue)}, ${normalizeCurrency(wine.marketValueCurrency)}, ${JSON.stringify(normalizeMarketValueMetadata(wine.marketValueMetadata))}, ${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, ${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, ${JSON.stringify(normalizeCellar(wine.cellar))}, ${count}, ${key})
       ON CONFLICT (duplicate_key) DO UPDATE SET bottle_count = wines.bottle_count + EXCLUDED.bottle_count, updated_at = NOW()
-      RETURNING *` as WineRow[];
-    return { wine: rowToWine(rows[0]), duplicate: existing.length > 0 };
+      RETURNING *, (xmax = 0) AS inserted` as WineRow[];
+    // The unique index closes the race between the lookup and insert. PostgreSQL
+    // exposes whether this statement inserted or took the conflict-update path,
+    // so concurrent scans cannot accidentally be treated as two new wines.
+    return { wine: rowToWine(rows[0]), duplicate: rows[0].inserted === false };
   }
 
   async update(id: number, wine: WineInput): Promise<StoredWine | null> {

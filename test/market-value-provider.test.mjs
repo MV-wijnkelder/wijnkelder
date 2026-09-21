@@ -28,6 +28,10 @@ test("one exact high-quality offer is medium confidence; one weak offer is unava
   assert.deepEqual((await quote([observation(24, "one")])).confidence, "medium");
   assert.equal((await quote([observation(24, "weak", { evidenceQuality: "low" })])).value, null);
 });
+test("one credible medium-quality retail offer is sufficient", async () => {
+  const result = await quote([observation(24, "one", { evidenceQuality: "medium" })]);
+  assert.equal(result.value, 24); assert.equal(result.observationCount, 1);
+});
 test("no evidence remains null and never falls back to purchase price", async () => { assert.equal((await quote([])).value, null); });
 test("refresh persists provenance without changing inventory", async () => {
   const saved = await refreshMarketValue(wine, { name: "public-test", async findPrices() { return [observation(44.5, "retailer")]; } }, { async updateMarketValue(id, value, currency, metadata) { return { ...wine, marketValue: value, marketValueCurrency: currency, marketValueMetadata: metadata }; } });
