@@ -4,14 +4,12 @@ import { determineMarketValue } from "./market-value-provider.ts";
 import { MarketValueProviderError } from "./openai-market-value-provider.ts";
 
 export const MARKET_VALUE_FRESH_DAYS = 30;
-export const MARKET_VALUE_RETRY_DAYS = 1;
 export const MARKET_VALUE_BATCH_SIZE = 3;
 export const MARKET_VALUE_PROVIDER_TIMEOUT_MS = 12_000;
 export type MarketRefreshOutcome = "updated" | "retained" | "unavailable";
 export interface MarketValueStorage { updateMarketValue(id: number, value: number | null, currency: string | null, metadata: MarketValueMetadata): Promise<StoredWine | null>; }
 
 export function isMarketValueFresh(wine: StoredWine, now = new Date()): boolean { return wine.marketValue !== null && ageIsBelow(wine.marketValueMetadata.retrievedAt, MARKET_VALUE_FRESH_DAYS, now); }
-export function shouldAutomaticallyValue(wine: StoredWine, now = new Date()): boolean { return !isMarketValueFresh(wine, now) && !ageIsBelow(wine.marketValueMetadata.lastAttemptedAt, MARKET_VALUE_RETRY_DAYS, now); }
 export function selectMarketValueBatch(wines: StoredWine[], completedIds: number[], now = new Date(), batchSize = MARKET_VALUE_BATCH_SIZE): StoredWine[] { const completed = new Set(completedIds); return wines.filter((wine) => !completed.has(wine.id) && !isMarketValueFresh(wine, now)).slice(0, batchSize); }
 
 export async function refreshMarketValueWithOutcome(wine: StoredWine, provider: MarketValueProvider, storage: MarketValueStorage, timeoutMs = MARKET_VALUE_PROVIDER_TIMEOUT_MS): Promise<{ wine: StoredWine; outcome: MarketRefreshOutcome }> {
