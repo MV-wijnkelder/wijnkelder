@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.7.1
-- **Current development phase:** Practical tiered market-price discovery and transactional, non-destructive revaluation are available alongside bounded, resumable cellar refresh, safe live-cellar editing, and export-only Excel snapshots.
-- **Last updated:** 18 September 2026
+- **Current version:** 1.7.2
+- **Current development phase:** Explicit-only, practical market-price discovery and transactional, non-destructive revaluation are available alongside bounded, resumable cellar refresh, safe live-cellar editing, and export-only Excel snapshots.
+- **Last updated:** 21 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14F — Practical Market Price Discovery & Safe Revaluation
-- **Release status:** Sprint 14F corrective release is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14G — Explicit-Only Market Valuation
+- **Release status:** Sprint 14G corrective release is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -27,7 +27,7 @@
   management; AI-generated wine profiles; deterministic, explainable
   cellar-first recommendations; a routed, multimodal personal AI Sommelier with
   browser-local conversation and image context; live-information fallback;
-  collection insights with normalized categories, an eight-position drinking lifecycle and current Drinking Outlook; transparent market-value coverage; automatically cached per-wine public-market valuation with single-wine and cellar refresh; and installable-app metadata using the official VinoCastello artwork.
+  collection insights with normalized categories, an eight-position drinking lifecycle and current Drinking Outlook; transparent market-value coverage; explicitly requested per-wine public-market valuation with single-wine and cellar refresh; and installable-app metadata using the official VinoCastello artwork.
 
 # Completed Sprints
 
@@ -174,6 +174,16 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.7.1
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14G — Explicit-Only Market Valuation
+
+- **Objective:** Ensure that public-web market research occurs only after a user explicitly requests a single-wine or complete-cellar valuation refresh.
+- **Root cause addressed:** Ordinary collection reads, Wine Details reads, wine creation, and wine edits all called the automatic valuation helper. Most critically, `GET /api/wines` iterated over every returned wine and made one OpenAI Responses request with web search enabled for each stale or unvalued record. Opening My Cellar—or changing its debounced search text—could therefore research an entire cellar without the user pressing the valuation button. With approximately 351 eligible records, that path could account for approximately 351 web-search-enabled Responses requests in one session. The explicit complete-cellar operation has the same one-request-per-eligible-wine cardinality, although it runs in client-driven batches of three.
+- **Key functionality delivered:** Removed market valuation from ordinary list, detail, create, and update routes; removed the obsolete automatic valuation helper and retry predicate; retained market research only behind the explicit single-wine and complete-cellar refresh POST routes; and added source-boundary regression coverage to prevent read/write routes from regaining web-backed valuation side effects.
+- **Current limitations:** Each explicitly refreshed eligible wine still requires one provider Responses request with web search enabled. The complete-cellar UI batches work for reliability but does not combine multiple wines into one provider request, so users must expect request volume proportional to the number of stale or unvalued wines selected by that operation.
+- **Completion date:** 21 September 2026
+- **Release version:** 1.7.2
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -196,7 +206,7 @@ styles rather than fabricating a cellar match when no bottle qualifies.
 
 ## Cellar Integration
 
-The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service derives readiness, best opening horizon, ageing upside, and preservation cost from the canonical profile for insights, filters, recommendations, and Sommelier context. Cached successful and unavailable lookups prevent research on every detail open.
+The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service derives readiness, best opening horizon, ageing upside, and preservation cost from the canonical profile for insights, filters, recommendations, and Sommelier context. Ordinary collection reads, detail reads, creation, and editing never perform market research; only the explicit single-wine and complete-cellar refresh POST routes can invoke the market-value provider.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
 profile and cellar JSON. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
@@ -281,7 +291,7 @@ derivatives are maintained.
 - Read the eight-position Drink Readiness lifecycle, including distinct wine-red past-peak positions and the preserved gold positive scale.
 - Use Drinking Outlook bottle counts based on ideal peak timing—not mere earliest drinkability—and its concise priority observation to plan drinking from the current year onwards.
 - Tap every meaningful Cellar Insights wine group—including collection totals, valuation gaps/coverage, highlights, Collection Mix, Drink Readiness, and Drinking Outlook—to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection or scroll context.
-- View one clean Estimated Market Value per bottle, a subtle previous-estimate status after unsuccessful verification, or the exact `Currently unavailable` state only when no usable estimate exists; refresh one wine or the complete cellar without changing other wine data.
+- View one clean Estimated Market Value per bottle, a subtle previous-estimate status after unsuccessful verification, or the exact `Currently unavailable` state only when no usable estimate exists; explicitly refresh one wine or the complete cellar without changing other wine data. Browsing, searching, adding, and editing wines do not initiate market research.
 - Explicitly export the complete cellar or the exact current insight selection as a filtered `.xlsx` snapshot; Excel import and write-back are not supported.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
@@ -290,6 +300,7 @@ derivatives are maintained.
 ## Known Bugs and Behavioral Risks
 
 - Market retrieval requires the configured OpenAI provider and network access. Conversion is intentionally not attempted: non-EUR offers are excluded until a reliable exchange-rate mechanism is approved. Strong identity and exact single-bottle package evidence may still be unavailable, nearby-vintage evidence is deliberately limited to ±2 years, and retailer listings can change independently of the 30-day successful-value cache.
+- An explicitly requested complete-cellar refresh issues one web-search-enabled provider request per stale or unvalued wine. Batches of three bound each application request but do not reduce total provider request volume.
 - Apple Touch Icons require a supported dedicated raster format in Apple environments that do not accept WebP. VinoCastello intentionally has no generated PNG fallback, so those environments may use their own fallback until a suitable official, manually supplied compatible asset exists.
 
 - Image sets have generic names (`Image Set N`), which makes ambiguity harder to

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWineProfileMetadata } from "../src/domain/wine.ts";
 import { classifyObservation, determineMarketValue } from "../src/server/market-value/market-value-provider.ts";
-import { isMarketValueFresh, refreshMarketValue, refreshMarketValueWithOutcome, selectMarketValueBatch, shouldAutomaticallyValue } from "../src/server/market-value/market-value-service.ts";
+import { isMarketValueFresh, refreshMarketValue, refreshMarketValueWithOutcome, selectMarketValueBatch } from "../src/server/market-value/market-value-service.ts";
 import { MarketValueProviderError } from "../src/server/market-value/openai-market-value-provider.ts";
 
 const wine = { id: 12, producer: "Château Example", wineName: "Grand Vin", vintage: "2019", bottleSize: "750 ml", appellation: "Margaux", region: "Bordeaux", country: "France", grapeVarieties: [], wineColor: "Red", alcoholPercentage: null, confidence: 90, marketValue: null, marketValueCurrency: null, marketValueMetadata: emptyMarketValueMetadata(), profile: emptyWineProfile(), profileMetadata: emptyWineProfileMetadata(), cellar: emptyCellarDetails(), bottleCount: 3, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
@@ -37,7 +37,7 @@ test("freshness and bounded batches skip current and completed wines while failu
   const now = new Date("2026-09-17T00:00:00Z");
   const fresh = { ...wine, id: 1, marketValue: 20, marketValueMetadata: { ...emptyMarketValueMetadata(), retrievedAt: "2026-09-01T00:00:00Z" } };
   const stale = Array.from({ length: 5 }, (_, index) => ({ ...wine, id: index + 2, marketValue: 20, marketValueMetadata: { ...emptyMarketValueMetadata(), retrievedAt: "2026-07-01T00:00:00Z" } }));
-  assert.equal(isMarketValueFresh(fresh, now), true); assert.equal(shouldAutomaticallyValue(fresh, now), false);
+  assert.equal(isMarketValueFresh(fresh, now), true);
   assert.deepEqual(selectMarketValueBatch([fresh, ...stale], [], now).map(({ id }) => id), [2, 3, 4]);
   assert.deepEqual(selectMarketValueBatch([fresh, ...stale], [2, 3, 4], now).map(({ id }) => id), [5, 6]);
   assert.deepEqual(selectMarketValueBatch([fresh, ...stale], [2, 4], now).map(({ id }) => id), [3, 5, 6]);
@@ -122,8 +122,8 @@ test("failed batch-style refresh retains one wine while successful items remain 
   assert.equal(firstStore.current().marketValue, 23); assert.equal(secondStore.current().marketValue, 25);
 });
 
-test("failed-attempt cooldown is separate from successful valuation freshness", () => {
+test("failed attempts do not make a stale successful valuation current", () => {
   const now = new Date("2026-09-18T12:00:00Z");
   const staleRetained = existingWine({ marketValueMetadata: { ...existingWine().marketValueMetadata, retrievedAt: "2026-07-01T00:00:00Z", lastAttemptedAt: "2026-09-18T06:00:00Z", lastAttemptFailure: "provider" } });
-  assert.equal(isMarketValueFresh(staleRetained, now), false); assert.equal(shouldAutomaticallyValue(staleRetained, now), false);
+  assert.equal(isMarketValueFresh(staleRetained, now), false);
 });
