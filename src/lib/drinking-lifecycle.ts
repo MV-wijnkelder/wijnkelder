@@ -22,6 +22,7 @@ export type DrinkingLifecycle = {
   yearsUntilPeak: number;
   materialAgeingUpside: boolean;
   preservationScore: number;
+  recommendation: "Hold" | "Drink Now" | "Prioritise";
 };
 
 /**
@@ -33,7 +34,9 @@ export function getDrinkingLifecycle(wine: Wine | StoredWine, currentYear = new 
   const drinking = wine.profile?.drinking;
   if (!drinking) return null;
   const drinkFrom = yearOf(drinking.drinkFrom);
-  const drinkBy = yearOf(drinking.drinkUntil);
+  // `drinkUntil` was historically defined as the approximate end of optimal
+  // life. It therefore maps only to Drink By, never to either peak boundary.
+  const drinkBy = yearOf(drinking.drinkBy ?? drinking.drinkUntil);
   if (drinkFrom === null || drinkBy === null || drinkBy < drinkFrom) return null;
 
   const span = drinkBy - drinkFrom;
@@ -65,7 +68,8 @@ export function getDrinkingLifecycle(wine: Wine | StoredWine, currentYear = new 
   // Positive means opening now has a real opportunity cost; quantity only softens it.
   const quantity = "bottleCount" in wine ? wine.bottleCount : 1;
   const preservationScore = materialAgeingUpside ? Math.max(6, 14 - Math.min(4, Math.max(0, quantity - 1))) : stage === "young" ? 16 : 0;
-  return { drinkFrom, peakFrom, peakUntil, drinkBy, stage, readinessPosition, outlook, yearsUntilPeak, materialAgeingUpside, preservationScore };
+  const recommendation = readinessPosition <= 3 ? "Prioritise" : materialAgeingUpside || currentYear < drinkFrom ? "Hold" : "Drink Now";
+  return { drinkFrom, peakFrom, peakUntil, drinkBy, stage, readinessPosition, outlook, yearsUntilPeak, materialAgeingUpside, preservationScore, recommendation };
 }
 
 export function yearOf(value: string | null | undefined): number | null {

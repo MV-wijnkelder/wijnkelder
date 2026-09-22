@@ -224,11 +224,20 @@ function normalizeProfile(value: WineProfile | null | undefined, wineName?: stri
       flavors: cleanStringList(value.tasting?.flavors),
     },
     serving: { ...defaults.serving, ...value.serving },
-    drinking: { ...defaults.drinking, ...value.drinking },
+    drinking: normalizeDrinking(value.drinking),
     style: { ...defaults.style, ...value.style },
     foodPairings: cleanStringList(value.foodPairings),
     summary,
   };
+}
+
+function normalizeDrinking(value: WineProfile["drinking"] | undefined): WineProfile["drinking"] {
+  const defaults = emptyWineProfile().drinking;
+  if (!value || typeof value !== "object") return defaults;
+  // Old `drinkUntil` meant the approximate end of optimal life. Preserve that
+  // fact as Drink By, but do not fabricate either peak boundary from it.
+  const drinkBy = value.drinkBy ?? value.drinkUntil ?? null;
+  return { ...defaults, ...value, drinkBy, drinkUntil: undefined };
 }
 
 function normalizeSommelier(value: WineProfile["sommelier"] | undefined, wineName?: string | null): WineProfile["sommelier"] {

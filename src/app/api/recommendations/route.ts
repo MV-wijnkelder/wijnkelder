@@ -46,7 +46,7 @@ function answerCellarQuestion(wines: Awaited<ReturnType<NeonWineStorage["list"]>
   }
   if (intent.kind === "compare") {
     const matches = intent.names.map((name) => wines.find((wine) => `${wine.producer ?? ""} ${wine.wineName ?? ""}`.toLowerCase().includes(name.toLowerCase()))).filter((wine) => wine !== undefined);
-    return matches.length === 2 ? matches.map((wine) => `${wineLabel(wine)} — ${wine.profile.sommelier.wineStyle ?? wine.profile.style.wineStyle ?? "style not stored"}; ${wine.profile.sommelier.drinkingStage ?? wine.profile.drinking.currentMaturity ?? "drinking stage not stored"}`).join(" Compared with ") : "I could not find both wines in your cellar to compare them.";
+    return matches.length === 2 ? matches.map((wine) => { const lifecycle = getDrinkingLifecycle(wine); return `${wineLabel(wine)} — ${wine.profile.sommelier.wineStyle ?? wine.profile.style.wineStyle ?? "style not stored"}; ${lifecycle ? lifecycle.recommendation : "drinking stage not stored"}`; }).join(" Compared with ") : "I could not find both wines in your cellar to compare them.";
   }
   return "No suitable recommendation.";
 }

@@ -46,6 +46,16 @@ test("protects an equally suitable developing bottle when another is at peak", (
   assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /worth keeping/i);
 });
 
+test("prioritises an equally suitable wine near Drink By over one that can safely age", () => {
+  const ageing = profiledWine(1, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
+  ageing.profile.drinking = { drinkFrom: "2025", peakFrom: "2031", peakUntil: "2036", drinkBy: "2040", currentMaturity: "ready" };
+  const urgent = profiledWine(2, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
+  urgent.profile.drinking = { drinkFrom: "2018", peakFrom: "2021", peakUntil: "2024", drinkBy: "2026", currentMaturity: "approaching peak" };
+  const result = new RecommendationService().recommend([ageing, urgent], { food: "steak" });
+  assert.equal(result[0].wine.id, 2);
+  assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /worth keeping/i);
+});
+
 test("meal families produce materially different rankings across a varied cellar", () => {
   const cellar = [
     profiledWine(1, { pairings: ["grilled steak", "beef"], color: "red", style: "bold Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" }),
