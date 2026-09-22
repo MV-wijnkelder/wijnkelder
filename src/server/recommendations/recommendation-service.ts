@@ -30,7 +30,7 @@ export interface WineRecommendation {
 
 type Level = "low" | "medium" | "high";
 type Meal = { text: string; words: Set<string>; families: Set<string>; richness: Level; cues: Set<string> };
-type ScoreParts = { direct: number; food: number; style: number; structure: number; maturity: number; preservation: number; serving: number; preference: number; availability: number };
+type ScoreParts = { direct: number; food: number; style: number; structure: number; maturity: number; preservation: number; personalNote: number; serving: number; preference: number; availability: number };
 
 /** The single retrieval, scoring, and explanation boundary used by the recommendation experience. */
 export class RecommendationService {
@@ -111,11 +111,14 @@ function scoreWine(wine: StoredWine, meal: Meal, request: RecommendationRequest)
   const lifecycle = getDrinkingLifecycle(wine);
   const maturity = lifecycle ? ({ peak: 12, nearPeak: 9, excellent: 5, ready: 1, young: -8, pastPeak: 7, beyondPeak: 2, wellBeyondPeak: -12 } as const)[lifecycle.stage] : maturityScore(profile);
   const preservation = lifecycle ? -lifecycle.preservationScore : 0;
+  // Personal observations are a secondary tie-breaker only. They never replace
+  // the structured lifecycle or the primary food and occasion assessment.
+  const personalNote = personalNoteScore(wine.personalNotes);
   const serving = servingScore(wine, meal);
   const preference = preferenceScore(wine, request);
   // Availability deliberately remains a tie-breaker; it must never drown out the meal.
   const availability = Math.min(3, wine.bottleCount - 1);
-  return { direct, food, style, structure, maturity, preservation, serving, preference, availability };
+  return { direct, food, style, structure, maturity, preservation, personalNote, serving, preference, availability };
 }
 
 function styleScore(wine: StoredWine, meal: Meal): number {
@@ -167,7 +170,7 @@ function present(wine: StoredWine, meal: Meal, parts: ScoreParts, score: number)
   const profile = wine.profile;
   const matchedPairing = parts.direct > 0 || parts.food > 0;
   const style = describeStyle(profile);
-  const drinking = drinkingText(wine);
+  const drinking = personalNoteDrinkingText(wine) ?? drinkingText(wine);
   const mealLabel = meal.text;
   const pairing = matchedPairing ? `A natural partner for ${mealLabel}` : `A well-balanced choice for ${mealLabel}`;
   const mealEvidence = parts.direct + parts.food + parts.style + parts.structure;
@@ -239,6 +242,12 @@ const CUES: Record<string, string[]> = {
 
 function classify(value: Set<string>): Set<string> { const result = new Set<string>(); for (const [name, terms] of Object.entries(FAMILIES)) if (hasAny(value, terms)) result.add(name); return result; }
 function maturityScore(profile: WineProfile): number { switch (profile.sommelier.drinkingStage ?? profile.drinking.currentMaturity) { case "ready": return 8; case "mature": return 7; case "approaching peak": return 5; case "young": return 1; case "past peak": return -5; default: return profile.sommelier.ageingPotential ? 1 : 0; } }
+function personalNoteScore(note: string | null | undefined): number {
+  return note && /\b(?:closed|leave|wait|hold|not ready|too young)\b/i.test(note) ? -10 : 0;
+}
+function personalNoteDrinkingText(wine: StoredWine): string | null {
+  return personalNoteScore(wine.personalNotes) < 0 ? `Your Personal Note suggests waiting; the canonical lifecycle remains ${drinkingText(wine).toLowerCase()}` : null;
+}
 function drinkingText(wine: StoredWine): string { const lifecycle = getDrinkingLifecycle(wine); if (lifecycle?.recommendation === "Prioritise") return `Past its Drink By year (${lifecycle.drinkBy}); prioritise this bottle`; if (lifecycle?.stage === "peak") return "In its best drinking period"; if (lifecycle?.stage === "nearPeak") return "Close to peak with little reason to wait"; if (lifecycle?.materialAgeingUpside) return `Enjoyable now, but worth keeping for its expected peak around ${lifecycle.peakFrom}`; const profile = wine.profile; const maturity = profile.sommelier.drinkingStage ?? profile.drinking.currentMaturity; if (maturity === "ready" || maturity === "mature") return "Drinking beautifully now"; if (maturity === "approaching peak") return "Coming into its drinking window"; const drinkBy = profile.drinking.drinkBy ?? profile.drinking.drinkUntil; if (drinkBy) return `Enjoy by ${drinkBy}`; if (profile.sommelier.ageingPotential) return profile.sommelier.ageingPotential; return "No specific drinking window is stored"; }
 function describeStyle(profile: WineProfile): string { const parts = [profile.style.body && `${capitalize(profile.style.body)}-bodied`, profile.style.acidity && `${profile.style.acidity} acidity`, profile.style.tannin && `${profile.style.tannin} tannin`, profile.sommelier.wineStyle ?? profile.style.wineStyle, profile.sommelier.servingPersonality].filter(Boolean); return parts.length ? parts.join(" with ") : "Style details are not yet stored"; }
 function structureEvidence(profile: WineProfile, meal: Meal): string { const facts = [profile.style.body && `${profile.style.body} body`, profile.style.acidity && `${profile.style.acidity} acidity`, meal.families.has("red-meat") && profile.style.tannin && `${profile.style.tannin} tannin`].filter(Boolean); return facts.join(" and ") || "stored structure"; }

@@ -5,6 +5,8 @@
  * represented by an empty array. Keep persistence concerns out of this model.
  */
 export interface Wine {
+  /** User-owned free text. It never replaces or mutates canonical structured facts. */
+  personalNotes: string | null;
   producer: string | null;
   wineName: string | null;
   vintage: string | null;

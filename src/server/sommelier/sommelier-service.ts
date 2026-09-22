@@ -98,7 +98,14 @@ async function resolveContext(route: SommelierRoute, context: SommelierContext |
   // The cellar is intrinsic personal context, not an opt-in attachment. Routing
   // controls when its potentially large payload is sent to the model.
   if (route.needsCellar) records.cellar = await source.listCellar();
-  const withLifecycle = (wine: StoredWine) => ({ ...wine, drinkingLifecycle: getDrinkingLifecycle(wine) });
+  const withLifecycle = (wine: StoredWine) => {
+    const { personalNotes, ...canonicalWine } = wine;
+    return {
+      canonicalWine,
+      canonicalDrinkingLifecycle: getDrinkingLifecycle(wine),
+      ...(personalNotes ? { "USER PERSONAL NOTE": personalNotes } : {}),
+    };
+  };
   const modelRecords = {
     ...(records.currentWine ? { currentWine: withLifecycle(records.currentWine) } : {}),
     ...(records.currentScannedWine ? { currentScannedWine: withLifecycle(records.currentScannedWine) } : {}),

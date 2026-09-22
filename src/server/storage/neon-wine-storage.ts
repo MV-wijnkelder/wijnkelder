@@ -6,6 +6,7 @@ import { duplicateKey, normalizeWineCategories } from "@/lib/wine-normalization"
 type WineInput = Wine & { bottleCount?: number };
 type WineRow = {
   id: number;
+  personal_notes: string | null;
   producer: string | null;
   wine_name: string | null;
   vintage: string | null;
@@ -70,6 +71,7 @@ async function initialize(): Promise<void> {
     await sql`ALTER TABLE wines ADD COLUMN IF NOT EXISTS market_value DOUBLE PRECISION`;
     await sql`ALTER TABLE wines ADD COLUMN IF NOT EXISTS market_value_currency TEXT`;
     await sql`ALTER TABLE wines ADD COLUMN IF NOT EXISTS market_value_metadata JSONB NOT NULL DEFAULT '{}'::jsonb`;
+    await sql`ALTER TABLE wines ADD COLUMN IF NOT EXISTS personal_notes TEXT`;
     await sql`CREATE INDEX IF NOT EXISTS wines_updated_at_idx ON wines (updated_at DESC)`;
   })().catch((error) => {
     initialization = undefined;
@@ -80,7 +82,7 @@ async function initialize(): Promise<void> {
 
 function rowToWine(row: WineRow): StoredWine {
   return normalizeWineCategories({
-    id: Number(row.id), producer: row.producer, wineName: row.wine_name,
+    id: Number(row.id), personalNotes: normalizePersonalNotes(row.personal_notes), producer: row.producer, wineName: row.wine_name,
     vintage: row.vintage, country: row.country, region: row.region,
     appellation: row.appellation, grapeVarieties: row.grape_varieties,
     wineColor: row.wine_color, bottleSize: row.bottle_size,
@@ -96,7 +98,7 @@ export class NeonWineStorage {
     const sql = client();
     const term = `%${search.trim()}%`;
     const rows = search.trim()
-      ? await sql`SELECT * FROM wines WHERE concat_ws(' ', producer, wine_name, vintage, country, region, appellation, wine_color, array_to_string(grape_varieties, ' ')) ILIKE ${term} ORDER BY lower(producer) ASC NULLS LAST, lower(wine_name) ASC NULLS LAST, CASE WHEN vintage IS NULL OR btrim(vintage) = '' THEN 1 ELSE 0 END, vintage DESC, id ASC`
+      ? await sql`SELECT * FROM wines WHERE concat_ws(' ', producer, wine_name, vintage, country, region, appellation, wine_color, array_to_string(grape_varieties, ' '), personal_notes) ILIKE ${term} ORDER BY lower(producer) ASC NULLS LAST, lower(wine_name) ASC NULLS LAST, CASE WHEN vintage IS NULL OR btrim(vintage) = '' THEN 1 ELSE 0 END, vintage DESC, id ASC`
       : await sql`SELECT * FROM wines ORDER BY lower(producer) ASC NULLS LAST, lower(wine_name) ASC NULLS LAST, CASE WHEN vintage IS NULL OR btrim(vintage) = '' THEN 1 ELSE 0 END, vintage DESC, id ASC`;
     return (rows as WineRow[]).map(rowToWine);
   }
@@ -125,8 +127,8 @@ export class NeonWineStorage {
       return { wine: rowToWine(rows[0]), duplicate: true };
     }
     const rows = await sql`
-      INSERT INTO wines (producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, market_value, market_value_currency, market_value_metadata, profile, profile_metadata, cellar, bottle_count, duplicate_key)
-      VALUES (${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${normalizeMarketValue(wine.marketValue)}, ${normalizeCurrency(wine.marketValueCurrency)}, ${JSON.stringify(normalizeMarketValueMetadata(wine.marketValueMetadata))}, ${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, ${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, ${JSON.stringify(normalizeCellar(wine.cellar))}, ${count}, ${key})
+      INSERT INTO wines (personal_notes, producer, wine_name, vintage, country, region, appellation, grape_varieties, wine_color, bottle_size, alcohol_percentage, confidence, market_value, market_value_currency, market_value_metadata, profile, profile_metadata, cellar, bottle_count, duplicate_key)
+      VALUES (${normalizePersonalNotes(wine.personalNotes)}, ${wine.producer}, ${wine.wineName}, ${wine.vintage}, ${wine.country}, ${wine.region}, ${wine.appellation}, ${wine.grapeVarieties}, ${wine.wineColor}, ${wine.bottleSize}, ${wine.alcoholPercentage}, ${wine.confidence}, ${normalizeMarketValue(wine.marketValue)}, ${normalizeCurrency(wine.marketValueCurrency)}, ${JSON.stringify(normalizeMarketValueMetadata(wine.marketValueMetadata))}, ${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, ${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, ${JSON.stringify(normalizeCellar(wine.cellar))}, ${count}, ${key})
       ON CONFLICT (duplicate_key) DO UPDATE SET bottle_count = wines.bottle_count + EXCLUDED.bottle_count, updated_at = NOW()
       RETURNING *, (xmax = 0) AS inserted` as WineRow[];
     // The unique index closes the race between the lookup and insert. PostgreSQL
@@ -144,8 +146,15 @@ export class NeonWineStorage {
     const marketValueCurrency = identityChanged ? null : wine.marketValueCurrency;
     const marketValueMetadata = identityChanged ? emptyMarketValueMetadata() : wine.marketValueMetadata;
     const rows = await client()`
-      UPDATE wines SET producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, market_value=${normalizeMarketValue(marketValue)}, market_value_currency=${normalizeCurrency(marketValueCurrency)}, market_value_metadata=${JSON.stringify(normalizeMarketValueMetadata(marketValueMetadata))}, profile=${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, profile_metadata=${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, cellar=${JSON.stringify(normalizeCellar(wine.cellar))}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
+      UPDATE wines SET personal_notes=${normalizePersonalNotes(wine.personalNotes)}, producer=${wine.producer}, wine_name=${wine.wineName}, vintage=${wine.vintage}, country=${wine.country}, region=${wine.region}, appellation=${wine.appellation}, grape_varieties=${wine.grapeVarieties}, wine_color=${wine.wineColor}, bottle_size=${wine.bottleSize}, alcohol_percentage=${wine.alcoholPercentage}, confidence=${wine.confidence}, market_value=${normalizeMarketValue(marketValue)}, market_value_currency=${normalizeCurrency(marketValueCurrency)}, market_value_metadata=${JSON.stringify(normalizeMarketValueMetadata(marketValueMetadata))}, profile=${JSON.stringify(normalizeProfile(wine.profile, wine.wineName))}, profile_metadata=${JSON.stringify(normalizeProfileMetadata(wine.profileMetadata))}, cellar=${JSON.stringify(normalizeCellar(wine.cellar))}, bottle_count=${positiveInteger(wine.bottleCount, 1)}, duplicate_key=${duplicateKey(wine)}, updated_at=NOW()
       WHERE id=${id} RETURNING *` as WineRow[];
+    return rows[0] ? rowToWine(rows[0]) : null;
+  }
+
+  /** Deliberately narrow write: note operations cannot touch inventory, AI, lifecycle, or valuation fields. */
+  async updatePersonalNotes(id: number, personalNotes: string | null): Promise<StoredWine | null> {
+    await initialize();
+    const rows = await client()`UPDATE wines SET personal_notes=${normalizePersonalNotes(personalNotes)}, updated_at=NOW() WHERE id=${id} RETURNING *` as WineRow[];
     return rows[0] ? rowToWine(rows[0]) : null;
   }
 
@@ -287,6 +296,11 @@ function normalizeMarketValue(value: number | string | null | undefined): number
 function normalizeCurrency(value: string | null | undefined): string | null {
   const currency = value?.trim().toUpperCase();
   return currency && /^[A-Z]{3}$/.test(currency) ? currency : null;
+}
+
+export function normalizePersonalNotes(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return value.trim() || null;
 }
 
 function marketIdentity(wine: Pick<Wine, "producer" | "wineName" | "vintage" | "bottleSize" | "appellation" | "region" | "country">): string {

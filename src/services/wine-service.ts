@@ -29,6 +29,9 @@ export const WineService = {
   changeBottleCount(id: number, change: number) {
     return request<StoredWine>(`/api/wines/${id}`, { method: "PATCH", body: JSON.stringify({ change }) });
   },
+  updatePersonalNotes(id: number, personalNotes: string | null) {
+    return request<StoredWine>(`/api/wines/${id}`, { method: "PATCH", body: JSON.stringify({ personalNotes }) });
+  },
   async delete(id: number) {
     const response = await fetch(`/api/wines/${id}`, { method: "DELETE" });
     if (!response.ok) throw new Error(await errorMessage(response));

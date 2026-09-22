@@ -10,7 +10,7 @@ import { emptyCellarDetails, emptyMarketValueMetadata, emptyWineProfile, emptyWi
 function wine(overrides = {}) {
   const profile = emptyWineProfile();
   profile.drinking = { drinkFrom: "2024", peakFrom: "2026", peakUntil: "2028", drinkUntil: "2030", currentMaturity: null };
-  return { id: 1, producer: "Renato Ratti", wineName: "Marcenasco", vintage: "2020", country: "Italy", region: "Piedmont", appellation: "Barolo", grapeVarieties: ["Nebbiolo"], wineColor: "Red", bottleSize: "750 ml", alcoholPercentage: 14.5, confidence: 100, marketValue: 50, marketValueCurrency: "EUR", marketValueMetadata: emptyMarketValueMetadata(), profile, profileMetadata: emptyWineProfileMetadata(), cellar: { ...emptyCellarDetails(), tastingNotes: "Cellar note" }, bottleCount: 6, createdAt: "2026-01-01", updatedAt: "2026-01-01", ...overrides };
+  return { id: 1, personalNotes: "Christmas dinner", producer: "Renato Ratti", wineName: "Marcenasco", vintage: "2020", country: "Italy", region: "Piedmont", appellation: "Barolo", grapeVarieties: ["Nebbiolo"], wineColor: "Red", bottleSize: "750 ml", alcoholPercentage: 14.5, confidence: 100, marketValue: 50, marketValueCurrency: "EUR", marketValueMetadata: emptyMarketValueMetadata(), profile, profileMetadata: emptyWineProfileMetadata(), cellar: { ...emptyCellarDetails(), tastingNotes: "Cellar note" }, bottleCount: 6, createdAt: "2026-01-01", updatedAt: "2026-01-01", ...overrides };
 }
 
 test("export maps one canonical wine to one row with numeric quantity and market totals", () => {
@@ -19,6 +19,15 @@ test("export maps one canonical wine to one row with numeric quantity and market
   assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Estimated Market Value per Bottle")], 50);
   assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Total Estimated Market Value")], 300);
   assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Drink Readiness")], "Peak Drinking");
+  assert.equal(row[CELLAR_EXPORT_HEADERS.indexOf("Personal Notes")], "Christmas dinner");
+});
+
+test("complete and filtered export rows preserve Personal Notes as plain text", () => {
+  const complete = cellarExportRows([wine(), wine({ id: 2, personalNotes: null })]);
+  const filtered = cellarExportRows([wine()]);
+  const column = CELLAR_EXPORT_HEADERS.indexOf("Personal Notes");
+  assert.deepEqual(complete.map((row) => row[column]), ["Christmas dinner", null]);
+  assert.equal(filtered[0][column], "Christmas dinner");
 });
 
 test("unknown market value remains empty rather than becoming zero", () => {

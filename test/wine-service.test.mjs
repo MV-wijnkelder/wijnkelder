@@ -46,6 +46,24 @@ test("updates wine details and bottle counts", async () => {
   });
 });
 
+test("adds, edits, and removes only Personal Notes through the narrow endpoint", async () => {
+  const canonical = { ...stored, bottleCount: 6, personalNotes: null };
+  const notes = ["Still closed. Leave for two years.", "Opened up after an hour.", null];
+  let call = 0;
+  await withFetch(async (url, init) => {
+    assert.equal(url, "/api/wines/4");
+    assert.equal(init.method, "PATCH");
+    assert.deepEqual(JSON.parse(init.body), { personalNotes: notes[call] });
+    const result = { ...canonical, personalNotes: notes[call++] };
+    assert.equal(result.bottleCount, 6);
+    assert.equal(result.wineName, canonical.wineName);
+    return Response.json(result);
+  }, async () => {
+    for (const note of notes) assert.equal((await WineService.updatePersonalNotes(4, note)).personalNotes, note);
+  });
+  assert.equal(call, 3);
+});
+
 test("refreshes only the stored wine profile endpoint", async () => {
   await withFetch(async (url, init) => {
     assert.equal(url, "/api/wines/4/profile"); assert.equal(init.method, "POST"); return Response.json(stored);
