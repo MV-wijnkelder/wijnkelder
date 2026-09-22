@@ -31,7 +31,11 @@ export async function PUT(request: Request, context: Context) {
 
 export async function PATCH(request: Request, context: Context) {
   try {
-    const body = await request.json() as { change?: number; bottleCountDelta?: number };
+    const body = await request.json() as { change?: number; bottleCountDelta?: number; personalNotes?: unknown };
+    if (Object.prototype.hasOwnProperty.call(body, "personalNotes")) {
+      if (body.personalNotes !== null && typeof body.personalNotes !== "string") return NextResponse.json({ error: "Personal Notes must be text." }, { status: 400 });
+      return found(await storage.updatePersonalNotes(await id(context), body.personalNotes));
+    }
     const change = body.change ?? body.bottleCountDelta ?? 1;
     if (!Number.isInteger(change)) return NextResponse.json({ error: "Invalid bottle count change." }, { status: 400 });
     return found(await storage.changeBottleCount(await id(context), change));

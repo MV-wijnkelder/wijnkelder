@@ -42,6 +42,7 @@ export function mapRecognitionToWine(recognition: WineRecognition): Wine {
   const canonical = canonicalIdentity(appellation);
   const recognizedGrapes = recognition.grapeVarieties.map(knownValue).filter((grape): grape is string => grape !== null);
   return normalizeWineCategories({
+    personalNotes: null,
     producer: knownValue(recognition.producer),
     wineName: knownValue(recognition.wineName),
     vintage: knownValue(recognition.vintage),

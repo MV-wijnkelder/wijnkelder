@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.8.0
-- **Current development phase:** Canonical drinking-lifecycle intelligence now keeps detail, cellar, insights, recommendations, Sommelier context, and export advice consistent while preserving cost-bounded market-price discovery and safe live-cellar editing.
+- **Current version:** 1.9.0
+- **Current development phase:** Personal Notes add user-owned, wine-level observations to the canonical cellar record and advisory context without changing structured wine facts, lifecycle authority, inventory, or cost-safe market behavior.
 - **Last updated:** 22 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14I — Drinking Intelligence Consistency & Safety
-- **Release status:** Sprint 14I minor release is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14J — Personal Wine Notes
+- **Release status:** Sprint 14J minor release is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -204,6 +204,14 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.8.0
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14J — Personal Wine Notes
+
+- **Objective:** Add simple, wine-level personal free text without creating bottle records or competing with canonical structured data.
+- **Key functionality delivered:** An additive nullable `personal_notes` database column and canonical `personalNotes` field; direct Add, Edit, Save, Cancel, and clear behavior on Wine Details; optional My Cellar text search; complete and filtered Excel export; secondary, lifecycle-safe What Should I Drink ranking context; and explicitly labelled USER PERSONAL NOTE context for the Personal Sommelier. The narrow note write updates no other field and invokes no AI, web research, profile enrichment, lifecycle recalculation, market lookup, or quantity operation. Existing rows normalize to `null` and new scans start with no note.
+- **Completion date:** 22 September 2026
+- **Release version:** 1.9.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -226,7 +234,7 @@ styles rather than fabricating a cellar match when no bottle qualifies.
 
 ## Cellar Integration
 
-The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service interprets Drink From, Peak From, Peak Until, and Drink By and derives readiness, Current Maturity, Hold/Drink Now/Prioritise, best opening horizon, ageing upside, and preservation cost for detail, lists, insights, filters, recommendations, Sommelier context, and export. A genuinely new scanned wine invokes one market valuation after its profile is stored. Ordinary reads, duplicate quantity additions, editing, filtering, recommendations, and insights never perform market research; after creation, only the explicit single-wine refresh POST route can invoke the provider.
+The canonical `Wine`/`StoredWine` model is the single source of truth. Its nullable `personalNotes` field stores one user-owned note per wine record (shared by its quantity) in the additive `personal_notes` column. A narrow note-only update path cannot alter structured fields or invoke enrichment, lifecycle, market, web, or AI services. Notes remain secondary context in recommendations and are explicitly labelled separately in Sommelier context. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service interprets Drink From, Peak From, Peak Until, and Drink By and derives readiness, Current Maturity, Hold/Drink Now/Prioritise, best opening horizon, ageing upside, and preservation cost for detail, lists, insights, filters, recommendations, Sommelier context, and export. A genuinely new scanned wine invokes one market valuation after its profile is stored. Ordinary reads, duplicate quantity additions, editing, filtering, recommendations, and insights never perform market research; after creation, only the explicit single-wine refresh POST route can invoke the provider.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
 profile and cellar JSON, mapping legacy `drinkUntil` to Drink By without fabricating peak dates. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
@@ -288,8 +296,9 @@ derivatives are maintained.
   recognition handling.
 - Review and edit recognized wine details before saving.
 - Preview Explore this Wine enrichment without silently adding a bottle.
-- Add, browse, search, inspect, edit, and delete canonical cellar records; existing-record and quantity edits require a change review and explicit confirmation, while complete deletion keeps a stronger bottle-aware warning.
+- Add, browse, search (including optional Personal Notes text), inspect, edit, and delete canonical cellar records; existing-record and quantity edits require a change review and explicit confirmation, while complete deletion keeps a stronger bottle-aware warning.
 - Track bottle quantities and canonical workbook-oriented cellar fields.
+- Add, edit, or clear one multi-line Personal Note per canonical wine directly from Wine Details; Save is explicit, Cancel discards the draft, and note writes cause no AI or market-price activity.
 - Preserve My Cellar search, navigation, and scroll context when viewing a wine.
 - View structured Wine Profiles with tasting, style, food, serving, maturity,
   winery, vintage, and drinking-window guidance.
@@ -312,7 +321,7 @@ derivatives are maintained.
 - Use Drinking Outlook bottle counts based on ideal peak timing—not mere earliest drinkability—and its concise priority observation to plan drinking from the current year onwards.
 - Tap every meaningful Cellar Insights wine group—including collection totals, valuation gaps/coverage, highlights, Collection Mix, Drink Readiness, and Drinking Outlook—to browse the matching canonical wines in the familiar My Cellar list and continue into Wine Details without losing the selection or scroll context.
 - View one clean Estimated Market Value per bottle, a subtle previous-estimate status after unsuccessful verification, or the exact `Currently unavailable` state only when no usable estimate exists; automatically value a genuinely new scanned wine once, or explicitly refresh one wine without changing other wine data. Browsing, searching, duplicate quantity additions, and editing do not initiate market research.
-- Explicitly export the complete cellar or the exact current insight selection as a filtered `.xlsx` snapshot; Excel import and write-back are not supported.
+- Explicitly export the complete cellar or the exact current insight selection, including Personal Notes as plain text, as a filtered `.xlsx` snapshot; Excel import and write-back are not supported.
 - Install VinoCastello from supporting browsers with the official artwork supplied by `public/images/icon-hero.webp`.
 
 # Open Issues
@@ -407,6 +416,7 @@ derivatives are maintained.
 
 - **One personal AI Sommelier:** Add contextual entry points or modes to the one
   assistant rather than creating competing assistants.
+- **Personal Notes stay secondary:** User-owned free text is stored once per canonical wine, may inform advice, and never automatically rewrites structured identity, inventory, valuation, or drinking-lifecycle data. Note CRUD never invokes AI, web research, or market-price lookup.
 - **Canonical Wine is authoritative:** The application database and shared Wine
   domain model are the source of truth. AI context, browser memory, analytics,
   and future workbook exchange must not become parallel records.

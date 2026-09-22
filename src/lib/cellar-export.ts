@@ -7,7 +7,7 @@ export const CELLAR_EXPORT_HEADERS = [
   "Grape / Blend", "Colour", "Wine Type", "Bottle Size", "Alcohol %",
   "Quantity", "Drink From", "Peak From", "Peak Until", "Drink By",
   "Drink Readiness", "Drinking Outlook", "Estimated Market Value per Bottle",
-  "Total Estimated Market Value", "Notes",
+  "Total Estimated Market Value", "Notes", "Personal Notes",
 ] as const;
 
 export type CellarExportValue = string | number | null;
@@ -26,7 +26,7 @@ export function cellarExportRows(wines: StoredWine[], currentYear = new Date().g
       lifecycle ? drinkingStageLabel(lifecycle.stage) : null,
       lifecycle ? drinkingOutlookLabel(lifecycle.outlook) : null,
       value, value === null ? null : value * wine.bottleCount,
-      wine.cellar.tastingNotes,
+      wine.cellar.tastingNotes, wine.personalNotes,
     ];
   });
 }

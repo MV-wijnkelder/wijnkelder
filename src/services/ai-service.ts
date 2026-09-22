@@ -143,6 +143,7 @@ function normalizeRecognitionResult(value: unknown): WineRecognitionResult {
       ? { labelWarning: [...value.labelWarning] as string[] }
       : {}),
     wine: {
+      personalNotes: null,
       producer: wine.producer as string | null,
       wineName: wine.wineName as string | null,
       vintage: wine.vintage as string | null,

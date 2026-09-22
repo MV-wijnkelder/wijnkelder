@@ -39,6 +39,20 @@ test("cellar questions load the canonical cellar without a client opt-in", async
   await answerSommelier({ messages: [{ role: "user", content: "Which Italian wines do I own?" }], baseInstructions: "Be helpful.", model, contextSource: source });
 });
 
+test("labels Personal Notes separately from canonical wine and lifecycle context", async () => {
+  const model = {
+    async classify() { return { intent: "cellar", needsCurrentWine: false, needsCellar: true, needsCurrentInformation: false }; },
+    async answer(input) {
+      assert.match(input.context, /USER PERSONAL NOTE/);
+      assert.match(input.context, /canonicalDrinkingLifecycle/);
+      assert.match(input.context, /Still very closed/);
+      return "Your observation suggests waiting.";
+    },
+  };
+  const source = { async getWine() { return null; }, async listCellar() { return [{ id: 12, wineName: "Barolo", personalNotes: "Still very closed" }]; } };
+  await answerSommelier({ messages: [{ role: "user", content: "Should I open the Barolo?" }], baseInstructions: "Be helpful.", model, contextSource: source });
+});
+
 test("forwards named image-set context to the same personal sommelier model", async () => {
   const image = { setId: "set-1", setLabel: "Image Set 1", mediaType: "image/jpeg", bytes: new Uint8Array([1, 2, 3]) };
   const model = {

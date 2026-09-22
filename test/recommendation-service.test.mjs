@@ -46,6 +46,18 @@ test("protects an equally suitable developing bottle when another is at peak", (
   assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /worth keeping/i);
 });
 
+test("uses Personal Notes as secondary context without replacing canonical lifecycle", () => {
+  const observedClosed = profiledWine(1, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" });
+  observedClosed.personalNotes = "Tasted last month. Still very closed; leave for 2 years.";
+  observedClosed.profile.drinking = { drinkFrom: "2025", peakFrom: "2026", peakUntil: "2030", drinkBy: "2034", currentMaturity: "ready" };
+  const alternative = profiledWine(2, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "medium", tannin: "high", sweetness: "low" });
+  alternative.profile.drinking = { ...observedClosed.profile.drinking };
+  const result = new RecommendationService().recommend([observedClosed, alternative], { food: "steak" });
+  assert.equal(result[0].wine.id, 2);
+  assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /Personal Note suggests waiting/i);
+  assert.match(result.find(({ wine: item }) => item.id === 1).bullets[1], /canonical lifecycle/i);
+});
+
 test("prioritises an equally suitable wine near Drink By over one that can safely age", () => {
   const ageing = profiledWine(1, { pairings: ["steak"], color: "red", style: "Cabernet", body: "high", acidity: "high", tannin: "high", sweetness: "low" });
   ageing.profile.drinking = { drinkFrom: "2025", peakFrom: "2031", peakUntil: "2036", drinkBy: "2040", currentMaturity: "ready" };
