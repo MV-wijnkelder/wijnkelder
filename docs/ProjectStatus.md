@@ -9,14 +9,14 @@
 # Project Overview
 
 - **Project name:** VinoCastello
-- **Current version:** 1.7.3
-- **Current development phase:** Simple, cost-bounded market-price discovery values each genuinely new scanned wine once and otherwise runs only from an explicit single-wine refresh, alongside safe live-cellar editing and export-only Excel snapshots.
-- **Last updated:** 21 September 2026
+- **Current version:** 1.8.0
+- **Current development phase:** Canonical drinking-lifecycle intelligence now keeps detail, cellar, insights, recommendations, Sommelier context, and export advice consistent while preserving cost-bounded market-price discovery and safe live-cellar editing.
+- **Last updated:** 22 September 2026
 
 # Current Release
 
-- **Latest completed sprint:** Sprint 14H — Simple Market Price Flow
-- **Release status:** Sprint 14H patch release is implemented on the current release branch; commit and PR references are pending merge.
+- **Latest completed sprint:** Sprint 14I — Drinking Intelligence Consistency & Safety
+- **Release status:** Sprint 14I minor release is implemented on the current release branch; commit and PR references are pending merge.
 - **Previous merged commit:** `1aaf66d` — documentation merge following the
   Sprint 12 release
 - **Previous merged PR:** [#65](https://github.com/MV-wijnkelder/wijnkelder/pull/65)
@@ -194,6 +194,16 @@ not provide reliable sprint boundaries; this document does not invent them.
 - **Release version:** 1.7.3
 - **PR reference:** Pending creation for the current release branch.
 
+## Sprint 14I — Drinking Intelligence Consistency & Safety
+
+- **Objective:** Make every user-facing drinking decision derive from one authoritative lifecycle without weakening market-price cost safety.
+- **Root cause addressed:** Wine Details interpreted the stored AI maturity label independently while Cellar Insights derived readiness from dates. A stale “approaching peak” label could therefore produce Hold even after the same wine’s final lifecycle year had passed. The historical `drinkUntil` name also obscured that the field represented the recommended latest Drink By year.
+- **Key functionality delivered:** The canonical profile now names Drink From, Peak From, Peak Until, and Drink By explicitly. One lifecycle service derives all eight readiness stages, Current Maturity, Hold/Drink Now/Prioritise, Drinking Outlook, ageing upside, and recommendation preservation cost. Wine Details, My Cellar, Cellar Insights, filters, recommendations, Sommelier context, and Excel export consume that result rather than stale stored maturity advice. Historical `drinkUntil` values are safely normalized to Drink By only; missing peak dates retain the established conservative in-window inference without rewriting records or requiring rescans. What Should I Drink? continues to keep food and occasion primary, prefer peak or urgent bottles among comparable matches, and protect materially developing wines. Lifecycle reads and recalculation are deterministic and make no AI or market-price requests. Sprint 14H remains unchanged: only a genuinely new scan or explicit single-wine **Refresh Market Price** can invoke market research.
+- **Current limitations:** Lifecycle guidance remains year-level and cannot account for storage history, bottle condition, closure variation, month, or personal maturity preference. Profiles missing both a usable Drink From and Drink By cannot be classified and degrade to unavailable guidance until the user explicitly refreshes that individual wine profile.
+- **Completion date:** 22 September 2026
+- **Release version:** 1.8.0
+- **PR reference:** Pending creation for the current release branch.
+
 # Current Architecture
 
 ## AI Sommelier
@@ -216,9 +226,9 @@ styles rather than fabricating a cellar match when no bottle qualifies.
 
 ## Cellar Integration
 
-The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service derives readiness, best opening horizon, ageing upside, and preservation cost from the canonical profile for insights, filters, recommendations, and Sommelier context. A genuinely new scanned wine invokes one market valuation after its profile is stored. Ordinary reads, duplicate quantity additions, editing, filtering, recommendations, and insights never perform market research; after creation, only the explicit single-wine refresh POST route can invoke the provider.
+The canonical `Wine`/`StoredWine` model is the single source of truth. A provider-neutral, per-bottle `marketValue`, currency, and internal retrieval metadata are stored on that entity; total values and valuation coverage are always calculated dynamically. A dedicated provider uses OpenAI web search to retrieve multiple public EUR offers from official wineries, recognised merchants, reputable EU retailers, and recognised market aggregators. VinoCastello classifies rejection reasons, validates strong producer/cuvée identity and strict package safety, prioritizes exact-vintage evidence over nearby (±2 years) and undisclosed-vintage fallback evidence, deduplicates merchants, and deterministically selects an outlier-resistant median. Failed attempts are recorded separately and never erase a successful estimate or its provenance. AI profile enrichment is separate and cannot overwrite valuation data. A shared drinking-lifecycle service interprets Drink From, Peak From, Peak Until, and Drink By and derives readiness, Current Maturity, Hold/Drink Now/Prioritise, best opening horizon, ageing upside, and preservation cost for detail, lists, insights, filters, recommendations, Sommelier context, and export. A genuinely new scanned wine invokes one market valuation after its profile is stored. Ordinary reads, duplicate quantity additions, editing, filtering, recommendations, and insights never perform market research; after creation, only the explicit single-wine refresh POST route can invoke the provider.
 `NeonWineStorage` maps Neon PostgreSQL rows into that domain and normalizes older
-profile and cellar JSON. Its shared category boundary presents canonical colour,
+profile and cellar JSON, mapping legacy `drinkUntil` to Drink By without fabricating peak dates. Its shared category boundary presents canonical colour,
 country, region and grape spelling without requiring a destructive historical
 data migration; recognition uses that same boundary before review. List, detail, create, update, delete, recommendations,
 insights, centralized insight filtering, Excel row mapping, and Sommelier retrieval all consume the same records. Excel workbook generation consumes exactly the currently displayed canonical list and never writes to storage. The historical
@@ -401,6 +411,7 @@ derivatives are maintained.
   domain model are the source of truth. AI context, browser memory, analytics,
   and future workbook exchange must not become parallel records.
 - **Cellar-first recommendations:** Recommend suitable available owned bottles first, keep food and occasion fit primary, and use canonical lifecycle opportunity cost to protect materially developing bottles when comparable peak choices exist. Explain evidence and return an honest no-match rather than forcing or inventing a result.
+- **Canonical lifecycle advice:** Drink From, Peak From, Peak Until, and Drink By are authoritative. Stored historical maturity labels are enrichment evidence only; all displayed and ranked lifecycle advice is derived dynamically by the shared lifecycle service.
 - **Reuse services; never duplicate business logic:** Recommendation scoring,
   normalization, storage, recognition, and image preparation remain centralized
   behind existing domain/service boundaries.

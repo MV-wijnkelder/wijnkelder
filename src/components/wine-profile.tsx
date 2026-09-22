@@ -1,12 +1,11 @@
 import type { Wine } from "@/domain/wine";
 import { WineglassIcon } from "@/components/icons";
 import { PremiumHeader } from "@/components/premium-ui";
+import { drinkingStageLabel, getDrinkingLifecycle } from "@/lib/drinking-lifecycle";
 
 export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: number }) {
   const { profile } = wine;
-  const maturityAdvice = profile.drinking.currentMaturity
-    ? (["ready", "mature", "past peak"].includes(profile.drinking.currentMaturity) ? "Drink now" : "Hold")
-    : null;
+  const lifecycle = getDrinkingLifecycle(wine);
   const marketValue = wine.marketValue === null ? null : money(wine.marketValue, wine.marketValueCurrency ?? "EUR");
   return <article className="wine-profile">
     <div className="profile-hero"><PremiumHeader icon={WineglassIcon} eyebrow={wine.producer || "Unknown producer"} title={wine.wineName || "Unnamed wine"} subtitle={[wine.vintage, wine.appellation, wine.region, wine.country].filter(Boolean).join(" · ") || "Origin unknown"} />{wine.grapeVarieties.length > 0 && <div className="profile-tags">{wine.grapeVarieties.map((grape) => <span key={grape}>{grape}</span>)}</div>}</div>
@@ -15,7 +14,7 @@ export function WineProfile({ wine, bottleCount }: { wine: Wine; bottleCount?: n
     <ProfileSection title="Tasting profile">
       <Details emptyMessage="No reliable sensory guidance is currently available." values={[["Appearance", profile.tasting.appearance], ["Aromas", profile.tasting.aromas.join(", ") || null], ["Flavors", profile.tasting.flavors.join(", ") || null], ["Finish", profile.tasting.finish]]} />
     </ProfileSection>
-    <ProfileSection title="Drinking window"><Details emptyMessage="No reliable drinking guidance is currently available." values={[["Drink from", profile.drinking.drinkFrom], ["Drink until", profile.drinking.drinkUntil], ["Drink now / Hold", maturityAdvice], ["Current maturity", profile.drinking.currentMaturity]]} /></ProfileSection>
+    <ProfileSection title="Drinking window"><Details emptyMessage="No reliable drinking guidance is currently available." values={[["Drink from", lifecycle ? String(lifecycle.drinkFrom) : profile.drinking.drinkFrom], ["Peak drinking", lifecycle ? `${lifecycle.peakFrom} – ${lifecycle.peakUntil}` : peakRange(profile.drinking.peakFrom, profile.drinking.peakUntil)], ["Drink by", lifecycle ? String(lifecycle.drinkBy) : profile.drinking.drinkBy ?? profile.drinking.drinkUntil ?? null], ["Current maturity", lifecycle ? drinkingStageLabel(lifecycle.stage) : null], ["Drink now / Hold", lifecycle?.recommendation ?? null]]} /></ProfileSection>
     <ProfileSection title="Serving advice"><Details emptyMessage="Serving guidance is currently unavailable." values={[["Temperature", profile.serving.temperature], ["Decant advice", profile.serving.decantAdvice]]} /></ProfileSection>
     <ProfileSection title="Style"><Details emptyMessage="Style information is currently unavailable." values={[["Style", profile.style.wineStyle], ["Body", profile.style.body], ["Acidity", profile.style.acidity], ["Tannin", profile.style.tannin], ["Sweetness", profile.style.sweetness], ["Alcohol intensity", profile.style.alcohol]]} /></ProfileSection>
     <ProfileSection title="Food pairing">{profile.foodPairings.length ? <div className="profile-tags">{profile.foodPairings.map((food) => <span key={food}>{food}</span>)}</div> : <Empty message="Food pairing guidance is currently unavailable." />}</ProfileSection>
@@ -31,3 +30,4 @@ function ProfileSection({ title, children }: { title: string; children: React.Re
 function Details({ values, emptyMessage }: { values: Array<[string, string | null]>; emptyMessage?: string }) { const known = values.filter(([, value]) => value); return known.length ? <dl>{known.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : <Empty message={emptyMessage} />; }
 function Empty({ message = "This information is currently unavailable." }: { message?: string }) { return <p className="profile-empty">{message}</p>; }
 function formatDate(value: string | null): string { if (!value) return "on an earlier date"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "on an earlier date" : new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(date); }
+function peakRange(from: string | null, until: string | null): string | null { return from && until ? `${from} – ${until}` : from ?? until; }

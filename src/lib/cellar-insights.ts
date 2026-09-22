@@ -45,7 +45,7 @@ export function buildCellarInsights(wines: StoredWine[], currentYear = new Date(
   active.forEach((wine) => { const key = getOutlookKey(wine, currentYear); if (key) outlookCounts.set(key, (outlookCounts.get(key) ?? 0) + wine.bottleCount); });
   const outlook = (["pastPeak", "drinkNow", "nextTwoYears", "threeToFiveYears", "longTerm"] as OutlookKey[]).map((key) => ({ key, label: outlookLabels[key], bottles: outlookCounts.get(key) ?? 0 }));
   const pastPeak = outlookCounts.get("pastPeak") ?? 0;
-  const endingSoon = active.reduce((sum, wine) => { const until = yearOf(wine.profile.drinking.drinkUntil); return sum + (until !== null && until >= currentYear && until <= currentYear + 1 ? wine.bottleCount : 0); }, 0);
+  const endingSoon = active.reduce((sum, wine) => { const drinkBy = getDrinkingLifecycle(wine, currentYear)?.drinkBy; return sum + (drinkBy !== undefined && drinkBy >= currentYear && drinkBy <= currentYear + 1 ? wine.bottleCount : 0); }, 0);
   const outlookInsight = pastPeak ? `${pastPeak} ${pastPeak === 1 ? "bottle is" : "bottles are"} past peak and should be prioritised.` : endingSoon ? `${endingSoon} ${endingSoon === 1 ? "bottle is" : "bottles are"} approaching the end of the optimal drinking window.` : null;
   const vintages = active.map((wine) => yearOf(wine.vintage)).filter((year): year is number => year !== null);
   const highlights = { oldest: vintages.length ? String(Math.min(...vintages)) : null, youngest: vintages.length ? String(Math.max(...vintages)) : null, producer: largest(active, (wine) => wine.producer), country: largest(active, (wine) => wine.country), region: largest(active, (wine) => wine.region) };

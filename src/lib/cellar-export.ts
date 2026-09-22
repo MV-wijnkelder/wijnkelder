@@ -22,7 +22,7 @@ export function cellarExportRows(wines: StoredWine[], currentYear = new Date().g
       wine.appellation, wine.grapeVarieties.join(", ") || null, wine.wineColor,
       getWineType(wine), wine.bottleSize, wine.alcoholPercentage, wine.bottleCount,
       wine.profile.drinking.drinkFrom, wine.profile.drinking.peakFrom,
-      wine.profile.drinking.peakUntil, wine.profile.drinking.drinkUntil,
+      wine.profile.drinking.peakUntil, lifecycle ? String(lifecycle.drinkBy) : wine.profile.drinking.drinkBy ?? wine.profile.drinking.drinkUntil ?? null,
       lifecycle ? drinkingStageLabel(lifecycle.stage) : null,
       lifecycle ? drinkingOutlookLabel(lifecycle.outlook) : null,
       value, value === null ? null : value * wine.bottleCount,

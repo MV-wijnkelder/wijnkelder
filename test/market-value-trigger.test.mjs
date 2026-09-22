@@ -5,15 +5,16 @@ import test from "node:test";
 const readSource = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("ordinary reads, edits, and quantity changes cannot trigger market research", async () => {
-  const [wineRoute, home, cellar, insights, recommendations] = await Promise.all([
+  const [wineRoute, home, cellar, insights, recommendations, lifecycle] = await Promise.all([
     readSource("../src/app/api/wines/[id]/route.ts"),
     readSource("../src/app/page.tsx"),
     readSource("../src/app/cellar/page.tsx"),
     readSource("../src/app/cellar/insights/page.tsx"),
     readSource("../src/app/api/recommendations/route.ts"),
+    readSource("../src/lib/drinking-lifecycle.ts"),
   ]);
 
-  for (const source of [wineRoute, home, cellar, insights, recommendations]) {
+  for (const source of [wineRoute, home, cellar, insights, recommendations, lifecycle]) {
     assert.doesNotMatch(source, /populateMarketValue|marketValueProvider|refreshMarketValue/);
   }
 });

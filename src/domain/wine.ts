@@ -86,7 +86,10 @@ export interface WineProfile {
     /** Start and end of the best period, distinct from earliest drinkability. */
     peakFrom: string | null;
     peakUntil: string | null;
-    drinkUntil: string | null;
+    /** Recommended latest drinking year before meaningful decline. */
+    drinkBy: string | null;
+    /** Legacy name retained only for safely reading pre-1.8 profiles. */
+    drinkUntil?: string | null;
     currentMaturity: Maturity | null;
   };
   style: {
@@ -135,7 +138,7 @@ export function emptyWineProfile(): WineProfile {
     sommelier: { occasions: [], pairings: { excellent: [], good: [], avoid: [] }, wineStyle: null, ageingPotential: null, drinkingStage: null, servingPersonality: null },
     tasting: { appearance: null, aromas: [], flavors: [], finish: null },
     serving: { temperature: null, decantAdvice: null },
-    drinking: { drinkFrom: null, peakFrom: null, peakUntil: null, drinkUntil: null, currentMaturity: null },
+    drinking: { drinkFrom: null, peakFrom: null, peakUntil: null, drinkBy: null, currentMaturity: null },
     style: { body: null, acidity: null, tannin: null, sweetness: null, alcohol: null, wineStyle: null },
     foodPairings: [], summary: null, wineryInformation: null, vintageRemarks: null,
   };
